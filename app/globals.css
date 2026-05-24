@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+@theme inline {
+  --color-primary: #6aab8e;
+  --color-primary-foreground: #ffffff;
+  --color-ring: #6aab8e;
+  --color-border: #e5e7eb;
+  --color-background: #ffffff;
+  --color-foreground: #111827;
+  --color-muted: #f3f4f6;
+  --color-muted-foreground: #6b7280;
+  --radius-lg: 0.75rem;
+}
+
 body {
   background: white;
   color: #111827;
@@ -75,4 +87,15 @@ body {
 
 .hero-sale-img {
   animation: hero-sale-image-zoom 1.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.coupon-scallop {
+  height: 10px;
+  background: #16a34a;
+  -webkit-mask: radial-gradient(circle at 8px 10px, transparent 6px, #000 6px) 0 0 / 16px 10px repeat-x;
+  mask: radial-gradient(circle at 8px 10px, transparent 6px, #000 6px) 0 0 / 16px 10px repeat-x;
+}
+
+.coupon-scallop-bottom {
+  transform: rotate(180deg);
 }

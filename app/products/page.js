@@ -1,20 +1,8 @@
-import Link from 'next/link';
-import Image from 'next/image';
 import ProductCard from '../../components/ProductCard';
 import Header from '../../components/Header';
+import { getAllProducts } from '@/lib/products';
 
-// Static mock data for jewellery demonstration
-const mockProducts = [
-  { _id: '1', name: 'Plain Silver Bangles For Women (2 Bangles)', slug: 'plain-silver-bangles-women', price: 599, oldPrice: 1899, discount: 68, category: { name: 'Bangles' }, images: ['/images/product-detail-1.jpg'] },
-  { _id: '2', name: 'Celestial Diamond Ring', slug: 'celestial-diamond-ring', price: 1240, category: { name: 'Rings' }, images: ['/images/product-1.png'] },
-  { _id: '3', name: 'Rose Gold Halo Set', slug: 'rose-gold-halo-set', price: 980, category: { name: 'Sets' }, images: ['/images/product-2.png'] },
-  { _id: '4', name: 'Pearl Grace Pendant', slug: 'pearl-grace-pendant', price: 760, category: { name: 'Pendants' }, images: ['/images/product-3.png'] },
-  { _id: '5', name: 'Midnight Diamond Earrings', slug: 'midnight-diamond-earrings', price: 1450, category: { name: 'Earrings' }, images: ['/images/product-4.png'] },
-  { _id: '6', name: 'Eternal Love Bracelet', slug: 'eternal-love-bracelet', price: 890, category: { name: 'Bracelets' }, images: ['/images/product-5.png'] },
-  { _id: '7', name: 'Royal Sapphire Ring', slug: 'royal-sapphire-ring', price: 2100, category: { name: 'Rings' }, images: ['/images/product-6.png'] },
-  { _id: '8', name: 'Vintage Crystal Necklace', slug: 'vintage-crystal-necklace', price: 1350, category: { name: 'Necklaces' }, images: ['/images/product-7.png'] },
-  { _id: '9', name: 'Diamond Stud Earrings', slug: 'diamond-stud-earrings', price: 680, category: { name: 'Earrings' }, images: ['/images/product-8.png'] },
-];
+const mockProducts = getAllProducts();
 
 export default function ProductsPage() {
   return (

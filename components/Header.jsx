@@ -1,13 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Menu, X, Search, User, ShoppingBag, Heart } from 'lucide-react';
+import { useCartStore } from '@/lib/cart/store';
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const count = 0; // Static cart count for now
+  const [mounted, setMounted] = useState(false);
+  const cartCount = useCartStore((state) => state.getItemCount());
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const count = mounted ? cartCount : 0;
   const wishCount = 0; // Static wishlist count for now
 
   return (

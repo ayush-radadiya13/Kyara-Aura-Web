@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const carouselImages = [
   {
@@ -44,11 +43,8 @@ const carouselImages = [
 
 export default function HeroCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
   useEffect(() => {
-    if (!isAutoPlaying) return;
-
     const interval = setInterval(() => {
       setCurrentIndex((prevIndex) => 
         prevIndex === carouselImages.length - 1 ? 0 : prevIndex + 1
@@ -56,20 +52,9 @@ export default function HeroCarousel() {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [isAutoPlaying]);
-
-  const goToPrevious = () => {
-    setIsAutoPlaying(false);
-    setCurrentIndex(currentIndex === 0 ? carouselImages.length - 1 : currentIndex - 1);
-  };
-
-  const goToNext = () => {
-    setIsAutoPlaying(false);
-    setCurrentIndex(currentIndex === carouselImages.length - 1 ? 0 : currentIndex + 1);
-  };
+  }, []);
 
   const goToSlide = (index) => {
-    setIsAutoPlaying(false);
     setCurrentIndex(index);
   };
 
@@ -105,22 +90,6 @@ export default function HeroCarousel() {
           </div>
         </div>
 
-        {/* Navigation Buttons */}
-        <button
-          onClick={goToPrevious}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white transition-all hover:bg-white/30 hover:scale-110 md:left-4 md:h-12 md:w-12"
-          aria-label="Previous slide"
-        >
-          <ChevronLeft className="h-4 w-4 md:h-6 md:w-6" />
-        </button>
-        
-        <button
-          onClick={goToNext}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white transition-all hover:bg-white/30 hover:scale-110 md:right-4 md:h-12 md:w-12"
-          aria-label="Next slide"
-        >
-          <ChevronRight className="h-4 w-4 md:h-6 md:w-6" />
-        </button>
       </div>
 
       {/* Pagination Dots */}
@@ -139,23 +108,6 @@ export default function HeroCarousel() {
         ))}
       </div>
 
-      {/* Auto-play Toggle */}
-      <button
-        onClick={() => setIsAutoPlaying(!isAutoPlaying)}
-        className="absolute top-2 right-2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white transition-all hover:bg-white/30 md:top-4 md:right-4 md:h-10 md:w-10"
-        aria-label={isAutoPlaying ? 'Pause autoplay' : 'Start autoplay'}
-      >
-        <div className="relative">
-          {isAutoPlaying ? (
-            <div className="flex items-center space-x-0.5 md:space-x-1">
-              <div className="h-2 w-0.5 bg-white animate-pulse md:h-3" />
-              <div className="h-2 w-0.5 bg-white animate-pulse delay-75 md:h-3" />
-            </div>
-          ) : (
-            <div className="h-2 w-2 border-2 border-white md:h-3 md:w-3" />
-          )}
-        </div>
-      </button>
     </section>
   );
 }

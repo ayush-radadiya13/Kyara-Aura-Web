@@ -87,12 +87,12 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(212,163,115,0.08),transparent_60%)]" />
 
         {/* Background Image */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 w-full">
           <Image
-              src="/welcomeiamge.png"
+              src="/assets/welcomebg.jpg"
               alt="Welcome"
               fill
-              className="object-cover opacity-20"
+              className="object-cover opacity-50 w-full"
               priority
           />
         </div>
