@@ -1,4 +1,4 @@
-import { AUTH_API_ROUTES } from "@/lib/routes/auth-routes";
+import { AUTH_API_ROUTES } from "@/lib/routes";
 import { withoutTokenApi } from "@/utils/api";
 
 /**

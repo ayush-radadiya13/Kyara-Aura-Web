@@ -1,6 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "kayraaura.up.railway.app",
+      },
+      {
+        protocol: "https",
+        hostname: "kayraaura.up.railway.app",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

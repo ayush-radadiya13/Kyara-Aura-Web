@@ -28,10 +28,10 @@ export default function AuthField({
   error,
   formType = 'register',
 }) {
+  const [showPassword, setShowPassword] = useState(false);
   const meta = AUTH_FIELD_META[fieldKey];
   if (!meta) return null;
 
-  const [showPassword, setShowPassword] = useState(false);
   const isPassword = meta.type === 'password';
   const Icon = meta.icon ? ICONS[meta.icon] : null;
 

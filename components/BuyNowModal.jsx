@@ -19,7 +19,9 @@ export default function BuyNowModal({
   onSizeChange,
   quantity,
   onQuantityChange,
+  sizeOptions = SIZES,
   onConfirm,
+  confirmLabel = 'BUY NOW',
 }) {
   useEffect(() => {
     if (!open) return;
@@ -66,7 +68,7 @@ export default function BuyNowModal({
         </div>
 
         <div className="grid grid-cols-4 gap-2 mb-4">
-          {SIZES.map((size) => (
+          {sizeOptions.map((size) => (
             <button
               key={size.value}
               type="button"
@@ -125,7 +127,7 @@ export default function BuyNowModal({
             onClick={onConfirm}
             className="flex-1 py-3 rounded font-bold text-sm text-white bg-[#3d2b1f] hover:bg-[#2d2016] transition-colors"
           >
-            BUY NOW
+            {confirmLabel}
           </button>
         </div>
       </div>

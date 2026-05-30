@@ -7,6 +7,7 @@ import AuthField from '@/components/auth/AuthField';
 import { useLogin } from '@/hooks/auth';
 import { useAuthSession } from '@/hooks/auth/use-auth-session';
 import { buildAuthPayload } from '@/lib/auth/fields';
+import { APP_ROUTES, AUTH_PAGE_ROUTES, withRedirect } from '@/lib/routes';
 import { getApiErrorMessage } from '@/utils/api-error';
 import {
   buildAuthFormSchema,
@@ -111,11 +112,11 @@ export default function CartLoginPanel({ fieldKeys, redirectTo = '/cart' }) {
 
         <p className="text-center text-xs text-gray-500">
           By proceeding, I agree to{' '}
-          <Link href="/terms" className="underline underline-offset-2 hover:text-gray-700">
+          <Link href={APP_ROUTES.TERMS} className="underline underline-offset-2 hover:text-gray-700">
             T&amp;C
           </Link>{' '}
           and{' '}
-          <Link href="/privacy" className="underline underline-offset-2 hover:text-gray-700">
+          <Link href={APP_ROUTES.PRIVACY} className="underline underline-offset-2 hover:text-gray-700">
             Privacy Policy
           </Link>
         </p>
@@ -124,7 +125,7 @@ export default function CartLoginPanel({ fieldKeys, redirectTo = '/cart' }) {
       <p className="mt-6 text-center text-sm text-gray-600">
         Don&apos;t have an account?{' '}
         <Link
-          href="/register?from=/cart"
+          href={withRedirect(AUTH_PAGE_ROUTES.REGISTER, APP_ROUTES.CART)}
           className="font-semibold text-gray-900 underline underline-offset-2 hover:text-gray-700"
         >
           Register

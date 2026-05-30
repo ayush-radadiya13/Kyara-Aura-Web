@@ -4,12 +4,14 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { LoaderBlock } from '@/components/ui/loader';
 import AuthField from '@/components/auth/AuthField';
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import { useLogin, useRegister } from '@/hooks/auth';
 import { useAuthSession } from '@/hooks/auth/use-auth-session';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { buildAuthPayload } from '@/lib/auth/fields';
+import { AUTH_PAGE_ROUTES } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { getApiErrorMessage } from '@/utils/api-error';
 import {
@@ -117,9 +119,7 @@ export default function AuthForm({
 
   if (!isHydrated) {
     return (
-      <div className="flex min-h-[320px] w-full max-w-md items-center justify-center">
-        <p className="text-sm text-gray-500">Loading…</p>
-      </div>
+      <LoaderBlock className="min-h-[320px] max-w-md py-0" />
     );
   }
 
@@ -158,7 +158,7 @@ export default function AuthForm({
               Remember me
             </label>
             <Link
-              href="/forgot-password"
+              href={AUTH_PAGE_ROUTES.FORGOT_PASSWORD}
               className="font-medium text-primary hover:text-primary/80"
             >
               Forgot Password?

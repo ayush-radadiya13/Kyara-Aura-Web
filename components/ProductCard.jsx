@@ -4,6 +4,7 @@ import { ShoppingBag } from 'lucide-react';
 
 export default function ProductCard({ product }) {
   const href = `/products/${product.slug}`;
+  const originalPrice = product.oldPrice ?? product.originalPrice;
 
   return (
     <div className="group block rounded-lg glass-card overflow-hidden hover:shadow-gold-glow-sm transition-all duration-300 hover:scale-[1.02]">
@@ -37,10 +38,10 @@ export default function ProductCard({ product }) {
         {/* Price Section */}
         <div className="mt-1.5 sm:mt-2 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-gold">₹{product.price}</p>
-            {product.oldPrice && (
+            <p className="text-sm font-semibold text-gold">₹{product.price?.toLocaleString('en-IN')}</p>
+            {originalPrice && originalPrice > product.price && (
               <>
-                <p className="text-xs text-gray-500 line-through">₹{product.oldPrice}</p>
+                <p className="text-xs text-gray-500 line-through">₹{originalPrice.toLocaleString('en-IN')}</p>
                 {product.discount && (
                   <span className="bg-green-100 text-green-800 px-1.5 py-0.5 rounded text-xs font-semibold">
                     {product.discount}% OFF

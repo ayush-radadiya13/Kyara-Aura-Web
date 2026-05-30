@@ -1,10 +1,12 @@
-import ProductCard from '../../components/ProductCard';
 import Header from '../../components/Header';
-import { getAllProducts } from '@/lib/products';
+import ProductList from '@/components/ProductList';
 
-const mockProducts = getAllProducts();
+export default async function ProductsPage({ searchParams }) {
+  const params = await searchParams;
+  const categoryId = Array.isArray(params?.category)
+    ? params.category[0]
+    : params?.category;
 
-export default function ProductsPage() {
   return (
     <div>
       <Header />
@@ -23,17 +25,7 @@ export default function ProductsPage() {
 
       {/* Products Grid Section */}
       <section className="max-w-7xl mx-auto px-4 pb-20">
-        {mockProducts.length ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
-            {mockProducts.map((product) => (
-              <ProductCard key={product._id} product={product} />
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-600 py-12 text-center">
-            No products available at the moment.
-          </p>
-        )}
+        <ProductList categoryId={categoryId} />
       </section>
     </div>
   );

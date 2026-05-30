@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useForgotPassword } from '@/hooks/auth';
+import { AUTH_PAGE_ROUTES } from '@/lib/routes';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { forgotPasswordSchema } from '@/validations/auth-validation';
 
@@ -89,7 +90,7 @@ export default function ForgotPasswordPage() {
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-600">
-          <Link href="/login" className="font-semibold text-primary hover:text-primary/80">
+          <Link href={AUTH_PAGE_ROUTES.LOGIN} className="font-semibold text-primary hover:text-primary/80">
             Back to login
           </Link>
         </p>

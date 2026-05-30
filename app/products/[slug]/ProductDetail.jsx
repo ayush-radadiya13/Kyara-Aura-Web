@@ -1,77 +1,122 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '../../../components/Header';
-import BuyNowModal from '../../../components/BuyNowModal';
+import CartDrawer from '@/components/cart/CartDrawer';
+import { LoaderBlock } from '@/components/ui/loader';
 import { useCartStore } from '@/lib/cart/store';
+import { useProductBySlug } from '@/hooks/use-products';
+import { addCartItemApi, getCartApi } from '@/services/cart';
 
-export default function ProductDetail({ product }) {
+export default function ProductDetail({ product: initialProduct, slug }) {
   const router = useRouter();
-  const addItem = useCartStore((state) => state.addItem);
+  const setCart = useCartStore((state) => state.setCart);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 50, seconds: 2 });
-  const [quantity, setQuantity] = useState(1);
-  const [isBuyNowOpen, setIsBuyNowOpen] = useState(false);
-  const [selectedSize, setSelectedSize] = useState('2.4');
+  const [quantity, setQuantity] = useState(null);
+  const [bagDrawerOpen, setBagDrawerOpen] = useState(false);
+  const [cartLoading, setCartLoading] = useState(false);
+  const [cartError, setCartError] = useState('');
+  const [selectedSize, setSelectedSize] = useState('');
   const [showFullInfo, setShowFullInfo] = useState(false);
+  const { data: fetchedProduct, isLoading, isError } = useProductBySlug(slug, {
+    enabled: !initialProduct && Boolean(slug),
+  });
+  const product = initialProduct ?? fetchedProduct;
 
-  const sizeOptions = [
-    { value: '2.4', label: '2.4 (Small)' },
-    { value: '2.6', label: '2.6 (Regular)' },
-    { value: '2.8', label: '2.8 (Medium)' },
-    { value: '2.10', label: '2.10 (Large)' },
-    { value: '2.12', label: '2.12 (Largest)' },
-  ];
+  const sizeOptions = useMemo(() => {
+    const apiSizeOptions = product?.sizes?.map((size) => ({
+      value: size.value,
+      label: size.label,
+      id: size.id,
+      price: size.price,
+      quantity: size.quantity,
+    })).filter((size) => size.value);
 
-  const productImages = product.gallery;
+    return apiSizeOptions ?? [];
+  }, [product?.sizes]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) {
-          return { ...prev, seconds: prev.seconds - 1 };
-        }
-        if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        }
-        if (prev.hours > 0) {
-          return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        }
-        return prev;
+  const productImages = product?.gallery ?? [];
+  const activeSize = sizeOptions.some((option) => option.value === selectedSize) ? selectedSize : '';
+  const selectedSizeOption = sizeOptions.find((option) => option.value === activeSize);
+  const selectedQuantity = Number(quantity) || 0;
+  const quantityLimit = selectedSizeOption?.quantity > 0 ? selectedSizeOption.quantity : null;
+  const canSubmit = Boolean(selectedSizeOption?.id && selectedQuantity > 0);
+
+  if (isLoading) {
+    return (
+      <div>
+        <Header />
+        <section className="max-w-7xl mx-auto px-4 py-16">
+          <LoaderBlock className="py-0" />
+        </section>
+      </div>
+    );
+  }
+
+  if (isError || !product) {
+    return (
+      <div>
+        <Header />
+        <section className="max-w-7xl mx-auto px-4 py-16">
+          <p className="text-gray-600">Product not found.</p>
+        </section>
+      </div>
+    );
+  }
+
+  const selectedPrice = selectedSizeOption?.price || product.price;
+  const selectedOriginalPrice =
+    product.discount > 0 && product.discount < 100
+      ? Math.round(selectedPrice / (1 - product.discount / 100))
+      : product.originalPrice;
+
+  const refreshCart = async () => {
+    const cart = await getCartApi();
+    setCart(cart);
+  };
+
+  const addCurrentToBag = async () => {
+    if (!selectedSizeOption?.id) {
+      setCartError('Please select a valid size before adding this product to your bag.');
+      setBagDrawerOpen(true);
+      return false;
+    }
+
+    if (selectedQuantity < 1) {
+      setCartError('Please select a quantity before adding this product to your bag.');
+      setBagDrawerOpen(true);
+      return false;
+    }
+
+    setCartError('');
+    setCartLoading(true);
+    setBagDrawerOpen(true);
+
+    try {
+      await addCartItemApi({
+        product_size_id: selectedSizeOption.id,
+        quantity: selectedQuantity,
       });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatTime = (time) => time.toString().padStart(2, '0');
-
-  const getSizeLabel = (sizeValue) =>
-    sizeOptions.find((option) => option.value === sizeValue)?.label ?? sizeValue;
-
-  const addCurrentToBag = () => {
-    addItem({
-      slug: product.slug,
-      title: product.name,
-      image: productImages[0],
-      size: selectedSize,
-      sizeLabel: getSizeLabel(selectedSize),
-      quantity,
-      price: product.price,
-      originalPrice: product.originalPrice,
-    });
+      await refreshCart();
+      return true;
+    } catch (error) {
+      setCartError(error?.response?.data?.message || error?.message || 'Unable to add this product to your bag.');
+      return false;
+    } finally {
+      setCartLoading(false);
+    }
   };
 
-  const handleBuyNowConfirm = () => {
-    addCurrentToBag();
-    setIsBuyNowOpen(false);
-    router.push('/cart');
+  const handleBuyNow = async () => {
+    const added = await addCurrentToBag();
+    if (added) router.push('/cart');
   };
 
-  const formattedOriginalPrice = product.originalPrice.toLocaleString('en-IN');
-  const lowCouponPrice = Math.max(product.price - 100, 1);
+  const formattedOriginalPrice = selectedOriginalPrice.toLocaleString('en-IN');
+  const formattedPrice = selectedPrice.toLocaleString('en-IN');
+  const lowCouponPrice = Math.max(selectedPrice - 100, 1);
 
   return (
     <div>
@@ -129,30 +174,11 @@ export default function ProductDetail({ product }) {
 
             <div className="space-y-4">
               <div className="flex flex-wrap items-baseline gap-2">
-                <span className="text-3xl font-bold text-gray-900">₹{product.price}</span>
+                <span className="text-3xl font-bold text-gray-900">₹{formattedPrice}</span>
                 <span className="text-lg text-gray-400 line-through">₹{formattedOriginalPrice}</span>
                 {product.discount > 0 && (
                   <span className="text-base font-semibold text-green-600">{product.discount}% Off</span>
                 )}
-              </div>
-
-              <div className="bg-gray-100 rounded-md px-4 py-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-gray-800">Hurry Up, Shop Now!</span>
-                  <div className="flex items-center gap-1.5 text-gray-700 font-medium">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <span className="font-mono tabular-nums">
-                      {formatTime(timeLeft.hours)}H:{formatTime(timeLeft.minutes)}M:{formatTime(timeLeft.seconds)}S
-                    </span>
-                  </div>
-                </div>
               </div>
 
               <button
@@ -226,36 +252,9 @@ export default function ProductDetail({ product }) {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-1">
-              <button
-                type="button"
-                onClick={addCurrentToBag}
-                className="flex-1 bg-white border-2 border-gray-900 text-gray-900 py-3.5 rounded font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                  />
-                </svg>
-                Add to bag
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsBuyNowOpen(true)}
-                className="flex-1 bg-[#5c2e2e] text-white py-3.5 rounded font-semibold hover:bg-[#4a2525] transition-colors"
-              >
-                Buy Now
-              </button>
-            </div>
-
-            <div className="space-y-2 pt-1">
-              <div className="flex items-center justify-between">
-                <label htmlFor="product-size" className="text-sm font-bold text-gray-900">
-                  Size
-                </label>
+            <div className="space-y-3 pt-1">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-bold text-gray-900">Size</span>
                 <button
                   type="button"
                   className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 transition-colors"
@@ -271,51 +270,95 @@ export default function ProductDetail({ product }) {
                   Size Chart
                 </button>
               </div>
-              <div className="relative">
-                <select
-                  id="product-size"
-                  value={selectedSize}
-                  onChange={(e) => setSelectedSize(e.target.value)}
-                  className="w-full appearance-none border border-gray-300 rounded px-4 py-3 pr-10 text-sm text-gray-900 bg-white focus:outline-none focus:border-gray-500"
-                >
-                  {sizeOptions.map((size) => (
-                    <option key={size.value} value={size.value}>
-                      {size.label}
-                    </option>
-                  ))}
-                </select>
-                <svg
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
+
+              {sizeOptions.length ? (
+                <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Select size">
+                  {sizeOptions.map((size) => {
+                    const isSelected = activeSize === size.value;
+
+                    return (
+                      <button
+                        key={size.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={isSelected}
+                        onClick={() => setSelectedSize(size.value)}
+                        className={`min-w-20 rounded-md px-4 py-3 text-sm font-medium transition-all ${
+                          isSelected
+                            ? 'bg-gray-900 text-white shadow-sm'
+                            : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                        }`}
+                      >
+                        {size.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No sizes available for this product.</p>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-4 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <span className="text-sm font-bold text-gray-900">Select Quantity</span>
+                  <p className="text-xs text-gray-500">Choose how many pieces you want.</p>
+                </div>
+                <div className="inline-flex w-fit items-center rounded-full bg-gray-900 p-1 shadow-inner">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.max(0, (q ?? 1) - 1) || null)}
+                    disabled={!quantity}
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-lg font-semibold text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Decrease quantity"
+                  >
+                    -
+                  </button>
+                  <span className="min-w-16 px-3 text-center text-sm font-bold text-white">
+                    {quantity ? quantity : 'Qty'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => {
+                      const nextQuantity = (q ?? 0) + 1;
+                      return quantityLimit ? Math.min(nextQuantity, quantityLimit) : nextQuantity;
+                    })}
+                    disabled={Boolean(quantityLimit && quantity >= quantityLimit)}
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg font-semibold text-gray-900 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <span className="text-sm font-bold text-gray-900">Quantity</span>
-              <div className="inline-flex items-center border border-gray-300 rounded overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="w-9 h-9 flex items-center justify-center text-gray-700 hover:bg-gray-50 border-r border-gray-300 transition-colors"
-                  aria-label="Decrease quantity"
-                >
-                  −
-                </button>
-                <span className="w-10 text-center text-sm font-medium text-gray-900">{quantity}</span>
-                <button
-                  type="button"
-                  onClick={() => setQuantity((q) => q + 1)}
-                  className="w-9 h-9 flex items-center justify-center text-gray-700 hover:bg-gray-50 border-l border-gray-300 transition-colors"
-                  aria-label="Increase quantity"
-                >
-                  +
-                </button>
-              </div>
+            <div className="flex flex-col gap-3 pt-1">
+              <button
+                type="button"
+                onClick={addCurrentToBag}
+                disabled={cartLoading || !canSubmit}
+                className="w-full bg-white border-2 border-gray-900 text-gray-900 py-3.5 rounded font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-white"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  />
+                </svg>
+                {cartLoading ? 'Adding...' : 'Add to bag'}
+              </button>
+              <button
+                type="button"
+                onClick={handleBuyNow}
+                disabled={cartLoading || !canSubmit}
+                className="w-full bg-[#5c2e2e] text-white py-3.5 rounded font-semibold hover:bg-[#4a2525] transition-colors disabled:cursor-not-allowed disabled:bg-gray-300"
+              >
+                Buy Now
+              </button>
             </div>
 
             <div className="pt-1">
@@ -381,14 +424,11 @@ export default function ProductDetail({ product }) {
         </div>
       </div>
 
-      <BuyNowModal
-        open={isBuyNowOpen}
-        onClose={() => setIsBuyNowOpen(false)}
-        selectedSize={selectedSize}
-        onSizeChange={setSelectedSize}
-        quantity={quantity}
-        onQuantityChange={setQuantity}
-        onConfirm={handleBuyNowConfirm}
+      <CartDrawer
+        open={bagDrawerOpen}
+        onClose={() => setBagDrawerOpen(false)}
+        isLoading={cartLoading}
+        error={cartError}
       />
     </div>
   );
