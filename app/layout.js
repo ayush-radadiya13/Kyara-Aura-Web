@@ -2,7 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "@/providers/query-provider";
 import SmoothScrollProvider from "@/providers/smooth-scroll-provider";
-import Footer from "@/components/Footer";
+import ConditionalFooter from "@/components/ConditionalFooter";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,7 +31,7 @@ export default function RootLayout({ children }) {
           <SmoothScrollProvider>
             <div className="flex min-h-screen flex-col">
               <div className="flex-1">{children}</div>
-              <Footer />
+              <ConditionalFooter />
             </div>
           </SmoothScrollProvider>
         </QueryProvider>

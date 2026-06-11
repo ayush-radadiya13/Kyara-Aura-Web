@@ -6,12 +6,11 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { LoaderBlock } from '@/components/ui/loader';
 import AuthField from '@/components/auth/AuthField';
-import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import { useLogin, useRegister } from '@/hooks/auth';
 import { useAuthSession } from '@/hooks/auth/use-auth-session';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { buildAuthPayload } from '@/lib/auth/fields';
-import { AUTH_PAGE_ROUTES } from '@/lib/routes';
+import { APP_ROUTES, AUTH_PAGE_ROUTES, withRedirect } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { getApiErrorMessage } from '@/utils/api-error';
 import {
@@ -26,9 +25,9 @@ import {
  *   title: string;
  *   subtitle: string;
  *   submitLabel: string;
- *   footerHref: string;
- *   footerText: string;
- *   footerLinkText: string;
+ *   footerHref?: string;
+ *   footerText?: string;
+ *   footerLinkText?: string;
  *   redirectTo?: string;
  * }} props
  */
@@ -159,7 +158,7 @@ export default function AuthForm({
             </label>
             <Link
               href={AUTH_PAGE_ROUTES.FORGOT_PASSWORD}
-              className="font-medium text-primary hover:text-primary/80"
+              className="font-medium !text-[#0C1126] hover:text-primary/80"
             >
               Forgot Password?
             </Link>
@@ -178,23 +177,43 @@ export default function AuthForm({
           disabled={isSubmitting}
           className={cn(
             'h-12 w-full rounded-none text-base font-semibold',
-            'bg-primary text-primary-foreground hover:bg-primary/90',
+            '!bg-[#C99B4D] text-primary-foreground hover:!bg-[#C99B4D]/90',
           )}
         >
           {isSubmitting ? 'Please wait…' : submitLabel}
         </Button>
+
+        <div className="space-y-3 text-center text-sm">
+          {formType === 'login' ? (
+            <p className="text-gray-600">
+              Don&apos;t have an account?{' '}
+              <Link
+                href={withRedirect(AUTH_PAGE_ROUTES.REGISTER, redirectTo)}
+                className="font-semibold text-primary hover:text-primary/80"
+              >
+                Register
+              </Link>
+            </p>
+          ) : null}
+          <Link
+            href={APP_ROUTES.HOME}
+            className="block font-semibold text-primary hover:text-primary/80"
+          >
+            Go to Home
+          </Link>
+        </div>
       </form>
 
-      <div className="mt-8">
-        <SocialAuthButtons />
-      </div>
 
-      <p className="mt-8 text-center text-sm text-gray-600">
-        {footerText}{' '}
-        <Link href={footerHref} className="font-semibold text-primary hover:text-primary/80">
-          {footerLinkText}
-        </Link>
-      </p>
+
+      {footerHref && footerText && footerLinkText ? (
+        <p className="mt-8 text-center text-sm text-gray-600">
+          {footerText}{' '}
+          <Link href={footerHref} className="font-semibold text-primary hover:text-primary/80">
+            {footerLinkText}
+          </Link>
+        </p>
+      ) : null}
     </div>
   );
 }

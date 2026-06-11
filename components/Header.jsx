@@ -65,8 +65,8 @@ export default function Header({ variant = 'default' }) {
     ? 'rounded-full px-3 py-2 text-[13px] font-semibold uppercase tracking-[0.18em] text-gray-950/80 transition-all duration-300 hover:bg-white/55 hover:text-gray-950 dark:text-gray-950/80 dark:hover:bg-white/55 dark:hover:text-gray-950'
     : 'rounded-full px-3 py-2 text-gray-700/90 transition-all duration-300 hover:bg-white/55 hover:text-gold dark:text-gray-700/90 dark:hover:bg-white/55 dark:hover:text-gold';
   const iconClassName = isHomeOverlay
-    ? 'rounded-full p-2 text-gray-950/80 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/55 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-gold/30 dark:text-gray-950/80 dark:hover:bg-white/55 dark:hover:text-gray-950'
-    : 'rounded-full p-2 text-gray-700 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/55 hover:text-gold focus:outline-none focus:ring-2 focus:ring-gold/30 dark:text-gray-700 dark:hover:bg-white/55 dark:hover:text-gold';
+    ? 'inline-flex items-center justify-center rounded-full p-2 text-gray-950 opacity-100 drop-shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/55 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-gold/30 dark:text-gray-950 dark:hover:bg-white/55 dark:hover:text-gray-950'
+    : 'inline-flex items-center justify-center rounded-full p-2 text-gray-950 opacity-100 drop-shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/55 hover:text-gold focus:outline-none focus:ring-2 focus:ring-gold/30 dark:text-gray-950 dark:hover:bg-white/55 dark:hover:text-gold';
 
   useEffect(() => {
     if (!showAuthenticatedActions) return;
@@ -226,7 +226,7 @@ export default function Header({ variant = 'default' }) {
               >
                 <Icon className="h-5 w-5" />
                 {itemCount > 0 && (
-                  <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[10px] font-semibold text-white shadow-lg shadow-gold/30">
+                  <span className="absolute right-0 top-0 flex h-4 w-4 items-center  justify-center rounded-full !bg-[#2C2C2E] text-[10px] font-semibold text-white shadow-lg shadow-gold/30">
                     {itemCount > 99 ? '99+' : itemCount}
                   </span>
                 )}

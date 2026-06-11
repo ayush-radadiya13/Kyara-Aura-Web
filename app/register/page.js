@@ -1,8 +1,6 @@
-import Header from '@/components/Header';
 import AuthForm from '@/components/auth/AuthForm';
 import AuthSplitLayout from '@/components/auth/AuthSplitLayout';
 import { getAuthFieldKeys } from '@/lib/auth/get-auth-field-keys';
-import { AUTH_PAGE_ROUTES, withRedirect } from '@/lib/routes';
 
 export const metadata = {
   title: 'Create Account | Kyara Aura',
@@ -19,14 +17,14 @@ export default async function RegisterPage({ searchParams }) {
   const fieldKeys = await getAuthFieldKeys('register');
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex flex-1 items-center justify-center px-4 py-10 sm:py-14">
+    <div className="flex h-screen flex-col overflow-hidden">
+      <main className="flex flex-1 items-center justify-center overflow-hidden px-4 py-4 sm:py-6">
         <AuthSplitLayout
-          imageSrc="/images/product-7.png"
-          imageAlt="Elegant Kyara Aura necklace"
-          eyebrow="Join us"
-          headline="Create an account and discover pieces made to shine."
+          videoSrc="/vedio/logo_animation.mp4"
+          videoLabel="Kyara Aura logo animation"
+          eyebrow=""
+          headline=""
+          mediaClassName="h-[200px] min-h-[200px] w-full self-center sm:min-h-[200px] lg:min-h-[200px]"
         >
           <AuthForm
             formType="register"
@@ -34,9 +32,6 @@ export default async function RegisterPage({ searchParams }) {
             title="Create New Account"
             subtitle=""
             submitLabel="Create Account"
-            footerHref={withRedirect(AUTH_PAGE_ROUTES.LOGIN, redirectTo)}
-            footerText="Already have an account?"
-            footerLinkText="Login"
             redirectTo={redirectTo}
           />
         </AuthSplitLayout>
