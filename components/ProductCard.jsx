@@ -1,15 +1,125 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { useState } from 'react';
 import { Heart, ShoppingBag } from 'lucide-react';
+import CartDrawer from '@/components/cart/CartDrawer';
+import WishlistButton from '@/components/WishlistButton';
+import { useCartStore } from '@/lib/cart/store';
+import { addCartItemApi, getCartApi } from '@/services/cart';
 
-export default function ProductCard({ product, variant = 'default' }) {
+function imageUrlFromValue(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  return value.image_url || value.image_path || '';
+}
+
+function getProductImageSrc(product) {
+  const imageSources = [product.images, product.image, product.product_images, product.productImages];
+  const imageList = imageSources.find((source) => Array.isArray(source) && source.length);
+  const primaryImage = imageList?.find((image) => image?.is_primary) ?? imageList?.[0];
+
+  return (
+    imageUrlFromValue(primaryImage) ||
+    imageUrlFromValue(product.image) ||
+    product.image_url ||
+    product.image_path ||
+    ''
+  );
+}
+
+function getQuickAddSize(product) {
+  const sizes = Array.isArray(product?.sizes) ? product.sizes : [];
+  return sizes.find((size) => size.id && size.quantity !== 0) ?? sizes.find((size) => size.id);
+}
+
+export default function ProductCard({
+  product,
+  variant = 'default',
+  wishlistActive = false,
+  wishlistItemId,
+  onWishlistClick,
+  wishlistBusy = false,
+}) {
+  const setCart = useCartStore((state) => state.setCart);
+  const [bagDrawerOpen, setBagDrawerOpen] = useState(false);
+  const [cartLoading, setCartLoading] = useState(false);
+  const [cartError, setCartError] = useState('');
   const href = `/products/${product.slug}`;
   const originalPrice = product.oldPrice ?? product.originalPrice;
+  const productImageSrc = getProductImageSrc(product);
+  const isRemoteProductImage = productImageSrc.startsWith('http');
+  const productId = product.id ?? product._id;
+  const wishlistLabel = wishlistActive ? 'Remove from wishlist' : 'Add to wishlist';
+  const quickAddSize = getQuickAddSize(product);
+
+  const handleQuickAddToBag = async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setBagDrawerOpen(true);
+
+    if (!quickAddSize?.id) {
+      setCartError('Please select a size on the product page before adding this item.');
+      return;
+    }
+
+    setCartError('');
+    setCartLoading(true);
+
+    try {
+      await addCartItemApi({
+        product_size_id: quickAddSize.id,
+        quantity: 1,
+      });
+      const cart = await getCartApi();
+      setCart(cart);
+    } catch (error) {
+      setCartError(error?.response?.data?.message || error?.message || 'Unable to add this product to your bag.');
+    } finally {
+      setCartLoading(false);
+    }
+  };
+
+  const renderWishlistButton = (className) => {
+    if (onWishlistClick) {
+      return (
+        <button
+          type="button"
+          aria-label={wishlistLabel}
+          title={wishlistLabel}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onWishlistClick(product);
+          }}
+          disabled={wishlistBusy}
+          className={className}
+        >
+          <Heart
+            className="h-4 w-4"
+            fill={wishlistActive ? 'currentColor' : 'none'}
+            strokeWidth={1.8}
+          />
+        </button>
+      );
+    }
+
+    return (
+      <WishlistButton
+        productId={productId}
+        wishlistItemId={wishlistItemId}
+        initialActive={wishlistActive}
+        className={className}
+      />
+    );
+  };
 
   if (variant === 'editorial' || variant === 'catalog') {
     const isCatalog = variant === 'catalog';
 
     return (
+      <>
       <div className="group relative block">
         <div className="relative aspect-square overflow-hidden bg-[#faf9f7]">
           <Link href={href} className="absolute inset-0 z-[1]" aria-label={product.name} />
@@ -19,27 +129,19 @@ export default function ProductCard({ product, variant = 'default' }) {
             </span>
           )}
           <div className="absolute right-5 top-5 z-20 flex flex-col gap-3 opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
-            {[
-              { label: 'Add to wishlist', Icon: Heart },
-            ].map(({ label, Icon }) => (
-              <button
-                key={label}
-                type="button"
-                aria-label={label}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-800 shadow-sm transition hover:bg-gray-950 hover:text-white"
-              >
-                <Icon className="h-4 w-4" />
-              </button>
-            ))}
+            {renderWishlistButton(
+              'flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-800 shadow-sm transition hover:bg-gray-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-60',
+            )}
           </div>
 
-          <div className="relative flex h-full w-full items-center justify-center p-8">
-            {product.images?.[0] ? (
+          <div className="relative flex h-full w-full items-center justify-center">
+            {productImageSrc ? (
               <Image
-                src={product.images[0]}
+                src={productImageSrc}
                 alt={product.name}
                 fill
-                className="object-contain p-7 transition duration-500 group-hover:scale-[1.03]"
+                unoptimized={isRemoteProductImage}
+                className="object-contain transition duration-500 group-hover:scale-[1.03]"
                 sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"
               />
             ) : (
@@ -49,9 +151,11 @@ export default function ProductCard({ product, variant = 'default' }) {
 
           <button
             type="button"
+            onClick={handleQuickAddToBag}
+            disabled={cartLoading}
             className={`${isCatalog ? 'inset-x-5 bottom-5 bg-white py-2 text-gray-950 shadow-sm' : 'inset-x-0 bottom-0 bg-gray-950 py-4 text-white'} absolute z-20 translate-y-full text-sm font-semibold uppercase  transition duration-300 group-hover:translate-y-0`}
           >
-            Add to Cart
+            {cartLoading ? 'Adding...' : 'Add to Cart'}
           </button>
         </div>
 
@@ -67,21 +171,30 @@ export default function ProductCard({ product, variant = 'default' }) {
           </div>
         </div>
       </div>
+      <CartDrawer
+        open={bagDrawerOpen}
+        onClose={() => setBagDrawerOpen(false)}
+        isLoading={cartLoading}
+        error={cartError}
+      />
+      </>
     );
   }
 
   return (
+    <>
     <div className="group block rounded-lg glass-card overflow-hidden hover:shadow-gold-glow-sm transition-all duration-300 hover:scale-[1.02]">
       <div
         className="relative w-full h-40 sm:h-48 md:h-52 lg:h-56 p-2 sm:p-3 bg-gradient-to-b from-gray-50 via-gray-100 to-white shadow-[inset_0_0_32px_rgba(0,0,0,0.05)]"
       >
         <Link href={href} className="absolute inset-0 z-[1]" aria-label={product.name} />
         <div className="relative z-0 flex h-full w-full items-center justify-center">
-          {product.images?.[0] ? (
+          {productImageSrc ? (
             <Image
-              src={product.images[0]}
+              src={productImageSrc}
               alt={product.name}
               fill
+              unoptimized={isRemoteProductImage}
               className="object-contain object-center p-0.5 group-hover:scale-[1.03] transition duration-500"
               sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 20vw"
             />
@@ -90,9 +203,9 @@ export default function ProductCard({ product, variant = 'default' }) {
           )}
         </div>
         <div className="absolute top-1 right-1 z-20">
-          <button className="text-gray-400 hover:text-red-500 transition-colors">
-            <span className="text-xl sm:text-2xl">♡</span>
-          </button>
+          {renderWishlistButton(
+            'flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-gray-400 shadow-sm transition-colors hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-60',
+          )}
         </div>
       </div>
       <div className="p-2 sm:p-3">
@@ -117,12 +230,24 @@ export default function ProductCard({ product, variant = 'default' }) {
         </div>
 
         {/* Add to Bag Button */}
-        <button className="mt-2 sm:mt-3 w-full btn-gold py-1.5 sm:py-2 text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 sm:gap-2 hover:scale-[1.02] transition-transform">
+        <button
+          type="button"
+          onClick={handleQuickAddToBag}
+          disabled={cartLoading}
+          className="mt-2 sm:mt-3 w-full btn-gold py-1.5 sm:py-2 text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 sm:gap-2 hover:scale-[1.02] transition-transform disabled:cursor-not-allowed disabled:opacity-60"
+        >
           <ShoppingBag className="h-3 w-3 sm:h-4 sm:w-4" />
-          <span className="hidden sm:inline">Add to Bag</span>
-          <span className="sm:hidden">Bag</span>
+          <span className="hidden sm:inline">{cartLoading ? 'Adding...' : 'Add to Bag'}</span>
+          <span className="sm:hidden">{cartLoading ? 'Adding' : 'Bag'}</span>
         </button>
       </div>
     </div>
+    <CartDrawer
+      open={bagDrawerOpen}
+      onClose={() => setBagDrawerOpen(false)}
+      isLoading={cartLoading}
+      error={cartError}
+    />
+    </>
   );
 }

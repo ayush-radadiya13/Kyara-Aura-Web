@@ -192,7 +192,7 @@ export default function CartDrawer({ open, onClose, isLoading = false, error = '
             View Bag
           </Link>
           <Link
-            href={APP_ROUTES.CART}
+            href={APP_ROUTES.PAYMENT_METHOD}
             onClick={onClose}
             className="block w-full bg-gray-950 py-3 text-center text-base font-bold text-white transition-colors hover:bg-gray-800"
           >

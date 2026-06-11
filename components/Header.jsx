@@ -1,9 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Menu, X, Search, User, ShoppingBag, Heart } from 'lucide-react';
 import { useLogout } from '@/hooks/auth';
+import { useWishlist } from '@/hooks/use-wishlist';
 import { useCartStore } from '@/lib/cart/store';
 import { APP_ROUTES, AUTH_PAGE_ROUTES } from '@/lib/routes';
 import { useAuthStore } from '@/store/auth-store';
@@ -34,35 +37,36 @@ const MOBILE_ICON_ITEMS = [
 ];
 
 export default function Header({ variant = 'default' }) {
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [accountMenuVisible, setAccountMenuVisible] = useState(false);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isHydrated = useAuthStore((state) => state.isHydrated);
   const logoutMutation = useLogout();
   const count = useCartStore((state) => state.itemCount || state.items.reduce((total, item) => total + item.quantity, 0));
   const setCart = useCartStore((state) => state.setCart);
-  const wishCount = 0; // Static wishlist count for now
+  const showAuthenticatedActions = isHydrated && isAuthenticated;
+  const wishlistQuery = useWishlist({ enabled: showAuthenticatedActions });
+  const wishCount = wishlistQuery.data?.length ?? 0;
   const actionCounts = {
     cartCount: count,
     wishCount,
   };
-  const showAuthenticatedActions = isHydrated && isAuthenticated;
   const isHomeOverlay = variant === 'homeOverlay';
-  const headerClassName = isHomeOverlay
-    ? 'fixed inset-x-0 top-0 z-50 border-b border-black/10 bg-transparent text-black'
-    : 'fixed inset-x-0 top-0 z-50 header-glass border-b border-gray-200/50';
-  const shellClassName = isHomeOverlay
-    ? 'max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between'
-    : 'max-w-8xl mx-auto px-4 h-16 flex items-center justify-between';
+  const isHomePage = pathname === APP_ROUTES.HOME;
+  const headerClassName = 'pointer-events-none fixed left-4 right-4 top-2 z-50';
+  const shellClassName =
+    'header-glass pointer-events-auto mx-auto flex h-14 max-w-8xl items-center justify-between rounded-full px-4 transition-all duration-500 ease-out hover:-translate-y-0.5 sm:px-6 motion-reduce:transition-none motion-reduce:hover:translate-y-0';
   const logoClassName = isHomeOverlay
-    ? 'font-display text-lg tracking-[0.2em] text-black transition-colors duration-300 hover:text-black/70'
-    : 'font-display text-xl tracking-wide text-gray-900 hover:text-gold transition-colors duration-300';
+    ? 'relative block h-12 w-40 overflow-hidden rounded-full transition-opacity duration-300 hover:opacity-80 sm:w-48'
+    : 'relative block h-11 w-36 overflow-hidden rounded-full transition-opacity duration-300 hover:opacity-80 sm:w-44';
   const navLinkClassName = isHomeOverlay
-    ? 'text-[14px] font-semibold uppercase tracking-[0.18em] text-black/85 hover:text-black transition-colors'
-    : 'text-gray-700 hover:text-gold transition-colors';
+    ? 'rounded-full px-3 py-2 text-[13px] font-semibold uppercase tracking-[0.18em] text-gray-950/80 transition-all duration-300 hover:bg-white/55 hover:text-gray-950 dark:text-gray-950/80 dark:hover:bg-white/55 dark:hover:text-gray-950'
+    : 'rounded-full px-3 py-2 text-gray-700/90 transition-all duration-300 hover:bg-white/55 hover:text-gold dark:text-gray-700/90 dark:hover:bg-white/55 dark:hover:text-gold';
   const iconClassName = isHomeOverlay
-    ? 'text-black/85 hover:text-black transition-colors'
-    : 'text-gray-600 hover:text-gold transition-colors';
+    ? 'rounded-full p-2 text-gray-950/80 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/55 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-gold/30 dark:text-gray-950/80 dark:hover:bg-white/55 dark:hover:text-gray-950'
+    : 'rounded-full p-2 text-gray-700 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/55 hover:text-gold focus:outline-none focus:ring-2 focus:ring-gold/30 dark:text-gray-700 dark:hover:bg-white/55 dark:hover:text-gold';
 
   useEffect(() => {
     if (!showAuthenticatedActions) return;
@@ -78,6 +82,19 @@ export default function Header({ variant = 'default' }) {
       isCurrent = false;
     };
   }, [setCart, showAuthenticatedActions]);
+
+  useEffect(() => {
+    if (accountOpen) {
+      setAccountMenuVisible(true);
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setAccountMenuVisible(false);
+    }, 180);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [accountOpen]);
 
   const handleLogout = () => {
     logoutMutation.mutate();
@@ -138,7 +155,14 @@ export default function Header({ variant = 'default' }) {
               href={APP_ROUTES.HOME}
               className={logoClassName}
             >
-              Kyara<span className="text-gold">-Aura</span>
+              <Image
+                src="/assets/ka1.png"
+                alt="Kyara Aura"
+                fill
+                className="object-cover object-center"
+                sizes="(max-width: 640px) 144px, 176px"
+                priority
+              />
             </Link>
           )}
         </div>
@@ -146,14 +170,21 @@ export default function Header({ variant = 'default' }) {
         {isHomeOverlay && (
           <div className="flex flex-1 justify-start md:flex-none md:justify-center">
             <Link href={APP_ROUTES.HOME} className={logoClassName}>
-              Kyara<span className="text-black">-Aura</span>
+              <Image
+                src="/assets/ka1.png"
+                alt="Kyara Aura"
+                fill
+                className="object-cover object-center"
+                sizes="(max-width: 640px) 160px, 192px"
+                priority
+              />
             </Link>
           </div>
         )}
 
         {/* CENTER - Desktop Navigation */}
         {!isHomeOverlay && (
-          <nav className="hidden md:flex items-center gap-10 text-sm font-medium">
+          <nav className="hidden items-center gap-2 text-sm font-medium md:flex">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
@@ -167,7 +198,7 @@ export default function Header({ variant = 'default' }) {
         )}
 
         {/* RIGHT - Desktop Actions */}
-        <div className={isHomeOverlay ? 'hidden md:flex md:w-5/12 items-center justify-end gap-4' : 'hidden md:flex items-center gap-4'}>
+        <div className={isHomeOverlay ? 'hidden items-center justify-end gap-1 md:flex md:w-5/12' : 'hidden items-center gap-1 md:flex'}>
 
           {HEADER_ICON_ITEMS.map(({ key, label, href, Icon, type, countKey }) => {
 
@@ -190,12 +221,12 @@ export default function Header({ variant = 'default' }) {
               <Link
                 key={key}
                 href={href}
-                className={`relative ${isHomeOverlay ? 'hover:text-black' : 'hover:text-gold'} transition-colors`}
+                className={`relative ${iconClassName}`}
                 aria-label={itemCount > 0 ? `${label}, ${itemCount} items` : label}
               >
                 <Icon className="h-5 w-5" />
                 {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 text-xs font-semibold bg-gold text-white rounded-full h-4 w-4 flex items-center justify-center">
+                  <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[10px] font-semibold text-white shadow-lg shadow-gold/30">
                     {itemCount > 99 ? '99+' : itemCount}
                   </span>
                 )}
@@ -210,15 +241,22 @@ export default function Header({ variant = 'default' }) {
               onClick={() => setAccountOpen(!accountOpen)}
               className={iconClassName}
               aria-label="Account"
+              aria-expanded={accountOpen}
             >
               <User className="h-5 w-5" />
             </button>
 
-            {accountOpen && (
-              <div className="absolute right-0 mt-2 w-40 glass-card rounded-xl overflow-hidden z-50">
+            {(accountOpen || accountMenuVisible) && (
+              <div
+                className={`header-menu-glass header-menu-dropdown right-0 z-50 mt-3 w-44 overflow-hidden rounded-2xl ${
+                  accountOpen
+                    ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
+                    : 'pointer-events-none -translate-y-2 scale-95 opacity-0'
+                }`}
+              >
                 {renderAccountActions(
-                  'block px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-700',
-                  'block w-full px-4 py-2.5 text-left hover:bg-gray-50 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-60',
+                  'block px-4 py-2.5 text-sm text-gray-700 transition-colors hover:bg-white/55 hover:text-gold dark:text-gray-700 dark:hover:bg-white/55 dark:hover:text-gold',
+                  'block w-full px-4 py-2.5 text-left text-sm text-gray-700 transition-colors hover:bg-white/55 hover:text-gold disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-700 dark:hover:bg-white/55 dark:hover:text-gold',
                 )}
               </div>
             )}
@@ -226,7 +264,7 @@ export default function Header({ variant = 'default' }) {
         </div>
 
         {/* Mobile Actions */}
-        <div className="flex md:hidden items-center gap-3">
+        <div className="flex items-center gap-1 md:hidden">
           {/* Search */}
           <button
             type="button"
@@ -239,12 +277,12 @@ export default function Header({ variant = 'default' }) {
           {/* Cart */}
           <Link
             href={APP_ROUTES.CART}
-            className={`relative ${isHomeOverlay ? 'hover:text-black' : 'hover:text-gold'} transition-colors`}
+            className={`relative ${iconClassName}`}
             aria-label={count > 0 ? `Cart, ${count} items` : 'Cart'}
           >
             <ShoppingBag className="h-5 w-5" />
             {count > 0 && (
-              <span className="absolute -top-1 -right-1 text-xs bg-black rounded-full font-semibold bg-gold text-white  h-4 w-4 flex items-center justify-center">
+              <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[10px] font-semibold text-white shadow-lg shadow-gold/30">
                 {count > 99 ? '99+' : count}
               </span>
             )}
@@ -264,24 +302,24 @@ export default function Header({ variant = 'default' }) {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden glass border-t border-gray-200/50">
-          <nav className="px-4 py-4 space-y-3">
+        <div className="header-menu-glass pointer-events-auto mx-auto mt-3 max-w-7xl overflow-hidden rounded-[2rem] md:hidden">
+          <nav className="space-y-2 px-4 py-4">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="block text-gray-700 hover:text-gold transition-colors font-medium"
+                className="block rounded-full px-3 py-2 font-medium text-gray-700 transition-colors hover:bg-white/55 hover:text-gold dark:text-gray-700 dark:hover:bg-white/55 dark:hover:text-gold"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.label}
               </Link>
             ))}
-            <div className="pt-3 border-t border-gray-200/50 flex items-center justify-between">
+            <div className="flex items-center justify-between border-t border-white/30 pt-3 dark:border-white/10">
               {MOBILE_ICON_ITEMS.map(({ label, href, Icon }) => (
                 <Link
                   key={href}
                   href={href}
-                  className="flex items-center gap-2 text-gray-700 hover:text-gold transition-colors font-medium"
+                  className="flex items-center gap-2 rounded-full px-3 py-2 font-medium text-gray-700 transition-colors hover:bg-white/55 hover:text-gold dark:text-gray-700 dark:hover:bg-white/55 dark:hover:text-gold"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <Icon className="h-4 w-4" />
@@ -289,15 +327,15 @@ export default function Header({ variant = 'default' }) {
                 </Link>
               ))}
             </div>
-            <div className="pt-3 border-t border-gray-200/50">
-              <div className="mb-2 flex items-center gap-2 text-gray-700 font-medium">
+            <div className="border-t border-white/30 pt-3 dark:border-white/10">
+              <div className="mb-2 flex items-center gap-2 px-3 font-medium text-gray-700 dark:text-gray-700">
                 <User className="h-4 w-4" />
                 Account
               </div>
               <div className="space-y-2 pl-6">
                 {renderAccountActions(
-                  'block text-sm text-gray-600 hover:text-gold transition-colors',
-                  'block w-full text-left text-sm text-gray-600 hover:text-gold transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+                  'block rounded-full px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-white/55 hover:text-gold dark:text-gray-600 dark:hover:bg-white/55 dark:hover:text-gold',
+                  'block w-full rounded-full px-3 py-2 text-left text-sm text-gray-600 transition-colors hover:bg-white/55 hover:text-gold disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-600 dark:hover:bg-white/55 dark:hover:text-gold',
                 )}
               </div>
             </div>
@@ -305,7 +343,7 @@ export default function Header({ variant = 'default' }) {
         </div>
       )}
       </header>
-      {!isHomeOverlay && <div aria-hidden="true" className="h-16 shrink-0" />}
+      {!isHomeOverlay && !isHomePage && <div aria-hidden="true" className="h-20 shrink-0" />}
     </>
   );
 }

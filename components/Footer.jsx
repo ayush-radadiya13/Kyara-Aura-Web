@@ -1,20 +1,17 @@
 import Link from 'next/link';
 import { Mail, MapPin, Phone } from 'lucide-react';
+import { APP_ROUTES } from '@/lib/routes';
 
 const companyLinks = [
   { label: 'About Us', href: '/' },
-  { label: 'Testimonials', href: '/' },
-  { label: 'FAQs', href: '/' },
-  { label: 'Terms & Condition', href: '/' },
+  { label: 'Terms & Conditions', href: APP_ROUTES.TERMS },
   { label: 'Latest Update', href: '/products' },
 ];
 
 const supportLinks = [
-  { label: 'Order Tracking', href: '/orders' },
-  { label: 'Payment Guide', href: '/payment-method' },
-  { label: 'Help Center', href: '/' },
-  { label: 'Privacy Policy', href: '/' },
-  { label: 'Return Policy', href: '/' },
+  { label: 'Privacy Policy', href: APP_ROUTES.PRIVACY },
+  { label: 'Shipping Policy', href: APP_ROUTES.SHIPPING_POLICY },
+  { label: 'Return Policy', href: '/return-policy' },
 ];
 
 export default function Footer() {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { AUTH_COOKIE_KEY } from "@/lib/constants";
 
 const guestOnlyPaths = ["/login", "/register"];
-const protectedPaths = ["/account"];
+const protectedPaths = ["/account", "/wishlist"];
 
 function isProtectedPath(pathname) {
   return protectedPaths.some(
@@ -34,5 +34,5 @@ export function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/login", "/register", "/account/:path*"],
+  matcher: ["/login", "/register", "/account/:path*", "/wishlist/:path*"],
 };

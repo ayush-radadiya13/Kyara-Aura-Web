@@ -3,14 +3,42 @@
 import Image from 'next/image';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Heart, Share2 } from 'lucide-react';
+import { Share2 } from 'lucide-react';
 import Header from '../../../components/Header';
 import CartDrawer from '@/components/cart/CartDrawer';
 import ProductList from '@/components/ProductList';
+import WishlistButton from '@/components/WishlistButton';
 import { LoaderBlock } from '@/components/ui/loader';
 import { useCartStore } from '@/lib/cart/store';
+import { APP_ROUTES } from '@/lib/routes';
 import { useProductBySlug } from '@/hooks/use-products';
 import { addCartItemApi, getCartApi } from '@/services/cart';
+
+function imageUrlFromValue(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  return value.image_url || value.image_path || '';
+}
+
+function getProductImages(product) {
+  const imageSources = [product?.gallery, product?.images, product?.image, product?.product_images, product?.productImages];
+  const imageList = imageSources.find((source) => Array.isArray(source) && source.length);
+
+  if (imageList?.length) {
+    return [...imageList]
+      .sort((first, second) => {
+        if (typeof first === 'string' || typeof second === 'string') return 0;
+        if (first?.is_primary && !second?.is_primary) return -1;
+        if (!first?.is_primary && second?.is_primary) return 1;
+        return Number(first?.sort_order ?? 0) - Number(second?.sort_order ?? 0);
+      })
+      .map(imageUrlFromValue)
+      .filter(Boolean);
+  }
+
+  const singleImage = product?.image_url || product?.image_path;
+  return singleImage ? [singleImage] : ['/images/product-1.png'];
+}
 
 export default function ProductDetail({ product: initialProduct, slug }) {
   const router = useRouter();
@@ -40,7 +68,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
     return apiSizeOptions ?? [];
   }, [product?.sizes]);
 
-  const productImages = product?.gallery ?? [];
+  const productImages = getProductImages(product);
   const activeSize = sizeOptions.some((option) => option.value === selectedSize) ? selectedSize : '';
   const selectedSizeOption = sizeOptions.find((option) => option.value === activeSize);
   const selectedQuantity = Number(quantity) || 1;
@@ -113,8 +141,25 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   };
 
   const handleBuyNow = async () => {
-    const added = await addCurrentToBag();
-    if (added) router.push('/cart');
+    if (!selectedSizeOption?.id) {
+      setCartError('Please select a valid size before buying this product.');
+      setBagDrawerOpen(true);
+      return;
+    }
+
+    if (selectedQuantity < 1) {
+      setCartError('Please select a quantity before buying this product.');
+      setBagDrawerOpen(true);
+      return;
+    }
+
+    const params = new URLSearchParams({
+      checkout_type: 'buy_now',
+      product_size_id: String(selectedSizeOption.id),
+      quantity: String(selectedQuantity),
+    });
+
+    router.push(`${APP_ROUTES.PAYMENT_METHOD}?${params.toString()}`);
   };
 
   const formattedOriginalPrice = selectedOriginalPrice.toLocaleString('en-IN');
@@ -135,11 +180,12 @@ export default function ProductDetail({ product: initialProduct, slug }) {
       <main className="mx-auto max-w-7xl px-4 pb-36 pt-7 sm:px-6 sm:pb-16 lg:pb-24">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:gap-14">
           <section className="space-y-4">
-            <div className="relative aspect-square overflow-hidden bg-[#f8f8f7]">
+            <div className="relative h-[420px] w-full overflow-hidden bg-[#f8f8f7] sm:h-[560px] lg:h-[650px]">
               <Image
                 src={productImages[selectedImage]}
                 alt={product.name}
                 fill
+                unoptimized={productImages[selectedImage]?.startsWith('http')}
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 priority
@@ -161,7 +207,8 @@ export default function ProductDetail({ product: initialProduct, slug }) {
                     src={image}
                     alt={`${product.name} ${index + 1}`}
                     fill
-                    className="object-cover"
+                    unoptimized={image.startsWith('http')}
+                    className="object-contain"
                     sizes="(max-width: 1024px) 25vw, 12vw"
                   />
                 </button>
@@ -176,13 +223,10 @@ export default function ProductDetail({ product: initialProduct, slug }) {
                 {product.category?.name || 'Kyara Aura Collection'}
               </p>
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  aria-label="Add to wishlist"
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition hover:border-gray-950 hover:text-gray-950"
-                >
-                  <Heart className="h-6 w-6" strokeWidth={1.8} />
-                </button>
+                <WishlistButton
+                  productId={product.id ?? product._id}
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 transition hover:border-gray-950 hover:text-gray-950"
+                />
                 <button
                   type="button"
                   aria-label="Share product"

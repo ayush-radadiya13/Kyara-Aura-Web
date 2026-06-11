@@ -15,7 +15,7 @@ function getProductImage(product) {
     primaryImage?.image_path ||
     product?.image_url ||
     product?.image_path ||
-    "/images/product-1.png"
+    "/images/product-placeholder.svg"
   );
 }
 

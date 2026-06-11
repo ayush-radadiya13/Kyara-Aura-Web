@@ -10,6 +10,14 @@ const nextConfig = {
         protocol: "https",
         hostname: "kayraaura.up.railway.app",
       },
+      {
+        protocol: "http",
+        hostname: "web-production-c0abc.up.railway.app",
+      },
+      {
+        protocol: "https",
+        hostname: "web-production-c0abc.up.railway.app",
+      },
     ],
   },
 };
