@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useScrollLock } from '@/hooks/use-scroll-lock';
 
 const SIZES = [
   { value: '2.4', label: '2.4 (Small)' },
@@ -23,16 +24,16 @@ export default function BuyNowModal({
   onConfirm,
   confirmLabel = 'BUY NOW',
 }) {
+  useScrollLock(open);
+
   useEffect(() => {
     if (!open) return;
     const handleEscape = (e) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handleEscape);
-    document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = '';
     };
   }, [open, onClose]);
 
@@ -52,7 +53,7 @@ export default function BuyNowModal({
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-xl bg-white rounded-lg shadow-xl border border-gray-200 p-6">
+      <div className="relative w-full max-w-xl bg-white rounded-lg shadow-xl border border-gray-200 p-6" data-lenis-prevent>
         <div className="flex items-start justify-between mb-5">
           <h2 id="buy-now-modal-title" className="text-lg font-bold text-gray-900">
             Quantity &amp; Size:

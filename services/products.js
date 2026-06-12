@@ -29,6 +29,22 @@ export async function getProductsByCategoryApi(categoryId) {
   return normalizeProductsPayload(data);
 }
 
+export async function searchProductsByNameApi(name) {
+  const trimmedName = String(name ?? '').trim();
+
+  if (!trimmedName) {
+    return [];
+  }
+
+  const { data } = await withoutTokenApi.get(PRODUCT_API_ROUTES.NAME_SEARCH, {
+    params: {
+      name: trimmedName,
+    },
+  });
+
+  return normalizeProductsPayload(data);
+}
+
 export async function getProductBySlugApi(productSlug) {
   if (!productSlug) {
     return null;

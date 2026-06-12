@@ -6,6 +6,7 @@ import {
   getProductBySlugApi,
   getProductsApi,
   getProductsByCategoryApi,
+  searchProductsByNameApi,
 } from "@/services/products";
 
 export function useProducts(options = {}) {
@@ -36,6 +37,19 @@ export function useProductsByCategory(categoryId, options = {}) {
     queryFn: () => getProductsByCategoryApi(categoryId),
     enabled: Boolean(categoryId) && enabled !== false,
     refetchOnMount: "always",
+    retry: false,
+    ...rest,
+  });
+}
+
+export function useProductNameSearch(name, options = {}) {
+  const { enabled, ...rest } = options;
+  const trimmedName = String(name ?? "").trim();
+
+  return useQuery({
+    queryKey: ["products", "name-search", trimmedName],
+    queryFn: () => searchProductsByNameApi(trimmedName),
+    enabled: Boolean(trimmedName) && enabled !== false,
     retry: false,
     ...rest,
   });

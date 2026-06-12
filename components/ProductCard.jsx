@@ -48,6 +48,11 @@ export default function ProductCard({
   const [cartError, setCartError] = useState('');
   const href = `/products/${product.slug}`;
   const originalPrice = product.oldPrice ?? product.originalPrice;
+  const discountPercent =
+    product.discount ??
+    (originalPrice && originalPrice > product.price
+      ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
+      : 0);
   const productImageSrc = getProductImageSrc(product);
   const isRemoteProductImage = productImageSrc.startsWith('http');
   const productId = product.id ?? product._id;
@@ -121,13 +126,8 @@ export default function ProductCard({
     return (
       <>
       <div className="group relative block">
-        <div className="relative aspect-square overflow-hidden bg-[#faf9f7]">
+        <div className="relative aspect-[10/11] overflow-hidden bg-[#faf9f7] sm:aspect-square">
           <Link href={href} className="absolute inset-0 z-[1]" aria-label={product.name} />
-          {product.discount > 0 && (
-            <span className={`${isCatalog ? 'bg-[#d3b987] text-white' : 'bg-gray-950 text-white'} absolute left-5 top-5 z-20 px-3 py-2 text-[12px] font-medium`}>
-              -{product.discount}%
-            </span>
-          )}
           <div className="absolute right-5 top-5 z-20 flex flex-col gap-3 opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
             {renderWishlistButton(
               'flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-800 shadow-sm transition hover:bg-gray-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-60',
@@ -163,8 +163,13 @@ export default function ProductCard({
           <h3 className={`${isCatalog ? 'text-[15px]' : 'text-md'} font-semibold text-gray-950 transition group-hover:text-gray-600`}>
             <Link href={href}>{product.name}</Link>
           </h3>
-          <div className={`${isCatalog ? 'mt-2 text-[13px]' : 'mt-2 text-md'} flex items-center gap-2`}>
+          <div className={`${isCatalog ? 'mt-2 text-[13px]' : 'mt-2 text-md'} flex flex-wrap items-center gap-2`}>
             <p className="font-medium text-gray-700">₹{product.price?.toLocaleString('en-IN')}</p>
+            {discountPercent > 0 && (
+              <span className="rounded-full border border-[#d3b987]/40 bg-[#fff8ea] px-2 py-0.5 text-[11px] font-semibold tracking-wide text-[#9a6a1f]">
+                {discountPercent}% OFF
+              </span>
+            )}
             {originalPrice && originalPrice > product.price && (
               <p className="text-gray-400 line-through">₹{originalPrice.toLocaleString('en-IN')}</p>
             )}
@@ -185,7 +190,7 @@ export default function ProductCard({
     <>
     <div className="group block rounded-lg glass-card overflow-hidden hover:shadow-gold-glow-sm transition-all duration-300 hover:scale-[1.02]">
       <div
-        className="relative w-full h-40 sm:h-48 md:h-52 lg:h-56 p-2 sm:p-3 bg-gradient-to-b from-gray-50 via-gray-100 to-white shadow-[inset_0_0_32px_rgba(0,0,0,0.05)]"
+        className="relative w-full h-44 sm:h-48 md:h-52 lg:h-56 p-2 sm:p-3 bg-gradient-to-b from-gray-50 via-gray-100 to-white shadow-[inset_0_0_32px_rgba(0,0,0,0.05)]"
       >
         <Link href={href} className="absolute inset-0 z-[1]" aria-label={product.name} />
         <div className="relative z-0 flex h-full w-full items-center justify-center">
@@ -214,17 +219,15 @@ export default function ProductCard({
         
         {/* Price Section */}
         <div className="mt-1.5 sm:mt-2 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <p className="text-sm font-semibold text-gold">₹{product.price?.toLocaleString('en-IN')}</p>
+            {discountPercent > 0 && (
+              <span className="rounded-full border border-gold/30 bg-gradient-to-r from-amber-50 to-orange-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 shadow-sm sm:px-2 sm:text-[11px]">
+                {discountPercent}% OFF
+              </span>
+            )}
             {originalPrice && originalPrice > product.price && (
-              <>
-                <p className="text-xs text-gray-500 line-through">₹{originalPrice.toLocaleString('en-IN')}</p>
-                {product.discount && (
-                  <span className="bg-green-100 text-green-800 px-1.5 py-0.5 rounded text-xs font-semibold">
-                    {product.discount}% OFF
-                  </span>
-                )}
-              </>
+              <p className="text-xs text-gray-500 line-through">₹{originalPrice.toLocaleString('en-IN')}</p>
             )}
           </div>
         </div>

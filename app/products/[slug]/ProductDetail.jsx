@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Share2 } from 'lucide-react';
+import { Minus, Plus, Share2 } from 'lucide-react';
 import Header from '../../../components/Header';
 import CartDrawer from '@/components/cart/CartDrawer';
 import ProductList from '@/components/ProductList';
@@ -287,7 +287,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
                         role="radio"
                         aria-checked={isSelected}
                         onClick={() => setSelectedSize(size.value)}
-                        className={`min-w-16 border px-5 py-2 text-md font-semibold rounded-md  ${
+                        className={`min-w-16 border px-5 py-2 text-md font-semibold rounded-full  ${
                           isSelected
                             ? 'border-gray-950 bg-gray-950 text-white'
                             : 'border-gray-200 bg-white text-gray-600 hover:border-gray-950 hover:text-gray-950'
@@ -305,17 +305,17 @@ export default function ProductDetail({ product: initialProduct, slug }) {
 
             <div className="flex items-center justify-between border-b border-gray-100 py-7">
               <span className="text-lg font-bold text-gray-950">Quantity</span>
-              <div className="flex items-center rounded-2xl gap-6 text-lg font-semibold px-5 py-1 border  border-gray-950 text-gray-950">
+              <div className="flex items-center gap-4 text-lg font-semibold text-gray-950">
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.max(0, (q ?? 1) - 1) || null)}
                   disabled={!quantity}
-                  className="text-3xl transition hover:text-gray-950 disabled:cursor-not-allowed disabled:text-gray-600"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-950 text-white transition hover:bg-[#A97818] disabled:cursor-not-allowed disabled:bg-gray-300"
                   aria-label="Decrease quantity"
                 >
-                  -
+                  <Minus className="h-4 w-4" strokeWidth={2.4} />
                 </button>
-                <span className="min-w-4 text-center">{quantity || 1}</span>
+                <span className="min-w-4 text-center text-base font-semibold">{quantity || 1}</span>
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => {
@@ -323,10 +323,10 @@ export default function ProductDetail({ product: initialProduct, slug }) {
                     return quantityLimit ? Math.min(nextQuantity, quantityLimit) : nextQuantity;
                   })}
                   disabled={Boolean(quantityLimit && quantity >= quantityLimit)}
-                  className="text-lg transition hover:text-gray-950 disabled:cursor-not-allowed disabled:text-gray-600"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-950 text-white transition hover:bg-[#A97818] disabled:cursor-not-allowed disabled:bg-gray-300"
                   aria-label="Increase quantity"
                 >
-                  +
+                  <Plus className="h-4 w-4" strokeWidth={2.4} />
                 </button>
               </div>
             </div>

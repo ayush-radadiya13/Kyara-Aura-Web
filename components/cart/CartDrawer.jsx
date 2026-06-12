@@ -8,6 +8,7 @@ import { getCartApi, removeCartItemApi, updateCartQuantityApi } from '@/services
 import { formatInr } from '@/lib/cart/format';
 import { useCartStore } from '@/lib/cart/store';
 import { APP_ROUTES } from '@/lib/routes';
+import { useScrollLock } from '@/hooks/use-scroll-lock';
 
 export default function CartDrawer({ open, onClose, isLoading = false, error = '' }) {
   const items = useCartStore((state) => state.items);
@@ -16,6 +17,7 @@ export default function CartDrawer({ open, onClose, isLoading = false, error = '
   const setCart = useCartStore((state) => state.setCart);
   const [updatingItemId, setUpdatingItemId] = useState(null);
   const [actionError, setActionError] = useState('');
+  useScrollLock(open);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -25,10 +27,8 @@ export default function CartDrawer({ open, onClose, isLoading = false, error = '
     };
 
     document.addEventListener('keydown', handleEscape);
-    document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = '';
     };
   }, [open, onClose]);
 
@@ -95,7 +95,7 @@ export default function CartDrawer({ open, onClose, isLoading = false, error = '
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4">
+        <div className="flex-1 overflow-y-auto px-4" data-lenis-prevent>
           {(error || actionError) && (
             <p className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-base text-red-700">
               {error || actionError}

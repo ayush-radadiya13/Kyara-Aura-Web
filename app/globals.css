@@ -33,9 +33,7 @@ body {
   isolation: isolate;
   -webkit-backdrop-filter: saturate(190%) blur(30px);
   backdrop-filter: saturate(190%) blur(30px);
-  background:
-    radial-gradient(circle at 14% 0%, rgb(255 255 255 / 0.95), transparent 32%),
-    linear-gradient(135deg, rgb(255 255 255 / 0.88), rgb(255 255 255 / 0.66) 48%, rgb(255 255 255 / 0.78));
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0.72) 48%, rgb(255 255 255 / 0.86));
   border: 1px solid rgb(255 255 255 / 0.72);
   box-shadow:
     0 18px 44px rgb(15 23 42 / 0.14),
@@ -61,7 +59,7 @@ body {
   inset: 0;
   z-index: 0;
   border-radius: inherit;
-  background: radial-gradient(circle at 78% 0%, rgb(212 163 115 / 0.24), transparent 34%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.18), transparent);
   pointer-events: none;
 }
 
@@ -104,9 +102,7 @@ body {
 
 @media (prefers-color-scheme: dark) {
   .header-glass {
-    background:
-      radial-gradient(circle at 14% 0%, rgb(255 255 255 / 0.95), transparent 32%),
-      linear-gradient(135deg, rgb(255 255 255 / 0.88), rgb(255 255 255 / 0.66) 48%, rgb(255 255 255 / 0.78));
+    background: linear-gradient(135deg, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0.72) 48%, rgb(255 255 255 / 0.86));
     border-color: rgb(255 255 255 / 0.72);
     box-shadow:
       0 18px 44px rgb(15 23 42 / 0.14),
@@ -121,7 +117,7 @@ body {
   }
 
   .header-glass::after {
-    background: radial-gradient(circle at 78% 0%, rgb(212 163 115 / 0.24), transparent 34%);
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.18), transparent);
   }
 
   .header-menu-glass {
@@ -180,6 +176,15 @@ body {
   }
 }
 
+@keyframes home-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes home-drift {
   0%,
   100% {
@@ -211,6 +216,12 @@ body {
   will-change: opacity, transform;
 }
 
+.home-scroll-stable {
+  animation: home-fade-in 0.75s ease-out both;
+  animation-delay: var(--home-delay, 0ms);
+  will-change: opacity;
+}
+
 .home-drift {
   animation: home-drift 14s ease-in-out infinite;
   will-change: transform;
@@ -238,6 +249,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .home-reveal,
   .home-scale-in,
+  .home-scroll-stable,
   .home-drift,
   .hero-sale-enter,
   .hero-sale-img {

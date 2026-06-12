@@ -13,7 +13,7 @@ function categoryImageSrc(image) {
 
 function categoryHref(category) {
   const categoryId = category?._id ?? category?.id ?? category?.slug;
-  return categoryId ? `/categories?category=${encodeURIComponent(categoryId)}` : "/categories";
+  return categoryId ? `/products?category=${encodeURIComponent(categoryId)}` : "/products";
 }
 
 export default function CategoryGrid({
@@ -39,12 +39,12 @@ export default function CategoryGrid({
 
   if (variant === "strip") {
     return (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5 md:gap-4">
-        {visibleCategories.map((category, index) => {
+      <div className="-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto px-4 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3 [&::-webkit-scrollbar]:hidden">
+        {visibleCategories.map((category) => {
           const src = categoryImageSrc(category.image);
           const isSelected = String(selectedCategoryId ?? "") === String(category._id ?? "");
-          const interactiveClassName = `group relative aspect-[1.03] overflow-hidden bg-[#f7f7f5] transition duration-300 focus:outline-none focus:ring-2 focus:ring-gray-900/30 ${
-            isSelected || (!selectedCategoryId && index === 0) ? "border border-gray-900/70 shadow-sm" : ""
+          const interactiveClassName = `group relative aspect-[1.75] w-[78vw] max-w-[22rem] shrink-0 snap-start overflow-hidden rounded-2xl bg-[#f7f3ed] text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-gray-950/10 focus:outline-none focus:ring-2 focus:ring-gray-900/30 sm:w-auto sm:max-w-none ${
+            isSelected ? "ring-2 ring-gray-950 ring-offset-2 ring-offset-white" : ""
           }`;
           const content = (
             <>
@@ -54,18 +54,22 @@ export default function CategoryGrid({
                   alt={category.name}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 16vw"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-white">
-                  <span className="font-display text-2xl text-gray-300">
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#fbf8f2] via-[#f4eee5] to-[#ece2d6]">
+                  <span className="font-display text-5xl text-gray-300">
                     {category.name?.charAt(0)}
                   </span>
                 </div>
               )}
-              <div className="absolute inset-x-0 bottom-0  px-2 py-4 text-center backdrop-blur-[2px]">
-                <span className="text-[14px] font-semibold uppercase  text-gray-900">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition duration-300 group-hover:from-black/75" />
+              <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
+                <span className="font-display text-2xl font-light leading-none sm:text-3xl">
                   {category.name}
+                </span>
+                <span className="mt-3 block text-[10px] font-semibold uppercase tracking-[0.28em] text-white/80">
+                  Shop Collection
                 </span>
               </div>
             </>

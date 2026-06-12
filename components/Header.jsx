@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import { Menu, X, Search, User, ShoppingBag, Heart } from 'lucide-react';
 import { useLogout } from '@/hooks/auth';
+import { useProductNameSearch } from '@/hooks/use-products';
 import { useWishlist } from '@/hooks/use-wishlist';
 import { useCartStore } from '@/lib/cart/store';
 import { APP_ROUTES, AUTH_PAGE_ROUTES } from '@/lib/routes';
@@ -38,9 +39,17 @@ const MOBILE_ICON_ITEMS = [
 
 export default function Header({ variant = 'default' }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountMenuVisible, setAccountMenuVisible] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const desktopSearchContainerRef = useRef(null);
+  const mobileSearchContainerRef = useRef(null);
+  const desktopSearchInputRef = useRef(null);
+  const mobileSearchInputRef = useRef(null);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isHydrated = useAuthStore((state) => state.isHydrated);
   const logoutMutation = useLogout();
@@ -53,11 +62,16 @@ export default function Header({ variant = 'default' }) {
     cartCount: count,
     wishCount,
   };
+  const trimmedSearchTerm = debouncedSearchTerm.trim();
+  const searchProductsQuery = useProductNameSearch(trimmedSearchTerm, {
+    enabled: searchOpen && trimmedSearchTerm.length >= 2,
+  });
+  const searchResults = (searchProductsQuery.data ?? []).slice(0, 5);
   const isHomeOverlay = variant === 'homeOverlay';
   const isHomePage = pathname === APP_ROUTES.HOME;
   const headerClassName = 'pointer-events-none fixed left-4 right-4 top-2 z-50';
   const shellClassName =
-    'header-glass pointer-events-auto mx-auto flex h-14 max-w-8xl items-center justify-between rounded-full px-4 transition-all duration-500 ease-out hover:-translate-y-0.5 sm:px-6 motion-reduce:transition-none motion-reduce:hover:translate-y-0';
+    'header-glass pointer-events-auto mx-auto h-14 max-w-8xl items-center justify-between rounded-full px-4 transition-all duration-500 ease-out hover:-translate-y-0.5 sm:px-6 motion-reduce:transition-none motion-reduce:hover:translate-y-0';
   const logoClassName = isHomeOverlay
     ? 'relative block h-12 w-40 overflow-hidden rounded-full transition-opacity duration-300 hover:opacity-80 sm:w-48'
     : 'relative block h-11 w-36 overflow-hidden rounded-full transition-opacity duration-300 hover:opacity-80 sm:w-44';
@@ -84,22 +98,163 @@ export default function Header({ variant = 'default' }) {
   }, [setCart, showAuthenticatedActions]);
 
   useEffect(() => {
-    if (accountOpen) {
-      setAccountMenuVisible(true);
-      return undefined;
-    }
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (!searchOpen) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      const inputRef = window.matchMedia('(min-width: 768px)').matches
+        ? desktopSearchInputRef
+        : mobileSearchInputRef;
+
+      inputRef.current?.focus();
+    }, 120);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (!searchOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      const clickedInsideDesktop = desktopSearchContainerRef.current?.contains(event.target);
+      const clickedInsideMobile = mobileSearchContainerRef.current?.contains(event.target);
+
+      if (!clickedInsideDesktop && !clickedInsideMobile) {
+        setSearchOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (accountOpen || !accountMenuVisible) return undefined;
 
     const timeoutId = window.setTimeout(() => {
       setAccountMenuVisible(false);
     }, 180);
 
     return () => window.clearTimeout(timeoutId);
-  }, [accountOpen]);
+  }, [accountMenuVisible, accountOpen]);
 
   const handleLogout = () => {
     logoutMutation.mutate();
     setAccountOpen(false);
     setMobileMenuOpen(false);
+  };
+
+  const openSearch = () => {
+    setSearchOpen(true);
+    setMobileMenuOpen(false);
+    setAccountOpen(false);
+    setAccountMenuVisible(false);
+  };
+
+  const toggleSearch = () => {
+    if (searchOpen) {
+      setSearchOpen(false);
+      return;
+    }
+
+    openSearch();
+  };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+  };
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+
+    if (searchResults[0]?.slug) {
+      router.push(`/products/${searchResults[0].slug}`);
+      closeSearch();
+    }
+  };
+
+  const renderSearchPanel = (containerRef, inputRef, isMobileSearch = false) => {
+    const trimmedTerm = searchTerm.trim();
+    const showSearchContent = searchOpen && trimmedTerm.length >= 2;
+    const searchStatus = searchProductsQuery.isLoading
+      ? 'Searching...'
+      : searchProductsQuery.isError
+        ? 'Unable to search right now.'
+        : 'No products found.';
+
+    return (
+      <form
+        ref={containerRef}
+        onSubmit={handleSearchSubmit}
+        className={`relative z-20 shrink-0 self-center origin-right transition-[width,opacity,transform] duration-300 ease-out motion-reduce:transition-none ${
+          isMobileSearch
+            ? 'h-14 w-full translate-x-0 scale-x-100 opacity-100'
+            : searchOpen
+              ? 'h-10 w-[calc(100vw-7.25rem)] max-w-[19rem] translate-x-0 scale-x-100 opacity-100 sm:w-80 md:w-[min(34vw,22rem)]'
+              : 'pointer-events-none h-10 w-0 translate-x-2 scale-x-95 opacity-0'
+        }`}
+        aria-hidden={!searchOpen}
+      >
+        <div className="relative h-full overflow-hidden rounded-full">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+          <input
+            ref={inputRef}
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') closeSearch();
+            }}
+            disabled={!searchOpen}
+            placeholder="Search products"
+            className={`${isMobileSearch ? 'h-full pr-12' : 'h-10 pr-4'} w-full rounded-full border border-gray-950/15 bg-transparent pl-10 text-sm text-gray-900 outline-none backdrop-blur-xl transition placeholder:text-gray-500 focus:border-gold/60 focus:ring-2 focus:ring-gold/15`}
+          />
+          {isMobileSearch && (
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-gray-950 transition hover:bg-white/55 focus:outline-none focus:ring-2 focus:ring-gold/30"
+              aria-label="Close search"
+              onClick={closeSearch}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+
+        {showSearchContent && (
+          <div className="header-menu-glass absolute right-0 top-1 max-h-[70vh] w-full overflow-hidden rounded-3xl border border-white/55 p-2 shadow-xl">
+            {searchProductsQuery.isSuccess && searchResults.length > 0 ? (
+              <div className="max-h-72 overflow-y-auto">
+                {searchResults.map((product) => (
+                  <Link
+                    key={product._id ?? product.id ?? product.slug}
+                    href={`/products/${product.slug}`}
+                    className="block truncate rounded-full px-4 py-2.5 text-sm font-medium text-gray-900 transition hover:bg-white/55 hover:text-gold"
+                    onClick={closeSearch}
+                  >
+                    {product.name}
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="px-3 py-4 text-center text-sm text-gray-600">{searchStatus}</p>
+            )}
+          </div>
+        )}
+      </form>
+    );
   };
 
   const renderAccountActions = (linkClassName, buttonClassName) => {
@@ -134,10 +289,16 @@ export default function Header({ variant = 'default' }) {
   return (
     <>
       <header className={headerClassName}>
-        <div className={shellClassName}>
+        {searchOpen && (
+          <div className="header-glass pointer-events-auto mx-auto flex h-14 max-w-8xl items-center rounded-full px-0 transition-all duration-300 ease-out md:hidden motion-reduce:transition-none">
+            {renderSearchPanel(mobileSearchContainerRef, mobileSearchInputRef, true)}
+          </div>
+        )}
+
+        <div className={`${searchOpen ? 'hidden md:flex' : 'flex'} ${shellClassName}`}>
 
         {/* LEFT - Logo */}
-        <div className={isHomeOverlay ? 'hidden md:block md:w-6/12' : 'flex-shrink-0'}>
+        <div className={isHomeOverlay ? (searchOpen ? 'hidden lg:block lg:w-6/12' : 'hidden md:block md:w-6/12') : searchOpen ? 'hidden md:block md:flex-shrink-0' : 'flex-shrink-0'}>
           {isHomeOverlay ? (
             <nav className="flex items-center gap-8">
               {NAV_ITEMS.slice(1, 5).map((item) => (
@@ -168,7 +329,7 @@ export default function Header({ variant = 'default' }) {
         </div>
 
         {isHomeOverlay && (
-          <div className="flex flex-1 justify-start md:flex-none md:justify-center">
+          <div className={`${searchOpen ? 'hidden lg:flex' : 'flex'} flex-1 justify-start md:flex-none md:justify-center`}>
             <Link href={APP_ROUTES.HOME} className={logoClassName}>
               <Image
                 src="/assets/ka1.png"
@@ -184,7 +345,7 @@ export default function Header({ variant = 'default' }) {
 
         {/* CENTER - Desktop Navigation */}
         {!isHomeOverlay && (
-          <nav className="hidden items-center gap-2 text-sm font-medium md:flex">
+          <nav className={`${searchOpen ? 'hidden lg:flex' : 'hidden md:flex'} items-center gap-2 text-sm font-medium`}>
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
@@ -199,6 +360,7 @@ export default function Header({ variant = 'default' }) {
 
         {/* RIGHT - Desktop Actions */}
         <div className={isHomeOverlay ? 'hidden items-center justify-end gap-1 md:flex md:w-5/12' : 'hidden items-center gap-1 md:flex'}>
+          {renderSearchPanel(desktopSearchContainerRef, desktopSearchInputRef)}
 
           {HEADER_ICON_ITEMS.map(({ key, label, href, Icon, type, countKey }) => {
 
@@ -210,9 +372,13 @@ export default function Header({ variant = 'default' }) {
                   key={key}
                   type="button"
                   className={iconClassName}
-                  aria-label={label}
+                  aria-label={searchOpen ? 'Close search' : label}
+                  aria-expanded={searchOpen}
+                  onClick={toggleSearch}
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onTouchStart={(event) => event.stopPropagation()}
                 >
-                  <Icon className="h-5 w-5" />
+                  {searchOpen ? <X className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                 </button>
               );
             }
@@ -238,7 +404,11 @@ export default function Header({ variant = 'default' }) {
           <div className="relative">
             <button
               type="button"
-              onClick={() => setAccountOpen(!accountOpen)}
+              onClick={() => {
+                const nextAccountOpen = !accountOpen;
+                setAccountOpen(nextAccountOpen);
+                if (nextAccountOpen) setAccountMenuVisible(true);
+              }}
               className={iconClassName}
               aria-label="Account"
               aria-expanded={accountOpen}
@@ -264,20 +434,24 @@ export default function Header({ variant = 'default' }) {
         </div>
 
         {/* Mobile Actions */}
-        <div className="flex items-center gap-1 md:hidden">
+        <div className={`${searchOpen ? 'flex-1 justify-end' : ''} flex items-center gap-1 md:hidden`}>
           {/* Search */}
           <button
             type="button"
             className={iconClassName}
-            aria-label="Search"
+            aria-label={searchOpen ? 'Close search' : 'Search'}
+            aria-expanded={searchOpen}
+            onClick={toggleSearch}
+            onMouseDown={(event) => event.stopPropagation()}
+            onTouchStart={(event) => event.stopPropagation()}
           >
-            <Search className="h-5 w-5" />
+            {searchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
           </button>
 
           {/* Cart */}
           <Link
             href={APP_ROUTES.CART}
-            className={`relative ${iconClassName}`}
+            className={`${searchOpen ? 'hidden' : ''} relative ${iconClassName}`}
             aria-label={count > 0 ? `Cart, ${count} items` : 'Cart'}
           >
             <ShoppingBag className="h-5 w-5" />
@@ -292,7 +466,7 @@ export default function Header({ variant = 'default' }) {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={iconClassName}
+            className={`${searchOpen ? 'hidden' : ''} ${iconClassName}`}
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
