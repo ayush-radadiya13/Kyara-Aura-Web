@@ -60,6 +60,15 @@ const PAYMENT_OPTIONS = [
   },
 ];
 
+const PAYMENT_METHOD_ICONS = [
+  { src: '/payment-icon/upi.svg', alt: 'UPI' },
+  { src: '/payment-icon/visa.svg', alt: 'Visa' },
+  { src: '/payment-icon/mastercard.svg', alt: 'Mastercard' },
+  { src: '/payment-icon/rupay.svg', alt: 'RuPay' },
+  { src: '/payment-icon/netbanking.svg', alt: 'Net Banking' },
+  { src: '/payment-icon/wallet.svg', alt: 'Wallet' },
+];
+
 const TRUST_POINTS = [
   { label: 'Secure checkout', Icon: ShieldCheck },
   { label: 'Fast dispatch', Icon: Truck },
@@ -573,7 +582,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
             <ProductDetailsSection items={displayItems} visibleCount={visibleCount} hasSummary={hasSummary} summaryLoading={summaryLoading} />
           </div>
 
-          <aside className="space-y-3 rounded-2xl border border-gray-200 bg-white p-3 xl:sticky xl:top-24">
+          <aside className="space-y-3 bg-white  xl:sticky xl:top-24">
             <PaymentMethodSection selectedMethod={selectedMethod} onSelectMethod={setSelectedMethod} />
 
             <BillDetails
@@ -765,7 +774,7 @@ function AddressSection({
     <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
       <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-4 py-2 sm:px-5">
         <div>
-          <h2 className="text-lg font-bold text-gray-950">Address</h2>
+          <h2 className="text-lg font-bold text-gray-950">Customer Details</h2>
         </div>
         <button
           type="button"
@@ -778,37 +787,25 @@ function AddressSection({
 
       {selectedAddress ? (
         <div className="2 py-2 sm:px-4">
-          <div className="rounded-2xl border border-gray-200 bg-white p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-extrabold text-gray-950">{selectedAddress.name}</p>
-              {selectedAddress.address_type ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-gray-700">
-                  <Home className="h-3 w-3" />
-                  {selectedAddress.address_type}
-                </span>
-              ) : null}
-              {selectedAddress.is_default ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-bold text-gray-700">
-                  <Star className="h-3 w-3 fill-current" />
-                  Default
-                </span>
-              ) : null}
-            </div>
-            <p className="mt-3 max-w-4xl text-sm leading-6 text-gray-700">{getAddressText(selectedAddress)}</p>
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold text-gray-700">
-              {selectedAddress.phone ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5">
-                  <Phone className="h-3.5 w-3.5 text-gray-500" />
-                  {selectedAddress.phone}
-                </span>
-              ) : null}
-              {selectedAddress.email ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5">
-                  <Mail className="h-3.5 w-3.5 text-gray-500" />
-                  {selectedAddress.email}
-                </span>
-              ) : null}
-            </div>
+          <div className=" bg-white">
+            <dl className="space-y-2 text-sm leading-6">
+              <div className="flex gap-2">
+                <dt className="shrink-0 font-bold text-gray-950">Name:</dt>
+                <dd className="min-w-0 font-semibold text-gray-700">{selectedAddress.name || '-'}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="shrink-0 font-bold text-gray-950">Mobile:</dt>
+                <dd className="min-w-0 font-semibold text-gray-700">{selectedAddress.phone || '-'}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="shrink-0 font-bold text-gray-950">Email:</dt>
+                <dd className="min-w-0 break-words font-semibold text-gray-700">{selectedAddress.email || '-'}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="shrink-0 font-bold text-gray-950">Address:</dt>
+                <dd className="min-w-0 font-semibold text-gray-700">{getAddressText(selectedAddress) || '-'}</dd>
+              </div>
+            </dl>
           </div>
         </div>
       ) : (
@@ -1123,12 +1120,23 @@ function PaymentMethodSection({ selectedMethod, onSelectMethod }) {
                   <span className="font-bold text-gray-950">{title}</span>
                 </span>
                 <span className="mt-1 block text-xs leading-5 text-gray-500">{description}</span>
+                {id === 'online' ? <PaymentMethodIconRow /> : null}
               </span>
             </button>
           );
         })}
       </div>
     </section>
+  );
+}
+
+function PaymentMethodIconRow() {
+  return (
+    <span className="mt-3 flex flex-wrap items-center gap-2">
+      {PAYMENT_METHOD_ICONS.map((icon) => (
+        <Image key={icon.src} src={icon.src} alt={icon.alt} width={40} height={24} className="h-5 w-auto object-contain" />
+      ))}
+    </span>
   );
 }
 
@@ -1161,21 +1169,34 @@ function BillDetails({ summary, visibleCount, summaryLoading }) {
         </p>
       ) : (
         <dl className="mt-4 space-y-2 text-sm">
-          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3">
-            <dt className="font-semibold text-gray-700">Items</dt>
-            <dd className="font-bold text-gray-950">{visibleCount}</dd>
-          </div>
-          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3">
-            <dt className="font-semibold text-gray-700">Subtotal</dt>
-            <dd className="font-bold text-gray-950">{formatInr(subtotal)}</dd>
-          </div>
-          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3">
-            <dt className="font-semibold text-gray-700">Tax</dt>
-            <dd className="font-bold text-gray-950">{formatInr(taxAmount)}</dd>
-          </div>
-          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3">
-            <dt className="font-semibold text-gray-700">Delivery fee</dt>
-            <dd className="font-bold text-gray-950">{formatInr(shippingAmount)}</dd>
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <dl className="space-y-3">
+              <div className="flex items-center justify-between">
+                <dt className="font-semibold text-gray-700">Items</dt>
+                <dd className="font-bold text-gray-950">{visibleCount}</dd>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <dt className="font-semibold text-gray-700">Subtotal</dt>
+                <dd className="font-bold text-gray-950">
+                  {formatInr(subtotal)}
+                </dd>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <dt className="font-semibold text-gray-700">Tax</dt>
+                <dd className="font-bold text-gray-950">
+                  {formatInr(taxAmount)}
+                </dd>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <dt className="font-semibold text-gray-700">Delivery Fee</dt>
+                <dd className="font-bold text-gray-950">
+                  {formatInr(shippingAmount)}
+                </dd>
+              </div>
+            </dl>
           </div>
           <div className="flex items-center justify-between rounded-xl border border-gray-950 bg-white px-4 py-4 text-gray-950">
             <dt className="font-bold">Total amount</dt>

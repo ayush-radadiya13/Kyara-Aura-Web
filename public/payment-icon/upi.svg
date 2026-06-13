@@ -1,0 +1,6 @@
+<svg width="80" height="48" viewBox="0 0 80 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="1" y="1" width="78" height="46" rx="8" fill="white" stroke="#E5E7EB" stroke-width="2"/>
+<path d="M52 13L62 24L52 35L55 24L52 13Z" fill="#16A34A"/>
+<path d="M46 13L56 24L46 35L49 24L46 13Z" fill="#F97316"/>
+<text x="14" y="29" fill="#111827" font-family="Arial, sans-serif" font-size="15" font-weight="700">UPI</text>
+</svg>

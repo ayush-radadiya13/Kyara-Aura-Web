@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { AUTH_COOKIE_KEY } from "@/lib/constants";
 
-const protectedPaths = ["/account", "/wishlist"];
+const protectedPaths = ["/account", "/orders", "/wishlist"];
 
 function isProtectedPath(pathname) {
   return protectedPaths.some(
@@ -23,5 +23,5 @@ export function proxy(request) {
 }
 
 export const config = {
-  matcher: ["/account/:path*", "/wishlist/:path*"],
+  matcher: ["/account/:path*", "/orders/:path*", "/wishlist/:path*"],
 };

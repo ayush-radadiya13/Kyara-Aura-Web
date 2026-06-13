@@ -31,7 +31,7 @@ export default function CartCheckout() {
 
   return (
     <div >
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-8 sm:py-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start lg:gap-8">
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-4 sm:py-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start lg:gap-4">
         <CartBag />
 
         <aside className="rounded-[1.8rem] border border-gray-200 bg-white p-5 shadow-[0_22px_60px_rgba(17,24,39,0.12)] sm:p-6 lg:sticky lg:top-24">

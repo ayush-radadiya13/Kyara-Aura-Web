@@ -2,25 +2,26 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  CreditCard,
   FileText,
   LocateFixed,
-  MapPin,
   PackageCheck,
   Plane,
-  ShieldCheck,
+  X,
   XCircle,
 } from 'lucide-react';
 import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
-import { APP_ROUTES, AUTH_PAGE_ROUTES } from '@/lib/routes';
+import { useScrollLock } from '@/hooks/use-scroll-lock';
+import { APP_ROUTES, AUTH_PAGE_ROUTES, withRedirect } from '@/lib/routes';
 import { cancelOrderApi, getOrderDetailApi, getOrdersApi, returnOrderApi } from '@/services/checkout';
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { formatInr } from '@/lib/cart/format';
 
 export default function MyOrders() {
+  const router = useRouter();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isHydrated = useAuthStore((state) => state.isHydrated);
   const [orders, setOrders] = useState([]);
@@ -30,6 +31,9 @@ export default function MyOrders() {
   const [actionOrderId, setActionOrderId] = useState(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [cancelOrderId, setCancelOrderId] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelReasonError, setCancelReasonError] = useState('');
 
   async function loadOrderDetail(orderId) {
     setDetailLoading(true);
@@ -77,20 +81,50 @@ export default function MyOrders() {
     };
   }, [isAuthenticated, isHydrated]);
 
-  const handleCancelOrder = async (orderId) => {
-    const reason = window.prompt('Reason for cancellation', 'Ordered by mistake');
-    if (!reason?.trim()) return;
+  useEffect(() => {
+    if (isHydrated && !isAuthenticated) {
+      router.replace(withRedirect(AUTH_PAGE_ROUTES.LOGIN, APP_ROUTES.ORDERS));
+    }
+  }, [isAuthenticated, isHydrated, router]);
+
+  const handleCancelOrder = (orderId) => {
+    setCancelOrderId(orderId);
+    setCancelReason('');
+    setCancelReasonError('');
+    setError('');
+    setNotice('');
+  };
+
+  const closeCancelDialog = () => {
+    if (actionOrderId === cancelOrderId) return;
+    setCancelOrderId(null);
+    setCancelReason('');
+    setCancelReasonError('');
+  };
+
+  const submitCancelOrder = async () => {
+    const reason = cancelReason.trim();
+    if (!reason) {
+      setCancelReasonError('Please enter a reason for cancellation.');
+      return;
+    }
+
+    const orderId = cancelOrderId;
+    if (!orderId) return;
 
     setActionOrderId(orderId);
     setError('');
     setNotice('');
+    setCancelReasonError('');
 
     try {
-      await cancelOrderApi(orderId, { reason: reason.trim() });
+      await cancelOrderApi(orderId, { reason });
       const orderList = await getOrdersApi();
       setOrders(Array.isArray(orderList) ? orderList : []);
       if (selectedOrder?.id === orderId) await loadOrderDetail(orderId);
       setNotice('Order cancellation request submitted.');
+      setCancelOrderId(null);
+      setCancelReason('');
     } catch (cancelError) {
       setError(getApiErrorMessage(cancelError, 'Unable to cancel this order.'));
     } finally {
@@ -120,7 +154,7 @@ export default function MyOrders() {
     }
   };
 
-  if (!isHydrated || (isAuthenticated && loading)) {
+  if (!isHydrated || !isAuthenticated || loading) {
     return (
       <section className="mx-auto max-w-6xl px-4 py-12">
         <LoaderBlock />
@@ -128,28 +162,11 @@ export default function MyOrders() {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <section className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <div className="rounded-[2rem] border border-gray-100 bg-white p-8 shadow-[0_20px_60px_rgba(17,24,39,0.08)]">
-          <ShieldCheck className="mx-auto h-12 w-12 text-[#4f3128]" />
-          <h1 className="mt-5 text-3xl font-bold text-gray-950">Sign in to view orders</h1>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-600">
-            Order listing, details, and cancellation are protected.
-          </p>
-          <Link href={AUTH_PAGE_ROUTES.LOGIN} className="mt-7 inline-flex h-12 items-center justify-center bg-gray-950 px-7 text-sm font-bold text-white transition hover:bg-gray-800">
-            Login to Continue
-          </Link>
-        </div>
-      </section>
-    );
-  }
-
   return (
-    <section className="mx-auto flex w-full max-w-7xl flex-col px-4 py-6 sm:py-8 xl:h-[calc(100vh-5rem)] xl:overflow-hidden">
-      <div className="mb-5 shrink-0">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-gray-400">My account</p>
-        <h1 className="mt-2 text-3xl font-bold text-gray-950 sm:text-4xl">Orders</h1>
+    <section className="mx-auto flex w-full max-w-7xl flex-col px-3 py-2 sm:px-4 lg:px-6 xl:min-h-[calc(100vh-5rem)]">
+      <div className="mb-3 shrink-0">
+        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-gray-400">My account</p>
+        <h1 className="mt-1 text-2xl font-bold text-gray-950 sm:text-3xl">Orders</h1>
       </div>
 
       {error ? <Message tone="error" message={error} /> : null}
@@ -164,13 +181,13 @@ export default function MyOrders() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-5 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] xl:items-start xl:overflow-hidden">
-          <aside className="space-y-3 xl:flex xl:h-full xl:min-h-0 xl:flex-col">
-            <div className="shrink-0 rounded-[1.5rem] border border-gray-100 bg-white p-4 shadow-[0_12px_34px_rgba(17,24,39,0.05)]">
-              <h2 className="text-lg font-bold text-gray-950">Order history</h2>
-              <p className="mt-1 text-sm text-gray-500">Select an order to preview details.</p>
+        <div className="grid min-w-0 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)] lg:items-start">
+          <aside className="min-w-0 space-y-2 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
+            <div className="shrink-0 rounded-[1.25rem] border border-gray-100 bg-white p-3 shadow-[0_12px_34px_rgba(17,24,39,0.05)]">
+              <h2 className="text-base font-bold text-gray-950">Order history</h2>
+              <p className="mt-0.5 text-xs text-gray-500">Select an order to preview details.</p>
             </div>
-            <div className="space-y-3 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:pr-2" data-lenis-prevent>
+            <div className="-mx-3 flex min-w-0 gap-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:block lg:min-h-0 lg:flex-1 lg:space-y-2 lg:overflow-y-auto lg:pb-0 lg:pr-2" data-lenis-prevent>
               {orders.map((order) => (
                 <OrderCard
                   key={order.id}
@@ -185,7 +202,7 @@ export default function MyOrders() {
             </div>
           </aside>
 
-          <div className="rounded-[1.5rem] border border-gray-100 bg-white p-4 shadow-[0_14px_40px_rgba(17,24,39,0.06)] sm:p-5 xl:max-h-full xl:overflow-hidden">
+          <div className="min-w-0 rounded-[1.35rem] border border-gray-100 mb-4 bg-white p-3 shadow-[0_14px_40px_rgba(17,24,39,0.06)] sm:p-4">
             {detailLoading ? (
               <LoaderBlock className="min-h-[360px] rounded-[1.25rem] border border-gray-100 py-0" />
             ) : selectedOrder ? (
@@ -201,7 +218,111 @@ export default function MyOrders() {
           </div>
         </div>
       )}
+      <CancelOrderDialog
+        open={Boolean(cancelOrderId)}
+        loading={actionOrderId === cancelOrderId}
+        reason={cancelReason}
+        error={cancelReasonError}
+        onReasonChange={(value) => {
+          setCancelReason(value);
+          if (cancelReasonError) setCancelReasonError('');
+        }}
+        onClose={closeCancelDialog}
+        onSubmit={submitCancelOrder}
+      />
     </section>
+  );
+}
+
+function CancelOrderDialog({ open, loading, reason, error, onReasonChange, onClose, onSubmit }) {
+  useScrollLock(open);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:p-5"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cancel-order-title"
+    >
+      <button type="button" className="absolute inset-0" aria-label="Close cancel order dialog" onClick={onClose} />
+
+      <div className="relative w-full max-w-md rounded-[1.25rem] border border-gray-100 bg-white p-4 shadow-2xl sm:p-5" data-lenis-prevent>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="cancel-order-title" className="text-lg font-bold text-gray-950">
+              Cancel Order
+            </h2>
+            <p className="mt-1 text-sm font-medium text-gray-500">
+              Please enter the reason for cancellation.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-50 text-gray-500 transition hover:text-gray-950 disabled:opacity-50"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <label htmlFor="cancel-order-reason" className="mt-4 block text-xs font-bold uppercase tracking-wide text-gray-400">
+          Reason
+        </label>
+        <textarea
+          id="cancel-order-reason"
+          value={reason}
+          onChange={(event) => onReasonChange(event.target.value)}
+          rows={4}
+          className="mt-2 w-full resize-none rounded-2xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-800 outline-none transition placeholder:text-gray-300 focus:border-gray-950"
+          placeholder="Enter cancellation reason"
+          disabled={loading}
+          autoFocus
+        />
+        {error ? <p className="mt-2 text-xs font-semibold text-red-600">{error}</p> : null}
+
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-full border border-gray-200 px-4 text-xs font-bold text-gray-700 transition hover:border-gray-950 disabled:opacity-50"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={loading}
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-gray-950 px-4 text-xs font-bold text-white transition hover:bg-gray-800 disabled:opacity-50"
+          >
+            {loading ? (
+              <LoadingLabel>
+                Submitting...
+              </LoadingLabel>
+            ) : (
+              'Submit'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -211,26 +332,27 @@ function OrderCard({ order, selected, loading, onView, onCancel, onReturn }) {
   const canReturn = status === 'delivered';
 
   return (
-    <article className={`rounded-[1.5rem] border bg-white p-4 shadow-[0_12px_34px_rgba(17,24,39,0.05)] ${selected ? 'border-gray-950 ring-2 ring-gray-950/10' : 'border-gray-100'}`}>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+    <article className={`w-[calc(100vw-2.25rem)] min-w-[calc(100vw-2.25rem)] rounded-[1.25rem] border bg-white p-2.5 shadow-[0_12px_34px_rgba(17,24,39,0.05)] sm:w-auto sm:min-w-0 sm:p-3 ${selected ? 'border-gray-950 ring-2 ring-gray-950/10' : 'border-gray-100'}`}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-wide text-gray-400">Order number</p>
-          <h2 className="mt-1 text-base font-bold text-gray-950">{getOrderNumber(order)}</h2>
-          <p className="mt-2 text-xs font-semibold capitalize text-gray-500">
-            {order.status ?? 'pending'} / {order.payment_status ?? 'pending'}
-          </p>
+          <h2 className="mt-0.5 break-words text-[0.82rem] font-bold text-gray-950 sm:text-sm">{getOrderNumber(order)}</h2>
+          <div className="mt-1.5 space-y-1 text-[0.65rem] font-semibold text-gray-500 sm:text-[0.68rem]">
+            <StatusLine label="Order Status" value={order.status ?? 'pending'} />
+            <StatusLine label="Payment status" value={order.payment_status ?? 'pending'} />
+          </div>
         </div>
-        <p className="text-lg font-bold text-gray-950">{formatMoney(order.total_amount)}</p>
+        <p className="shrink-0 text-sm font-bold text-gray-950 sm:text-base">{formatMoney(order.total_amount)}</p>
       </div>
-      <div className="mt-5 flex flex-wrap gap-2">
-        <button type="button" onClick={onView} className="h-10 rounded-full bg-gray-950 px-4 text-sm font-bold text-white transition hover:bg-gray-800">
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" onClick={onView} className="h-8 rounded-full bg-gray-950 px-3 text-[0.68rem] font-bold text-white transition hover:bg-gray-800 sm:h-9 sm:px-3.5 sm:text-xs">
           View details
         </button>
-        <Link href={`/order-success/${order.id}`} className="inline-flex h-10 items-center rounded-full border border-gray-200 px-4 text-sm font-bold text-gray-700 transition hover:border-gray-950">
+        <Link href={`/order-success/${order.id}`} className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 sm:h-9 sm:px-3.5 sm:text-xs">
           Open page
         </Link>
         {canCancel ? (
-          <button type="button" onClick={onCancel} disabled={loading} className="h-10 rounded-full border border-red-100 px-4 text-sm font-bold text-red-700 transition hover:border-red-300 disabled:opacity-50">
+          <button type="button" onClick={onCancel} disabled={loading} className="h-8 rounded-full border border-red-100 px-3 text-[0.68rem] font-bold text-red-700 transition hover:border-red-300 disabled:opacity-50 sm:h-9 sm:px-3.5 sm:text-xs">
             {loading ? (
               <LoadingLabel>
                 Cancelling...
@@ -241,7 +363,7 @@ function OrderCard({ order, selected, loading, onView, onCancel, onReturn }) {
           </button>
         ) : null}
         {canReturn ? (
-          <button type="button" onClick={onReturn} disabled={loading} className="h-10 rounded-full border border-amber-100 px-4 text-sm font-bold text-amber-700 transition hover:border-amber-300 disabled:opacity-50">
+          <button type="button" onClick={onReturn} disabled={loading} className="h-8 rounded-full border border-amber-100 px-3 text-[0.68rem] font-bold text-amber-700 transition hover:border-amber-300 disabled:opacity-50 sm:h-9 sm:px-3.5 sm:text-xs">
             {loading ? (
               <LoadingLabel>
                 Returning...
@@ -256,78 +378,115 @@ function OrderCard({ order, selected, loading, onView, onCancel, onReturn }) {
   );
 }
 
+function StatusLine({ label, value }) {
+  const tone = getStatusTone(value);
+
+  return (
+    <p>
+      <span className="text-gray-400">{label}: </span>
+      <span className={`rounded-full px-1.5 py-0.5 capitalize ${tone}`}>{value}</span>
+    </p>
+  );
+}
+
+function StatusBadge({ label, value }) {
+  const tone = getStatusTone(value);
+
+  return (
+    <span className={`inline-flex max-w-full rounded-full px-2.5 py-1 text-[0.68rem] font-bold ring-1 ${tone}`}>
+      <span className="opacity-70">{label}: </span>
+      <span className="ml-1 min-w-0 break-words capitalize">{value}</span>
+    </span>
+  );
+}
+
+function getStatusTone(value) {
+  const status = String(value ?? '').toLowerCase();
+
+  if (['paid', 'delivered', 'completed', 'success'].includes(status)) {
+    return 'bg-emerald-50 text-emerald-700 ring-emerald-100';
+  }
+
+  if (['pending', 'processing'].includes(status)) {
+    return 'bg-amber-50 text-amber-700 ring-amber-100';
+  }
+
+  if (['cancelled', 'failed', 'rejected', 'returned'].includes(status)) {
+    return 'bg-red-50 text-red-700 ring-red-100';
+  }
+
+  return 'bg-gray-100 text-gray-700 ring-gray-200';
+}
+
 function OrderDetail({ order }) {
   const items = getOrderItems(order);
   const orderDate = formatDate(order.order_date ?? order.created_at ?? order.createdAt);
   const estimatedDelivery = formatDate(
     order.estimated_delivery_date ?? order.estimated_delivery ?? order.delivery_date ?? order.expected_delivery_date,
   );
-  const addressLines = getAddressLines(order);
+  const deliveryDetails = getDeliveryDetails(order);
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-[1.25rem] bg-[#fbfaf7] p-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-500">Order details</p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight text-gray-950">
+    <div className="space-y-3">
+      <div className="rounded-[1.1rem] bg-[#fbfaf7] p-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.22em] text-gray-500">Order details</p>
+            <h2 className="mt-1 break-words text-xl font-bold tracking-tight text-gray-950">
               {getOrderNumber(order)}
             </h2>
-            <span className="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold capitalize text-gray-600 ring-1 ring-gray-100">
-              {order.status ?? 'pending'} / {order.payment_status ?? 'pending'}
-            </span>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <StatusBadge label="Order Status" value={order.status ?? 'pending'} />
+              <StatusBadge label="Payment status" value={order.payment_status ?? 'pending'} />
+            </div>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button type="button" className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 transition hover:border-gray-950 hover:text-gray-950">
+          <div className="flex flex-row gap-2 lg:shrink-0">
+            <button type="button" className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 text-xs font-bold text-gray-700 transition hover:border-gray-950 hover:text-gray-950">
               <FileText className="h-4 w-4" />
               Invoice
             </button>
-            <button type="button" className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-gray-950 px-4 text-sm font-bold text-white transition hover:bg-gray-800">
+            <button type="button" className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-gray-950 px-3.5 text-xs font-bold text-white transition hover:bg-gray-800">
               Track order
               <LocateFixed className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl bg-white p-3 ring-1 ring-gray-100">
-            <p className="text-xs font-bold uppercase tracking-wide text-gray-400">Order date</p>
-            <p className="mt-2 font-semibold text-gray-800">{orderDate}</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl bg-white p-2.5 ring-1 ring-gray-100">
+            <p className="text-[0.68rem] font-bold uppercase tracking-wide text-gray-400">Order date</p>
+            <p className="mt-1 text-sm font-semibold text-gray-800">{orderDate}</p>
           </div>
-          <div className="rounded-2xl bg-white p-3 ring-1 ring-gray-100">
-            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-gray-400">
+          <div className="rounded-xl bg-white p-2.5 ring-1 ring-gray-100">
+            <p className="flex items-center gap-2 text-[0.68rem] font-bold uppercase tracking-wide text-gray-400">
               <Plane className="h-4 w-4 text-gray-950" />
               Estimated delivery
             </p>
-            <p className="mt-2 font-semibold text-gray-800">{estimatedDelivery}</p>
+            <p className="mt-1 text-sm font-semibold text-gray-800">{estimatedDelivery}</p>
           </div>
         </div>
       </div>
 
-      <div className="divide-y divide-gray-100 rounded-[1.25rem] border border-gray-100 px-4">
+      <div className="divide-y divide-gray-100 rounded-[1.1rem] border border-gray-200 px-3">
         {items.length ? (
           items.map((item, index) => (
             <OrderItemRow key={`${item.id ?? getItemName(item)}-${index}`} item={item} />
           ))
         ) : (
-          <div className="py-10 text-center text-sm font-semibold text-gray-400">No items found for this order.</div>
+          <div className="py-8 text-center text-sm font-semibold text-gray-400">No items found for this order.</div>
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-[1.25rem] border border-gray-100 p-4">
-          <h3 className="text-lg font-bold text-gray-950">Payment</h3>
-          <div className="mt-5 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 text-gray-950">
-              <CreditCard className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="font-semibold capitalize text-gray-700">{getPaymentLabel(order)}</p>
-              <p className="mt-1 text-sm capitalize text-gray-400">{order.payment_status ?? 'pending'}</p>
-            </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-[1.1rem] border border-gray-200 p-3">
+          <h3 className="text-base font-bold text-gray-950">Payment</h3>
+          <div className="mt-3">
+            <p className="text-sm font-semibold capitalize text-gray-700">
+              Payment: {getPaymentLabel(order)}
+            </p>
           </div>
-          <dl className="mt-6 space-y-2 text-sm">
+          <dl className="mt-4 space-y-1.5 text-xs">
             <Amount label="Subtotal" value={order.subtotal} />
             <Amount label="Tax" value={order.tax_amount} />
             <Amount label="Shipping" value={order.shipping_amount} />
@@ -335,21 +494,14 @@ function OrderDetail({ order }) {
           </dl>
         </div>
 
-        <div className="rounded-[1.25rem] border border-gray-100 p-4">
-          <h3 className="text-lg font-bold text-gray-950">Delivery</h3>
-          <div className="mt-5 flex gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-950">
-              <MapPin className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="font-semibold text-gray-400">Address</p>
-              <div className="mt-2 space-y-1 text-base font-medium leading-7 text-gray-700">
-                {addressLines.length ? (
-                  addressLines.map((line) => <p key={line}>{line}</p>)
-                ) : (
-                  <p>Delivery address not available</p>
-                )}
-              </div>
+        <div className="rounded-[1.1rem] border border-gray-200 p-3">
+          <h3 className="text-base font-bold text-gray-950">Delivery</h3>
+          <div className="mt-3">
+            <div className="space-y-1.5 text-sm leading-5">
+              <DeliveryField label="Name" value={deliveryDetails.name} />
+              <DeliveryField label="Email" value={deliveryDetails.email} />
+              <DeliveryField label="Phone" value={deliveryDetails.phone} />
+              <DeliveryField label="Address" value={deliveryDetails.address} />
             </div>
           </div>
         </div>
@@ -369,14 +521,23 @@ function Amount({ label, value, strong = false }) {
   );
 }
 
+function DeliveryField({ label, value }) {
+  return (
+    <div className="grid grid-cols-[4.25rem_minmax(0,1fr)] gap-2">
+      <span className="font-semibold text-gray-400">{label}</span>
+      <span className="break-words font-semibold text-gray-700">{value || '-'}</span>
+    </div>
+  );
+}
+
 function OrderItemRow({ item }) {
   const productName = getItemName(item);
   const itemImageSrc = getItemImageSrc(item);
   const attributes = [item.color, item.variant, item.size_text ?? item.product_size?.size_text ?? item.size].filter(Boolean);
 
   return (
-    <article className="grid gap-3 py-3 sm:grid-cols-[72px_minmax(0,1fr)_auto] sm:items-center">
-      <div className="relative h-[4.5rem] w-[4.5rem] overflow-hidden rounded-xl border border-gray-100 bg-gray-50 sm:h-16 sm:w-16">
+    <article className="grid min-w-0 gap-3 py-2.5 sm:grid-cols-[56px_minmax(0,1fr)_auto] sm:items-center">
+      <div className="relative h-14 w-14 overflow-hidden rounded-xl border border-gray-100 bg-gray-50">
         {itemImageSrc ? (
           <Image
             src={itemImageSrc}
@@ -392,16 +553,16 @@ function OrderItemRow({ item }) {
         )}
       </div>
 
-      <div>
-        <h3 className="text-base font-semibold text-gray-700">{productName}</h3>
-        <p className="mt-1 text-sm font-medium text-gray-400">
+      <div className="min-w-0">
+        <h3 className="break-words text-sm font-semibold text-gray-700">{productName}</h3>
+        <p className="mt-0.5 break-words text-xs font-medium text-gray-400">
           {attributes.length ? attributes.join(' | ') : 'Product details'}
         </p>
       </div>
 
       <div className="text-left sm:text-right">
-        <p className="text-base font-bold text-gray-950">{formatMoney(getItemTotal(item))}</p>
-        <p className="mt-1 text-sm font-semibold text-gray-400">Qty: {item.quantity ?? 1}</p>
+        <p className="text-sm font-bold text-gray-950">{formatMoney(getItemTotal(item))}</p>
+        <p className="mt-0.5 text-xs font-semibold text-gray-400">Qty: {item.quantity ?? 1}</p>
       </div>
     </article>
   );
@@ -487,19 +648,38 @@ function getPaymentLabel(order) {
   return lastFour ? `${method} **${lastFour}` : method;
 }
 
-function getAddressLines(order) {
+function getDeliveryDetails(order) {
   const address = order.shipping_address ?? order.delivery_address ?? order.address ?? order.billing_address;
-  if (!address) return [];
-  if (typeof address === 'string') return [address];
+  if (!address) {
+    return {
+      name: order.customer_name ?? order.name ?? '',
+      email: order.customer_email ?? order.email ?? '',
+      phone: order.customer_phone ?? order.phone ?? order.mobile ?? '',
+      address: '',
+    };
+  }
+
+  if (typeof address === 'string') {
+    return {
+      name: order.customer_name ?? order.name ?? '',
+      email: order.customer_email ?? order.email ?? '',
+      phone: order.customer_phone ?? order.phone ?? order.mobile ?? '',
+      address,
+    };
+  }
 
   const street = [address.address_line_1, address.address_line_2, address.street, address.apartment]
     .filter(Boolean)
     .join(' ');
   const locality = [address.city, address.state].filter(Boolean).join(', ');
   const countryLine = [address.country, address.postal_code ?? address.pincode ?? address.zip].filter(Boolean).join(' ');
-  const phone = address.phone ?? address.mobile ?? address.phone_number;
 
-  return [street, locality, countryLine, phone].filter(Boolean);
+  return {
+    name: address.name ?? address.full_name ?? order.customer_name ?? order.name ?? '',
+    email: address.email ?? order.customer_email ?? order.email ?? '',
+    phone: address.phone ?? address.mobile ?? address.phone_number ?? order.customer_phone ?? order.phone ?? order.mobile ?? '',
+    address: [street, locality, countryLine].filter(Boolean).join(', '),
+  };
 }
 
 function formatDate(value) {

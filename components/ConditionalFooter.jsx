@@ -14,7 +14,7 @@ const HIDDEN_FOOTER_ROUTES = new Set([
 export default function ConditionalFooter() {
   const pathname = usePathname();
 
-  if (HIDDEN_FOOTER_ROUTES.has(pathname)) {
+  if (HIDDEN_FOOTER_ROUTES.has(pathname) || pathname?.startsWith('/order-success')) {
     return null;
   }
 
