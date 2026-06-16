@@ -81,7 +81,7 @@ export default function Header({ variant = 'default' }) {
   const searchResults = (searchProductsQuery.data ?? []).slice(0, 5);
   const isHomeOverlay = variant === 'homeOverlay';
   const isHomePage = pathname === APP_ROUTES.HOME;
-  const headerClassName = 'pointer-events-none fixed left-4 right-4 top-2 z-50';
+  const headerClassName = 'pointer-events-none fixed left-3 right-3 top-2 z-50 sm:left-4 sm:right-4';
   const shellClassName =
     'header-glass pointer-events-auto mx-auto h-14 max-w-8xl items-center justify-between rounded-full px-4 transition-all duration-500 ease-out hover:-translate-y-0.5 sm:px-6 motion-reduce:transition-none motion-reduce:hover:translate-y-0';
   const logoClassName = isHomeOverlay
@@ -193,7 +193,7 @@ export default function Header({ variant = 'default' }) {
       <form
         ref={containerRef}
         onSubmit={handleSearchSubmit}
-        className={`relative z-20 shrink-0 self-center origin-right transition-[width,opacity,transform] duration-300 ease-out motion-reduce:transition-none ${
+        className={`relative z-20 min-w-0 max-w-full shrink-0 self-center origin-right transition-[width,opacity,transform] duration-300 ease-out motion-reduce:transition-none ${
           isMobileSearch
             ? 'h-14 w-full translate-x-0 scale-x-100 opacity-100'
             : searchOpen
@@ -214,7 +214,7 @@ export default function Header({ variant = 'default' }) {
             }}
             disabled={!searchOpen}
             placeholder="Search products"
-            className={`${isMobileSearch ? 'h-full pr-12' : 'h-10 pr-4'} w-full rounded-full border border-gray-950/15 bg-transparent pl-10 text-sm text-gray-900 outline-none backdrop-blur-xl transition placeholder:text-gray-500 focus:border-gold/60 focus:ring-2 focus:ring-gold/15`}
+            className={`${isMobileSearch ? 'h-full pr-12 text-base' : 'h-10 pr-4 text-base md:text-sm'} w-full rounded-full border border-gray-950/15 bg-transparent pl-10 text-gray-900 outline-none backdrop-blur-xl transition placeholder:text-gray-500 focus:border-gold/60 focus:ring-2 focus:ring-gold/15`}
           />
           {isMobileSearch && (
             <button

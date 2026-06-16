@@ -1,13 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import CartBag from '@/components/cart/CartBag';
+import ScratchCardOffer, { getStoredScratchCoupon } from '@/components/cart/ScratchCardOffer';
 import { formatInr } from '@/lib/cart/format';
 import { useCartStore } from '@/lib/cart/store';
 import { APP_ROUTES } from '@/lib/routes';
 
 export default function CartCheckout() {
   const router = useRouter();
+  const [scratchCoupon, setScratchCoupon] = useState(() => getStoredScratchCoupon());
   const items = useCartStore((state) => state.items);
   const total = useCartStore((state) => state.total);
   const itemCount = useCartStore((state) => state.itemCount);
@@ -30,32 +33,26 @@ export default function CartCheckout() {
   };
 
   return (
-    <div >
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-4 sm:py-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start lg:gap-4">
-        <CartBag />
+    <div>
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-4 sm:py-6 lg:h-[calc(100vh-6rem)] lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start lg:gap-4 lg:overflow-hidden">
+        <div className="min-h-0 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pr-2" data-lenis-prevent>
+          <CartBag />
+        </div>
 
-        <aside className="rounded-[1.8rem] border border-gray-200 bg-white p-5 shadow-[0_22px_60px_rgba(17,24,39,0.12)] sm:p-6 lg:sticky lg:top-24">
-          <h2 className="text-base font-extrabold text-gray-950">Order Summary</h2>
+        <aside className="h-fit rounded-[1.15rem] border border-gray-200 bg-white p-4 shadow-[0_14px_34px_rgba(17,24,39,0.09)] lg:sticky lg:top-24">
+          {hasItems ? (
+            <div className="mb-4">
+              <ScratchCardOffer
+                initialCoupon={scratchCoupon}
+                onCouponChange={setScratchCoupon}
+                compact
+              />
+            </div>
+          ) : null}
 
-          <div className="mt-4 flex h-11 items-center gap-3">
-            <label className="sr-only" htmlFor="coupon-code">
-              Coupon Code
-            </label>
-            <input
-              id="coupon-code"
-              type="text"
-              placeholder="Coupon Code"
-              className="h-full min-w-0 flex-1 rounded-full bg-gray-50 px-4 text-sm font-semibold text-gray-700 outline-none placeholder:text-gray-400"
-            />
-            <button
-              type="button"
-              className="h-full rounded-full bg-gray-950 px-6 text-xs font-bold text-white transition hover:bg-gray-800"
-            >
-              Apply
-            </button>
-          </div>
+          <h2 className="text-sm font-extrabold text-gray-950">Order Summary</h2>
 
-          <div className="mt-5 space-y-4 border-b border-gray-200 pb-5 text-sm font-semibold">
+          <div className="mt-4 space-y-2.5 border-b border-gray-200 pb-3 text-xs font-semibold">
             <div className="flex items-center justify-between text-gray-500">
               <span>
                 Subtotal ({visibleCount} {visibleCount === 1 ? 'item' : 'items'})
@@ -72,7 +69,7 @@ export default function CartCheckout() {
             </div>
           </div>
 
-          <div className="mt-5 flex items-center justify-between text-lg font-extrabold text-gray-950">
+          <div className="mt-3 flex items-center justify-between text-base font-extrabold text-gray-950">
             <span>Total</span>
             <span>{formatInr(payableTotal)}</span>
           </div>
@@ -81,7 +78,7 @@ export default function CartCheckout() {
             type="button"
             onClick={handleCheckout}
             disabled={!hasItems}
-            className="mt-6 flex h-[52px] w-full items-center justify-center gap-3 rounded-full bg-gray-950 px-5 text-sm font-bold text-white shadow-[0_14px_30px_rgba(17,24,39,0.2)] transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
+            className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-gray-950 px-4 text-xs font-bold text-white shadow-[0_10px_22px_rgba(17,24,39,0.16)] transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
           >
             Go to Checkout
             <span aria-hidden="true">-&gt;</span>

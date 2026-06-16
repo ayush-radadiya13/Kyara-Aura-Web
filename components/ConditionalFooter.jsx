@@ -8,6 +8,7 @@ const HIDDEN_FOOTER_ROUTES = new Set([
   '/register',
   '/forgot-password',
   '/orders',
+  '/cart',
   '/payment-method',
 ]);
 

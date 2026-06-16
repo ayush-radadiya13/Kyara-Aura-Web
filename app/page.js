@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import Header from '../components/Header';
 import HeroCarousel from '../components/HeroCarousel';
 import CategoryGrid from '@/components/CategoryGrid';
+import HomeCollectionShowcase from '@/components/HomeCollectionShowcase';
 import ProductList from '@/components/ProductList';
 import { absoluteUrl, jsonLd, metadataForPage } from '@/lib/seo';
 
@@ -126,41 +126,10 @@ export default function HomePage() {
             ))}
           </div>
 
-          <div className="grid items-center gap-10 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="home-shine group relative aspect-[1.1] overflow-hidden bg-[#f6f3ef]">
-              <Image
-                  src="/assets/home2.jpg"
-                  alt="Model wearing gold jewellery"
-                  fill
-                  className="object-cover transition duration-700 group-hover:scale-105"
-                  sizes="(max-width: 1024px) 100vw, 46vw"
-              />
-              <span className="absolute bottom-5 right-5 bg-gray-950 px-4 py-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-white transition duration-300 group-hover:-translate-y-1">
-              Limited Stock
-            </span>
-            </div>
-
-            <div className="home-reveal" style={{ '--home-delay': '180ms' }}>
-              <p className="mb-3 text-[10px] uppercase tracking-[0.32em] text-gray-400">New story</p>
-              <h2 className="font-display text-4xl font-light text-gray-950 transition duration-300 hover:tracking-[-0.02em] sm:text-5xl">
-                EVE Collection
-              </h2>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-gray-600">
-                Embrace the enchanting allure of the EVE Collection, a limited edition jewellery line
-                that intertwines graceful symbolism with a modern golden glow.
-              </p>
-
-              <div className="mt-8">
-                <ProductList
-                  collection
-                  limit={3}
-                  variant="editorial"
-                  gridClassName="grid grid-cols-1 gap-4 sm:grid-cols-3"
-                  emptyMessage="No collection products available at the moment."
-                />
-              </div>
-            </div>
-          </div>
+          <HomeCollectionShowcase
+            limit={4}
+            emptyMessage="No collection products available at the moment."
+          />
         </section>
 
         {/* Best Seller Products Section */}

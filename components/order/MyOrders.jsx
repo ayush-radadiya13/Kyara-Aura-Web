@@ -163,12 +163,7 @@ export default function MyOrders() {
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-7xl flex-col px-3 py-2 sm:px-4 lg:px-6 xl:min-h-[calc(100vh-5rem)]">
-      <div className="mb-3 shrink-0">
-        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-gray-400">My account</p>
-        <h1 className="mt-1 text-2xl font-bold text-gray-950 sm:text-3xl">Orders</h1>
-      </div>
-
+    <section className="mx-auto flex w-full max-w-7xl flex-col px-3 py-2 sm:px-4 lg:h-[calc(100vh-5rem)] lg:overflow-hidden lg:px-6">
       {error ? <Message tone="error" message={error} /> : null}
       {notice ? <Message tone="success" message={notice} /> : null}
 
@@ -181,10 +176,10 @@ export default function MyOrders() {
           </Link>
         </div>
       ) : (
-        <div className="grid min-w-0 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)] lg:items-start">
-          <aside className="min-w-0 space-y-2 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
-            <div className="shrink-0 rounded-[1.25rem] border border-gray-100 bg-white p-3 shadow-[0_12px_34px_rgba(17,24,39,0.05)]">
-              <h2 className="text-base font-bold text-gray-950">Order history</h2>
+        <div className="grid min-w-0 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)] lg:items-stretch lg:overflow-hidden">
+          <aside className="min-w-0 space-y-2 lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden">
+            <div className="shrink-0 rounded-[1.25rem]  p-3 ">
+              <h2 className="text-2xl font-bold text-gray-950">My Orders</h2>
               <p className="mt-0.5 text-xs text-gray-500">Select an order to preview details.</p>
             </div>
             <div className="-mx-3 flex min-w-0 gap-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:block lg:min-h-0 lg:flex-1 lg:space-y-2 lg:overflow-y-auto lg:pb-0 lg:pr-2" data-lenis-prevent>
@@ -202,7 +197,7 @@ export default function MyOrders() {
             </div>
           </aside>
 
-          <div className="min-w-0 rounded-[1.35rem] border border-gray-100 mb-4 bg-white p-3 shadow-[0_14px_40px_rgba(17,24,39,0.06)] sm:p-4">
+          <div className="mb-4 min-w-0 rounded-[1.35rem] border border-gray-100 bg-white p-3 shadow-[0_14px_40px_rgba(17,24,39,0.06)] sm:p-4 lg:mb-0 lg:h-full lg:overflow-hidden">
             {detailLoading ? (
               <LoaderBlock className="min-h-[360px] rounded-[1.25rem] border border-gray-100 py-0" />
             ) : selectedOrder ? (

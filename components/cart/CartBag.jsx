@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Loader, LoaderBlock, LoadingLabel } from '@/components/ui/loader';
 import { useCartStore } from '@/lib/cart/store';
 import { formatInr } from '@/lib/cart/format';
+import { APP_ROUTES } from '@/lib/routes';
 import { clearCartApi, getCartApi, removeCartItemApi, updateCartQuantityApi } from '@/services/cart';
 
 const CART_IMAGE_FALLBACK = '/images/product-placeholder.svg';
@@ -158,7 +159,7 @@ export default function CartBag() {
       </h1>
 
       {items.length > 0 && (
-        <div className="mt-5 flex items-center justify-between rounded-[1.4rem] border border-gray-200 bg-white px-5 py-3 shadow-[0_14px_40px_rgba(17,24,39,0.06)]">
+        <div className="mt-5 flex items-center justify-between rounded-[1.4rem] border border-gray-200 bg-white px-5 py-1 ">
           <label className="flex cursor-pointer items-center gap-3 text-xs font-bold text-gray-950">
             <input
               type="checkbox"
@@ -206,53 +207,73 @@ export default function CartBag() {
           </Link>
         </div>
       ) : (
-        <ul className="mt-4 overflow-hidden rounded-[1.6rem] border border-gray-200 bg-white px-4 shadow-[0_18px_50px_rgba(17,24,39,0.07)] sm:px-6">
-          {items.map((item, index) => {
-            const lineTotal = item.subtotal ?? item.price * item.quantity;
-            const disabled = updatingItemId === item.id || isClearing;
-            const imageSrc = item.image || CART_IMAGE_FALLBACK;
+        <>
+          <ul className="mt-4 overflow-hidden rounded-[1.6rem] border border-gray-200 bg-white px-4 shadow-[0_18px_50px_rgba(17,24,39,0.07)] sm:px-6">
+            {items.map((item, index) => {
+              const lineTotal = item.subtotal ?? item.price * item.quantity;
+              const disabled = updatingItemId === item.id || isClearing;
+              const imageSrc = item.image || CART_IMAGE_FALLBACK;
 
-            return (
-              <li
-                key={item.id}
-                className={`grid grid-cols-[auto_72px_minmax(0,1fr)] items-center gap-4 py-5 sm:grid-cols-[auto_92px_minmax(0,1fr)_120px] ${
-                  index === 0 ? '' : 'border-t border-gray-100'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  aria-label={`Select ${item.title}`}
-                  checked={selectedItemIds.includes(item.id)}
-                  onChange={() => toggleSelectedItem(item.id)}
-                  className="h-4 w-4 accent-gray-950"
-                />
-
-                <div className="relative h-24 w-[72px] shrink-0 overflow-hidden rounded-xl bg-gray-100 sm:h-28 sm:w-[92px]">
-                  <Image
-                    src={imageSrc}
-                    alt={item.title}
-                    fill
-                    className="object-contain p-2"
-                    sizes="(max-width: 640px) 72px, 92px"
+              return (
+                <li
+                  key={item.id}
+                  className={`grid grid-cols-[auto_72px_minmax(0,1fr)] items-center gap-4 py-5 sm:grid-cols-[auto_92px_minmax(0,1fr)_120px] ${
+                    index === 0 ? '' : 'border-t border-gray-100'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${item.title}`}
+                    checked={selectedItemIds.includes(item.id)}
+                    onChange={() => toggleSelectedItem(item.id)}
+                    className="h-4 w-4 accent-gray-950"
                   />
-                </div>
 
-                <div className="min-w-0">
-                  <div className="flex items-start gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-extrabold leading-snug text-gray-950 sm:text-base">
-                        {item.title}
-                      </p>
-                      <p className="mt-1 text-xs font-semibold leading-5 text-gray-700">
-                        Size: {item.sizeLabel || item.size || 'Default'}
-                        <br />
-                        Color: {item.raw?.product?.color || item.raw?.color || 'Default'}
-                      </p>
+                  <div className="relative h-24 w-[72px] shrink-0 overflow-hidden rounded-xl bg-gray-100 sm:h-28 sm:w-[92px]">
+                    <Image
+                      src={imageSrc}
+                      alt={item.title}
+                      fill
+                      className="object-contain p-2"
+                      sizes="(max-width: 640px) 72px, 92px"
+                    />
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-extrabold leading-snug text-gray-950 sm:text-base">
+                          {item.title}
+                        </p>
+                        <p className="mt-1 text-xs font-semibold leading-5 text-gray-700">
+                          Size: {item.sizeLabel || item.size || 'Default'}
+                          <br />
+                      
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="rounded-full p-1 text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:hidden"
+                        aria-label={`Remove ${item.title}`}
+                        onClick={() => handleRemove(item)}
+                        disabled={disabled}
+                      >
+                        {disabled ? (
+                          <Loader size="sm" className="h-4 w-4 border-current border-t-transparent" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
 
+                    <p className="mt-3 text-sm font-extrabold text-gray-950">{formatInr(lineTotal)}</p>
+                  </div>
+
+                  <div className="col-span-3 flex items-center justify-end gap-4 sm:col-span-1 sm:flex-col sm:items-end">
                     <button
                       type="button"
-                      className="rounded-full p-1 text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:hidden"
+                      className="hidden rounded-full p-1 text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:inline-flex"
                       aria-label={`Remove ${item.title}`}
                       onClick={() => handleRemove(item)}
                       disabled={disabled}
@@ -263,58 +284,47 @@ export default function CartBag() {
                         <Trash2 className="h-4 w-4" />
                       )}
                     </button>
+
+                    <div className="inline-flex h-9 items-center rounded-full bg-gray-50 px-3 text-gray-950">
+                      <button
+                        type="button"
+                        className="px-2 text-lg font-bold disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label="Decrease quantity"
+                        onClick={() => handleQuantityChange(item, item.quantity - 1)}
+                        disabled={disabled || item.quantity <= 1}
+                      >
+                        -
+                      </button>
+                      <span className="flex min-w-8 justify-center text-center text-sm font-bold">
+                        {disabled ? (
+                          <Loader size="sm" className="h-4 w-4 border-gray-950 border-t-transparent" />
+                        ) : (
+                          item.quantity
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        className="px-2 text-lg font-bold disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label="Increase quantity"
+                        onClick={() => handleQuantityChange(item, item.quantity + 1)}
+                        disabled={disabled}
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
+                </li>
+              );
+            })}
+          </ul>
 
-                  <p className="mt-3 text-sm font-extrabold text-gray-950">{formatInr(lineTotal)}</p>
-                </div>
-
-                <div className="col-span-3 flex items-center justify-end gap-4 sm:col-span-1 sm:flex-col sm:items-end">
-                  <button
-                    type="button"
-                    className="hidden rounded-full p-1 text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:inline-flex"
-                    aria-label={`Remove ${item.title}`}
-                    onClick={() => handleRemove(item)}
-                    disabled={disabled}
-                  >
-                    {disabled ? (
-                      <Loader size="sm" className="h-4 w-4 border-current border-t-transparent" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </button>
-
-                  <div className="inline-flex h-9 items-center rounded-full bg-gray-50 px-3 text-gray-950">
-                    <button
-                      type="button"
-                      className="px-2 text-lg font-bold disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label="Decrease quantity"
-                      onClick={() => handleQuantityChange(item, item.quantity - 1)}
-                      disabled={disabled || item.quantity <= 1}
-                    >
-                      -
-                    </button>
-                    <span className="flex min-w-8 justify-center text-center text-sm font-bold">
-                      {disabled ? (
-                        <Loader size="sm" className="h-4 w-4 border-gray-950 border-t-transparent" />
-                      ) : (
-                        item.quantity
-                      )}
-                    </span>
-                    <button
-                      type="button"
-                      className="px-2 text-lg font-bold disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label="Increase quantity"
-                      onClick={() => handleQuantityChange(item, item.quantity + 1)}
-                      disabled={disabled}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+          <Link
+            href={APP_ROUTES.PRODUCTS}
+            className="mt-5 inline-flex h-11 items-center justify-center rounded-full border border-gray-950 bg-white px-6 text-sm font-bold text-gray-950 transition hover:bg-gray-50"
+          >
+            Continue Shopping
+          </Link>
+        </>
       )}
     </section>
   );

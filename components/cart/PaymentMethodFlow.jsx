@@ -42,6 +42,7 @@ import {
   updateAddressApi,
   verifyRazorpayPaymentApi,
 } from '@/services/checkout';
+import ScratchCardOffer, { clearStoredScratchCoupon, getStoredScratchCoupon } from '@/components/cart/ScratchCardOffer';
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
 
@@ -56,7 +57,7 @@ const PAYMENT_OPTIONS = [
   {
     id: 'cod',
     title: 'Cash on Delivery',
-    description: 'Place your order now and pay when it arrives.',
+    description: 'Place your order now and pay when it arrives. 10% COD charge applies.',
     badge: 'Pay later',
     Icon: Wallet,
   },
@@ -178,12 +179,16 @@ function getAddressPayload(addressForm) {
   };
 }
 
-function buildCheckoutPayload({ checkoutIntent, selectedAddressId, selectedMethod }) {
+function buildCheckoutPayload({ checkoutIntent, selectedAddressId, selectedMethod, couponCode }) {
   const payload = {
     checkout_type: checkoutIntent.checkout_type,
     address_id: Number(selectedAddressId),
     payment_method: selectedMethod,
   };
+
+  if (couponCode) {
+    payload.coupon_code = couponCode;
+  }
 
   if (checkoutIntent.checkout_type === 'buy_now') {
     payload.product_size_id = Number(checkoutIntent.product_size_id);
@@ -203,6 +208,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('online');
+  const [scratchCoupon, setScratchCoupon] = useState(() => getStoredScratchCoupon());
   const [summary, setSummary] = useState(null);
   const [notes, setNotes] = useState('');
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -229,6 +235,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const displayItems = hasSummary ? summaryItems : [];
   const visibleCount = summaryItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
   const payableTotal = hasSummary ? getSummaryTotal(summary) : 0;
+  const couponCode = scratchCoupon?.coupon_code ?? '';
   const canPlaceOrder = Boolean(selectedAddressId && hasSummary && payableTotal > 0 && !placingOrder && !summaryLoading);
 
   useEffect(() => {
@@ -297,7 +304,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
       setError('');
 
       try {
-        const payload = buildCheckoutPayload({ checkoutIntent, selectedAddressId, selectedMethod });
+        const payload = buildCheckoutPayload({ checkoutIntent, selectedAddressId, selectedMethod, couponCode });
         const checkoutSummary = await getCheckoutSummaryApi(payload);
         if (isCurrent) setSummary(checkoutSummary);
       } catch (summaryError) {
@@ -315,7 +322,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
     return () => {
       isCurrent = false;
     };
-  }, [checkoutIntent, isAuthenticated, selectedAddressId, selectedMethod]);
+  }, [checkoutIntent, couponCode, isAuthenticated, selectedAddressId, selectedMethod]);
 
   const setAddressField = (field, value) => {
     setAddressForm((current) => ({ ...current, [field]: value }));
@@ -473,7 +480,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   };
 
   const getOrderPayload = (extraPayload = {}) => ({
-    ...buildCheckoutPayload({ checkoutIntent, selectedAddressId, selectedMethod }),
+    ...buildCheckoutPayload({ checkoutIntent, selectedAddressId, selectedMethod, couponCode }),
     ...(notes.trim() ? { notes: notes.trim() } : {}),
     ...extraPayload,
   });
@@ -489,6 +496,8 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
 
     if (paymentMethod === 'cod') {
       if (checkoutIntent.checkout_type === 'cart') clearCart();
+      clearStoredScratchCoupon();
+      setScratchCoupon(null);
       router.push(`/order-success/${order.id}`);
       return;
     }
@@ -499,6 +508,8 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
 
     const verifiedOrder = await openRazorpayPayment({ order, razorpay });
     if (checkoutIntent.checkout_type === 'cart') clearCart();
+    clearStoredScratchCoupon();
+    setScratchCoupon(null);
     router.push(`/order-success/${verifiedOrder?.id ?? order.id}`);
   };
 
@@ -642,6 +653,12 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
 
           <aside className="space-y-3 bg-white  xl:sticky xl:top-24">
             <PaymentMethodSection selectedMethod={selectedMethod} onSelectMethod={setSelectedMethod} />
+
+            <ScratchCardOffer
+              initialCoupon={scratchCoupon}
+              onCouponChange={setScratchCoupon}
+              compact
+            />
 
             <BillDetails
               summary={summary}
@@ -1308,6 +1325,10 @@ function BillDetails({ summary, visibleCount, summaryLoading }) {
   const subtotal = Number(summary?.subtotal ?? 0);
   const taxAmount = Number(summary?.tax_amount ?? 0);
   const shippingAmount = Number(summary?.shipping_amount ?? 0);
+  const codCharge = Number(summary?.cod_charge ?? 0);
+  const discountPercent = Number(summary?.discount_percent ?? 0);
+  const discountAmount = Number(summary?.discount_amount ?? 0);
+  const scratchCouponCode = summary?.scratch_coupon_code;
   const totalAmount = getSummaryTotal(summary);
 
   return (
@@ -1360,6 +1381,29 @@ function BillDetails({ summary, visibleCount, summaryLoading }) {
                   {formatInr(shippingAmount)}
                 </dd>
               </div>
+
+              {codCharge > 0 ? (
+                <div className="flex items-center justify-between">
+                  <dt className="font-semibold text-gray-700">COD Charge</dt>
+                  <dd className="font-bold text-gray-950">
+                    {formatInr(codCharge)}
+                  </dd>
+                </div>
+              ) : null}
+
+              {discountAmount > 0 ? (
+                <div className="flex items-center justify-between gap-3 text-green-700">
+                  <dt className="font-semibold">
+                    Scratch Discount{discountPercent > 0 ? ` (${discountPercent}%)` : ''}
+                    {scratchCouponCode ? (
+                      <span className="ml-2 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide">
+                        {scratchCouponCode}
+                      </span>
+                    ) : null}
+                  </dt>
+                  <dd className="font-bold">-{formatInr(discountAmount)}</dd>
+                </div>
+              ) : null}
             </dl>
           </div>
           <div className="flex items-center justify-between rounded-xl border border-gray-950 bg-white px-4 py-4 text-gray-950">

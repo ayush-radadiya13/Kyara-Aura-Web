@@ -10,7 +10,7 @@ export default function OrdersPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#fbfaf7]">
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 lg:overflow-hidden">
         <MyOrders />
       </main>
     </div>

@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Minus, Plus, Share2 } from 'lucide-react';
+import { IndianRupee, Minus, Plus, RefreshCcw, Share2, Truck } from 'lucide-react';
 import Header from '../../../components/Header';
 import CartDrawer from '@/components/cart/CartDrawer';
 import CartToast from '@/components/cart/CartToast';
@@ -389,6 +389,34 @@ export default function ProductDetail({ product: initialProduct, slug }) {
                 Buy Now
               </button>
             </div>
+
+            <section className="mt-3 overflow-hidden bg-[#f7f7f7] text-center text-[11px] font-bold text-gray-950 sm:mt-1">
+              <div className="grid grid-cols-3 gap-2 px-3 py-4">
+                <div className="flex flex-col items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-gray-700">
+                    <IndianRupee className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+                  </span>
+                  <span>Cash on Delivery</span>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-gray-700">
+                    <RefreshCcw className="h-4 w-4 animate-spin" strokeWidth={2} aria-hidden="true" />
+                  </span>
+                  <span className="max-w-28 underline underline-offset-2">
+                    Return or Exchange within 3 days
+                  </span>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-gray-700">
+                    <Truck className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+                  </span>
+                  <span>Free delivery on orders above ₹1000.</span>
+                </div>
+              </div>
+              <p className="bg-[#e6e6e6] px-3 py-2 text-[11px] font-bold">
+                Get it delivered in 3-6 days
+              </p>
+            </section>
           </section>
         </div>
 
