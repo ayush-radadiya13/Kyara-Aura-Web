@@ -4,6 +4,7 @@ import "./globals.css";
 import QueryProvider from "@/providers/query-provider";
 import SmoothScrollProvider from "@/providers/smooth-scroll-provider";
 import ConditionalFooter from "@/components/ConditionalFooter";
+import WhatsAppFloatButton from "@/components/WhatsAppFloatButton";
 import {
   DEFAULT_SEO_DESCRIPTION,
   DEFAULT_SEO_TITLE,
@@ -49,6 +50,7 @@ export default function RootLayout({ children }) {
             <div className="flex min-h-screen flex-col">
               <div className="flex-1">{children}</div>
               <ConditionalFooter />
+              <WhatsAppFloatButton />
             </div>
           </SmoothScrollProvider>
         </QueryProvider>

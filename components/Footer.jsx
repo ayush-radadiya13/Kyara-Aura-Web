@@ -1,6 +1,11 @@
+'use client';
+
 import Link from 'next/link';
-import { Mail, MapPin, Phone } from 'lucide-react';
+import Image from 'next/image';
+import { Mail, Phone } from 'lucide-react';
 import { APP_ROUTES } from '@/lib/routes';
+import SocialLinks from '@/components/SocialLinks';
+import { useWebSettings } from '@/hooks/use-web-settings';
 
 const companyLinks = [
   { label: 'About Us', href: '/' },
@@ -14,32 +19,47 @@ const supportLinks = [
   { label: 'Return Policy', href: '/return-policy' },
 ];
 
+const DEFAULT_LOGO = '/assets/ka1.png';
+
 export default function Footer() {
+  const { data: settings } = useWebSettings();
+  const logoUrl = settings?.logo_url?.trim() || DEFAULT_LOGO;
+  const email = settings?.email?.trim();
+  const mobileNumber = settings?.mobile_number?.trim();
+
   return (
     <footer className="bg-[#eee9e1] text-black">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:grid-cols-2 lg:grid-cols-[1.15fr_0.8fr_0.8fr_1.15fr] lg:px-8 lg:py-20">
         <div>
-          <Link href="/" className="font-display text-2xl uppercase tracking-[0.18em] text-black">
-            Kyara Aura
+          <Link href="/" className="relative block h-12 w-40 overflow-hidden rounded-full transition-opacity hover:opacity-80 sm:w-48">
+            <Image
+              src={logoUrl}
+              alt="Kyara Aura"
+              fill
+              className="object-cover object-center"
+              sizes="(max-width: 640px) 160px, 192px"
+              unoptimized={logoUrl.startsWith('http')}
+            />
           </Link>
           <div className="mt-8 space-y-3 text-md leading-5 text-black">
-            <p className="flex items-start gap-2">
-              <MapPin className="mt-0.5 h-3.5 w-3.5 text-black" />
-              <span>Fine jewellery crafted with timeless elegance.</span>
-            </p>
-            <p className="flex items-center gap-2">
-              <Phone className="h-3.5 w-3.5 text-black" />
-              <a href="tel:+911234567890" className="transition hover:opacity-70">
-                +91 12345 67890
-              </a>
-            </p>
-            <p className="flex items-center text-md gap-2">
-              <Mail className="h-3.5 w-3.5 text-black" />
-              <a href="mailto:support@kyaraaura.com" className="transition hover:opacity-70">
-                support@kyaraaura.com
-              </a>
-            </p>
+            {mobileNumber && (
+              <p className="flex items-center gap-2">
+                <Phone className="h-3.5 w-3.5 text-black" />
+                <a href={`tel:${mobileNumber.replace(/\s/g, '')}`} className="transition hover:opacity-70">
+                  {mobileNumber}
+                </a>
+              </p>
+            )}
+            {email && (
+              <p className="flex items-center text-md gap-2">
+                <Mail className="h-3.5 w-3.5 text-black" />
+                <a href={`mailto:${email}`} className="transition hover:opacity-70">
+                  {email}
+                </a>
+              </p>
+            )}
           </div>
+          <SocialLinks className="mt-6" />
         </div>
 
         <div>

@@ -14,6 +14,7 @@ export default function CartCheckout() {
   const items = useCartStore((state) => state.items);
   const total = useCartStore((state) => state.total);
   const itemCount = useCartStore((state) => state.itemCount);
+  const buyTwoGetOneDiscountAmount = useCartStore((state) => state.buyTwoGetOneDiscountAmount);
 
   const visibleTotal = total || items.reduce((sum, item) => sum + (item.subtotal ?? item.price * item.quantity), 0);
   const visibleCount = itemCount || items.reduce((sum, item) => sum + item.quantity, 0);
@@ -24,7 +25,7 @@ export default function CartCheckout() {
     const currentLineTotal = item.subtotal ?? item.price * item.quantity;
     return sum + Math.max(0, originalLineTotal - currentLineTotal);
   }, 0);
-  const subtotalBeforeDiscount = visibleTotal + discount;
+  const subtotalBeforeDiscount = visibleTotal + discount + buyTwoGetOneDiscountAmount;
   const payableTotal = Math.max(0, visibleTotal + deliveryFee);
 
   const handleCheckout = () => {
@@ -63,6 +64,12 @@ export default function CartCheckout() {
               <span>Discount</span>
               <span className="text-red-500">-{formatInr(discount)}</span>
             </div>
+            {buyTwoGetOneDiscountAmount > 0 ? (
+              <div className="flex items-center justify-between text-gray-500">
+                <span>Buy 2 Get 1 Free</span>
+                <span className="text-red-500">-{formatInr(buyTwoGetOneDiscountAmount)}</span>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between text-gray-500">
               <span>Delivery Fee</span>
               <span className="text-gray-950">{formatInr(deliveryFee)}</span>

@@ -15,6 +15,8 @@ import {
 } from '@/lib/cart/duplicate';
 import { useCartStore } from '@/lib/cart/store';
 import { addCartItemApi, getCartApi } from '@/services/cart';
+import { shouldShowBuyTwoGetOneFreeBadge } from '@/lib/web-settings';
+import { useWebSettings } from '@/hooks/use-web-settings';
 
 function imageUrlFromValue(value) {
   if (!value) return '';
@@ -51,6 +53,8 @@ export default function ProductCard({
 }) {
   const setCart = useCartStore((state) => state.setCart);
   const cartItems = useCartStore((state) => state.items);
+  const { data: webSettings } = useWebSettings();
+  const showBuyTwoGetOneFreeBadge = shouldShowBuyTwoGetOneFreeBadge(webSettings);
   const [bagDrawerOpen, setBagDrawerOpen] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
   const [cartError, setCartError] = useState('');
@@ -164,6 +168,11 @@ export default function ProductCard({
       <div className="group relative block">
         <div className="relative aspect-[10/11] overflow-hidden bg-[#faf9f7] sm:aspect-square">
           <Link href={href} className="absolute inset-0 z-[1]" aria-label={product.name} />
+          {showBuyTwoGetOneFreeBadge ? (
+            <span className="absolute left-3 top-3 z-20 rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+              Buy 2 Get 1 Free
+            </span>
+          ) : null}
           <div className="absolute right-5 top-5 z-20 flex flex-col gap-3 opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
             {renderWishlistButton(
               'flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-800 shadow-sm transition hover:bg-gray-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-60',
@@ -235,6 +244,11 @@ export default function ProductCard({
         className="relative w-full h-44 sm:h-48 md:h-52 lg:h-56 p-2 sm:p-3 bg-gradient-to-b from-gray-50 via-gray-100 to-white shadow-[inset_0_0_32px_rgba(0,0,0,0.05)]"
       >
         <Link href={href} className="absolute inset-0 z-[1]" aria-label={product.name} />
+        {showBuyTwoGetOneFreeBadge ? (
+          <span className="absolute left-2 top-2 z-20 rounded-md bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-sm sm:left-3 sm:top-3 sm:px-2 sm:py-1 sm:text-[10px]">
+            Buy 2 Get 1 Free
+          </span>
+        ) : null}
         <div className="relative z-0 flex h-full w-full items-center justify-center">
           {productImageSrc ? (
             <Image
