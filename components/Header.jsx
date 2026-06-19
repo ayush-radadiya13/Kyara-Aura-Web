@@ -14,6 +14,8 @@ import { useCartStore } from '@/lib/cart/store';
 import { APP_ROUTES, AUTH_PAGE_ROUTES } from '@/lib/routes';
 import { useAuthStore } from '@/store/auth-store';
 import { getCartApi } from '@/services/cart';
+import PromotionalBanner from '@/components/PromotionalBanner';
+import { usePromotionalMessages } from '@/hooks/use-promotional-messages';
 
 const NAV_ITEMS = [
   { label: 'Home', href: APP_ROUTES.HOME },
@@ -69,6 +71,7 @@ export default function Header({ variant = 'default' }) {
     staleTime: 30_000,
   });
   const wishlistQuery = useWishlist({ enabled: showAuthenticatedActions });
+  const { hasMessages: showPromoBanner } = usePromotionalMessages();
   const wishCount = wishlistQuery.data?.length ?? 0;
   const actionCounts = {
     cartCount: count,
@@ -538,7 +541,10 @@ export default function Header({ variant = 'default' }) {
         </div>
       )}
       </header>
-      {!isHomeOverlay && !isHomePage && <div aria-hidden="true" className="h-20 shrink-0" />}
+      <PromotionalBanner />
+      {!isHomeOverlay && !isHomePage && (
+        <div aria-hidden="true" className={showPromoBanner ? 'h-28 shrink-0' : 'h-20 shrink-0'} />
+      )}
     </>
   );
 }

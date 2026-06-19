@@ -14,7 +14,7 @@ export default function ProductCategoryNav({ activeCategoryId }) {
     <nav
       aria-label="Product categories"
       className=" -mx-4 flex snap-x snap-mandatory items-center justify-start gap-3 overflow-x-auto px-4 pb-2 text-[14px] font-semibold uppercase text-gray-950 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden"
-      data-lenis-prevent
+      data-lenis-prevent-horizontal
     >
       <span className="flex shrink-0 snap-start items-center gap-3">
         <Link

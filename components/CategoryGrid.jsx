@@ -49,7 +49,7 @@ export default function CategoryGrid({
     return (
       <div
         className={wrapperClassName}
-        data-lenis-prevent
+        data-lenis-prevent-horizontal
       >
         {visibleCategories.map((category) => {
           const src = categoryImageSrc(category.image);

@@ -58,6 +58,10 @@ export function normalizeCartPayload(payload) {
       cart.item_count,
       normalizedItems.reduce((sum, item) => sum + item.quantity, 0),
     ),
+    buyTwoGetOneDiscountAmount: toNumber(
+      cart.buy_two_get_one_discount_amount ?? cart.buyTwoGetOneDiscountAmount,
+      0,
+    ),
   };
 }
 
