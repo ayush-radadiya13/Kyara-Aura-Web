@@ -1,3 +1,4 @@
+import { isCartItemFree } from "@/lib/cart/buy-two-get-one";
 import { CART_API_ROUTES } from "@/lib/routes";
 import { customAxios } from "@/utils/api";
 
@@ -29,7 +30,7 @@ export function normalizeCartPayload(payload) {
     const price = toNumber(item.size_price ?? productSize.price);
     const quantity = toNumber(item.quantity, 1);
 
-    return {
+    const normalizedItem = {
       id: String(item.id ?? `${product.slug ?? item.product_id}::${item.product_size_id}`),
       cartItemId: item.id,
       slug: product.slug ?? String(item.product_id ?? ""),
@@ -45,6 +46,11 @@ export function normalizeCartPayload(payload) {
       productSizeId: item.product_size_id ?? productSize.id,
       categoryId: product.category?.id,
       raw: item,
+    };
+
+    return {
+      ...normalizedItem,
+      isFree: isCartItemFree(normalizedItem),
     };
   });
 

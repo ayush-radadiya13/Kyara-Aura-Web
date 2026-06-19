@@ -4,17 +4,23 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import BuyTwoGetOneOfferMessage from '@/components/cart/BuyTwoGetOneOfferMessage';
 import { Loader, LoaderBlock, LoadingLabel } from '@/components/ui/loader';
+import { useWebSettings } from '@/hooks/use-web-settings';
+import { getBuyTwoGetOneOfferMessage } from '@/lib/cart/buy-two-get-one';
 import { useCartStore } from '@/lib/cart/store';
 import { formatInr } from '@/lib/cart/format';
 import { APP_ROUTES } from '@/lib/routes';
+import { isBuyTwoGetOneFreeEnabled } from '@/lib/web-settings';
 import { clearCartApi, getCartApi, removeCartItemApi, updateCartQuantityApi } from '@/services/cart';
 
 const CART_IMAGE_FALLBACK = '/images/product-placeholder.svg';
 
 export default function CartBag() {
   const items = useCartStore((state) => state.items);
+  const buyTwoGetOneDiscountAmount = useCartStore((state) => state.buyTwoGetOneDiscountAmount);
   const setCart = useCartStore((state) => state.setCart);
+  const { data: settings } = useWebSettings();
   const clearCart = useCartStore((state) => state.clearCart);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -151,6 +157,11 @@ export default function CartBag() {
   };
 
   const allSelected = items.length > 0 && selectedItemIds.length === items.length;
+  const buyTwoGetOneOfferMessage = getBuyTwoGetOneOfferMessage({
+    isEnabled: isBuyTwoGetOneFreeEnabled(settings),
+    items,
+    buyTwoGetOneDiscountAmount,
+  });
 
   return (
     <section aria-labelledby="cart-bag-heading" className="min-w-0">
@@ -208,6 +219,12 @@ export default function CartBag() {
         </div>
       ) : (
         <>
+          {buyTwoGetOneOfferMessage ? (
+            <div className="mt-4">
+              <BuyTwoGetOneOfferMessage message={buyTwoGetOneOfferMessage} />
+            </div>
+          ) : null}
+
           <ul className="mt-4 overflow-hidden rounded-[1.6rem] border border-gray-200 bg-white px-4 shadow-[0_18px_50px_rgba(17,24,39,0.07)] sm:px-6">
             {items.map((item, index) => {
               const lineTotal = item.subtotal ?? item.price * item.quantity;

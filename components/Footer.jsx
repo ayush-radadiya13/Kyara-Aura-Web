@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Phone } from 'lucide-react';
+import { Mail, Phone,MapPin  } from 'lucide-react';
 import { APP_ROUTES } from '@/lib/routes';
 import SocialLinks from '@/components/SocialLinks';
 import { useWebSettings } from '@/hooks/use-web-settings';
@@ -25,6 +25,8 @@ export default function Footer() {
   const { data: settings } = useWebSettings();
   const logoUrl = settings?.logo_url?.trim() || DEFAULT_LOGO;
   const email = settings?.email?.trim();
+  const address = settings?.address?.trim();
+
   const mobileNumber = settings?.mobile_number?.trim();
 
   return (
@@ -42,6 +44,14 @@ export default function Footer() {
             />
           </Link>
           <div className="mt-8 space-y-3 text-md leading-5 text-black">
+             {address && (
+              <p className="flex items-center gap-2">
+                <MapPin  className="h-3.5 w-3.5 text-black" />
+                <a href={`tel:${address.replace(/\s/g, '')}`} className="transition hover:opacity-70">
+                  {address}
+                </a>
+              </p>
+            )}
             {mobileNumber && (
               <p className="flex items-center gap-2">
                 <Phone className="h-3.5 w-3.5 text-black" />

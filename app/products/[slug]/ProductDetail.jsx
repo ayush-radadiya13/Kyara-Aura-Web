@@ -3,16 +3,18 @@
 import Image from 'next/image';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { IndianRupee, Minus, Plus, RefreshCcw, Share2, Truck } from 'lucide-react';
 import Header from '../../../components/Header';
 import CartDrawer from '@/components/cart/CartDrawer';
-import CartToast from '@/components/cart/CartToast';
+import CartDuplicateModal from '@/components/cart/CartDuplicateModal';
 import ProductList from '@/components/ProductList';
+import ProductReviewsSection from '@/components/ProductReviewsSection';
+import ProductReviewForm from '@/components/ProductReviewForm';
 import SizeChartModal from '@/components/SizeChartModal';
 import WishlistButton from '@/components/WishlistButton';
 import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
 import {
-  CART_DUPLICATE_MESSAGE,
   hasCartItemWithProductSize,
   isDuplicateCartError,
 } from '@/lib/cart/duplicate';
@@ -49,6 +51,7 @@ function getProductImages(product) {
 
 export default function ProductDetail({ product: initialProduct, slug }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const setCart = useCartStore((state) => state.setCart);
   const cartItems = useCartStore((state) => state.items);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -56,15 +59,16 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   const [bagDrawerOpen, setBagDrawerOpen] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
   const [cartError, setCartError] = useState('');
-  const [cartToast, setCartToast] = useState(null);
+  const [duplicateCartModalOpen, setDuplicateCartModalOpen] = useState(false);
   const [selectedSize, setSelectedSize] = useState('');
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [showFullInfo, setShowFullInfo] = useState(false);
   const [activeDetailTab, setActiveDetailTab] = useState('information');
   const { data: fetchedProduct, isLoading, isError } = useProductBySlug(slug, {
-    enabled: !initialProduct && Boolean(slug),
+    enabled: Boolean(slug),
+    initialData: initialProduct || undefined,
   });
-  const product = initialProduct ?? fetchedProduct;
+  const product = fetchedProduct ?? initialProduct;
 
   const sizeOptions = useMemo(() => {
     const apiSizeOptions = product?.sizes?.map((size) => ({
@@ -81,19 +85,33 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   const productImages = getProductImages(product);
   const activeSize = sizeOptions.some((option) => option.value === selectedSize) ? selectedSize : '';
   const selectedSizeOption = sizeOptions.find((option) => option.value === activeSize);
-  const selectedQuantity = Number(quantity) || 1;
+  const selectedQuantity = quantity === null ? 1 : Number(quantity);
   const quantityLimit = selectedSizeOption?.quantity > 0 ? selectedSizeOption.quantity : null;
-  const canSubmit = Boolean(selectedSizeOption?.id && selectedQuantity > 0);
+  const isOutOfStock = selectedSizeOption != null && Number(selectedSizeOption.quantity) === 0;
+  const canSubmit = Boolean(selectedSizeOption?.id && selectedQuantity > 0 && !isOutOfStock);
 
   useEffect(() => {
-    if (!cartToast) return undefined;
+    if (!selectedSizeOption) return;
 
-    const timer = window.setTimeout(() => setCartToast(null), 3500);
-    return () => window.clearTimeout(timer);
-  }, [cartToast]);
+    if (Number(selectedSizeOption.quantity) === 0) {
+      setQuantity(0);
+      return;
+    }
 
-  const showDuplicateCartToast = () => {
-    setCartToast({ message: CART_DUPLICATE_MESSAGE, type: 'info' });
+    setQuantity((current) => {
+      const currentQty = current === null ? 1 : current;
+      if (quantityLimit && currentQty > quantityLimit) {
+        return quantityLimit;
+      }
+      if (current === 0) {
+        return null;
+      }
+      return current;
+    });
+  }, [selectedSizeOption?.id, selectedSizeOption?.quantity, quantityLimit]);
+
+  const showDuplicateCartModal = () => {
+    setDuplicateCartModalOpen(true);
   };
 
   if (isLoading) {
@@ -136,6 +154,12 @@ export default function ProductDetail({ product: initialProduct, slug }) {
       return false;
     }
 
+    if (isOutOfStock) {
+      setCartError('This size is currently out of stock.');
+      setBagDrawerOpen(true);
+      return false;
+    }
+
     if (selectedQuantity < 1) {
       setCartError('Please select a quantity before adding this product to your bag.');
       setBagDrawerOpen(true);
@@ -144,7 +168,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
 
     if (hasCartItemWithProductSize(cartItems, selectedSizeOption.id)) {
       setCartError('');
-      showDuplicateCartToast();
+      showDuplicateCartModal();
       return false;
     }
 
@@ -162,7 +186,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
     } catch (error) {
       if (isDuplicateCartError(error)) {
         setBagDrawerOpen(false);
-        showDuplicateCartToast();
+        showDuplicateCartModal();
         return false;
       }
 
@@ -176,6 +200,12 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   const handleBuyNow = async () => {
     if (!selectedSizeOption?.id) {
       setCartError('Please select a valid size before buying this product.');
+      setBagDrawerOpen(true);
+      return;
+    }
+
+    if (isOutOfStock) {
+      setCartError('This size is currently out of stock.');
       setBagDrawerOpen(true);
       return;
     }
@@ -199,6 +229,8 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   const formattedPrice = selectedPrice.toLocaleString('en-IN');
   const hasMoreProductInfo = product.specs.length > 4;
   const visibleProductSpecs = showFullInfo ? product.specs : product.specs.slice(0, 4);
+  const productReviews = Array.isArray(product.reviews) ? product.reviews : [];
+  const reviewsCount = product.reviews_count ?? productReviews.length;
   const detailTabs = [
     { id: 'information', label: 'Product Information' },
     { id: 'description', label: 'Description' },
@@ -290,12 +322,16 @@ export default function ProductDetail({ product: initialProduct, slug }) {
               {product.description}
             </p>
 
-            <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-4 border-b border-gray-100 ">
-              <div className="flex items-center gap-2 text-md text-gray-400">
-                <span className=" text-[#c9a75d]">★★★★★</span>
-                <span>(68 Reviews)</span>
+            {reviewsCount > 0 && (
+              <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-4 border-b border-gray-100 ">
+                <div className="flex items-center gap-2 text-md text-gray-400">
+                  <span className="text-[#c9a75d]">★★★★★</span>
+                  <span>
+                    ({reviewsCount} {reviewsCount === 1 ? 'Review' : 'Reviews'})
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="border-b border-gray-100 py-4">
               <div className="mb-4 flex items-center justify-between gap-4">
@@ -339,30 +375,36 @@ export default function ProductDetail({ product: initialProduct, slug }) {
 
             <div className="flex items-center justify-between border-b border-gray-100 py-3">
               <span className="text-lg font-bold text-gray-950">Quantity</span>
-              <div className="flex items-center gap-4 text-lg font-semibold text-gray-950">
-                <button
-                  type="button"
-                  onClick={() => setQuantity((q) => Math.max(0, (q ?? 1) - 1) || null)}
-                  disabled={!quantity}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-950 text-white transition hover:bg-[#A97818] disabled:cursor-not-allowed disabled:bg-gray-300"
-                  aria-label="Decrease quantity"
-                >
-                  <Minus className="h-4 w-4" strokeWidth={2.4} />
-                </button>
-                <span className="min-w-4 text-center text-base font-semibold">{quantity || 1}</span>
-                <button
-                  type="button"
-                  onClick={() => setQuantity((q) => {
-                    const nextQuantity = (q ?? 1) + 1;
-                    return quantityLimit ? Math.min(nextQuantity, quantityLimit) : nextQuantity;
-                  })}
-                  disabled={Boolean(quantityLimit && quantity >= quantityLimit)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-950 text-white transition hover:bg-[#A97818] disabled:cursor-not-allowed disabled:bg-gray-300"
-                  aria-label="Increase quantity"
-                >
-                  <Plus className="h-4 w-4" strokeWidth={2.4} />
-                </button>
-              </div>
+              {isOutOfStock ? (
+                <span className="text-base font-bold uppercase tracking-wide text-red-600">
+                  Out of Stock
+                </span>
+              ) : (
+                <div className="flex items-center gap-4 text-lg font-semibold text-gray-950">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.max(0, (q ?? 1) - 1) || null)}
+                    disabled={!quantity}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-950 text-white transition hover:bg-[#A97818] disabled:cursor-not-allowed disabled:bg-gray-300"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="h-4 w-4" strokeWidth={2.4} />
+                  </button>
+                  <span className="min-w-4 text-center text-base font-semibold">{quantity || 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => {
+                      const nextQuantity = (q ?? 1) + 1;
+                      return quantityLimit ? Math.min(nextQuantity, quantityLimit) : nextQuantity;
+                    })}
+                    disabled={Boolean(quantityLimit && quantity >= quantityLimit)}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-950 text-white transition hover:bg-[#A97818] disabled:cursor-not-allowed disabled:bg-gray-300"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="h-4 w-4" strokeWidth={2.4} />
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-2 gap-2 border-t border-gray-100 bg-white p-3 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] sm:static sm:z-auto sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0 sm:py-3 sm:shadow-none">
@@ -530,55 +572,47 @@ export default function ProductDetail({ product: initialProduct, slug }) {
               {activeDetailTab === 'reviews' && (
                 <div className="grid gap-8 text-sm text-gray-500 lg:grid-cols-[1fr_1.1fr]">
                   <div className="space-y-5">
-                    <div>
-                      <p className="mb-1 font-semibold text-gray-900">★★★★★</p>
-                      <p>
-                        A refined finish and comfortable fit make this piece a customer favorite for
-                        both everyday styling and special occasions.
+                    {productReviews.length ? (
+                      productReviews.slice(0, 2).map((review) => (
+                        <div key={review.id}>
+                          <div className="mb-1 flex items-center gap-1 text-[#c9a75d]">
+                            {Array.from({ length: 5 }, (_, index) => (
+                              <span
+                                key={index}
+                                className={index < (review.rating ?? 0) ? 'text-[#c9a75d]' : 'text-gray-300'}
+                              >
+                                ★
+                              </span>
+                            ))}
+                          </div>
+                          <p>{review.review}</p>
+                          <p className="mt-2 text-xs text-gray-400">
+                            {review.customer_name}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p>No reviews yet. Be the first to share your experience.</p>
+                    )}
+                    {reviewsCount > 0 && (
+                      <p className="text-xs font-semibold uppercase text-gray-900">
+                        {reviewsCount} {reviewsCount === 1 ? 'Review' : 'Reviews'}
                       </p>
-                    </div>
-                    <p className="text-xs font-semibold uppercase text-gray-900">
-                      68 Reviews
-                    </p>
+                    )}
                   </div>
-                  <form className="space-y-5 bg-[#f8f8f7] p-6">
-                    <h2 className="text-lg font-semibold   text-gray-900">
-                      Leave a Review
-                    </h2>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <input
-                        type="text"
-                        placeholder="Your Name"
-                        className="border-b border-gray-300 bg-transparent py-3 text-sm outline-none placeholder:text-gray-400"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Your Order ID"
-                        className="border-b border-gray-300 bg-transparent py-3 text-sm outline-none placeholder:text-gray-400"
-                      />
-                    </div>
-                    <input
-                      type="email"
-                      placeholder="Your Email Address"
-                      className="w-full border-b border-gray-300 bg-transparent py-3 text-sm outline-none placeholder:text-gray-400"
-                    />
-                    <textarea
-                      placeholder="Your Review"
-                      rows={3}
-                      className="w-full resize-none border-b border-gray-300 bg-transparent py-3 text-sm outline-none placeholder:text-gray-400"
-                    />
-                    <button
-                      type="button"
-                      className="bg-gray-900 px-4 py-2 rounded-md  text-md font-semibold   text-white transition hover:bg-gray-800"
-                    >
-                      Submit Review
-                    </button>
-                  </form>
+                  <ProductReviewForm
+                    productId={product.id ?? product._id}
+                    onSuccess={() => {
+                      queryClient.invalidateQueries({ queryKey: ['products', slug] });
+                    }}
+                  />
                 </div>
               )}
             </div>
           </div>
         </section>
+
+        <ProductReviewsSection reviews={productReviews} reviewsCount={reviewsCount} />
 
         <section className="mt-16 justify-center items-center lg:mt-20">
           <h2 className="mb-9 text-center text-2xl font-semibold text-gray-950">
@@ -600,6 +634,10 @@ export default function ProductDetail({ product: initialProduct, slug }) {
         error={cartError}
       />
       <SizeChartModal open={sizeChartOpen} onClose={() => setSizeChartOpen(false)} />
+      <CartDuplicateModal
+        open={duplicateCartModalOpen}
+        onClose={() => setDuplicateCartModalOpen(false)}
+      />
     </div>
   );
 }

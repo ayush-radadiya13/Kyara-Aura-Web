@@ -62,9 +62,7 @@ export default async function CategoriesPage() {
       {/* Page Title and Description Section */}
       <section className="mx-auto max-w-7xl px-4 py-4">
         <div className="text-center mb-4">
-          <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.36em] text-gold">
-            Jewellery Categories
-          </p>
+      
           <h1 className={`${categoryDisplay.className} mb-2 text-5xl font-medium tracking-[-0.05em] text-gray-950 md:text-5xl`}>
             Find Your Style
           </h1>

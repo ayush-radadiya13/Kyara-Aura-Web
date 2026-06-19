@@ -43,6 +43,10 @@ import {
   verifyRazorpayPaymentApi,
 } from '@/services/checkout';
 import ScratchCardOffer, { clearStoredScratchCoupon, getStoredScratchCoupon } from '@/components/cart/ScratchCardOffer';
+import BuyTwoGetOneOfferMessage from '@/components/cart/BuyTwoGetOneOfferMessage';
+import { useWebSettings } from '@/hooks/use-web-settings';
+import { getBuyTwoGetOneOfferMessage } from '@/lib/cart/buy-two-get-one';
+import { isBuyTwoGetOneFreeEnabled } from '@/lib/web-settings';
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
 
@@ -201,8 +205,10 @@ function buildCheckoutPayload({ checkoutIntent, selectedAddressId, selectedMetho
 export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_type: 'cart' } }) {
   const router = useRouter();
   const clearCart = useCartStore((state) => state.clearCart);
+  const cartBuyTwoGetOneDiscountAmount = useCartStore((state) => state.buyTwoGetOneDiscountAmount);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isHydrated = useAuthStore((state) => state.isHydrated);
+  const { data: settings } = useWebSettings();
 
   const [checkoutIntent] = useState(initialCheckoutIntent);
   const [addresses, setAddresses] = useState([]);
@@ -237,6 +243,18 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const payableTotal = hasSummary ? getSummaryTotal(summary) : 0;
   const couponCode = scratchCoupon?.coupon_code ?? '';
   const canPlaceOrder = Boolean(selectedAddressId && hasSummary && payableTotal > 0 && !placingOrder && !summaryLoading);
+  const summaryBuyTwoGetOneDiscountAmount = Number(
+    summary?.buy_two_get_one_discount_amount ?? summary?.buyTwoGetOneDiscountAmount ?? 0,
+  );
+  const buyTwoGetOneDiscountAmount = summaryBuyTwoGetOneDiscountAmount || cartBuyTwoGetOneDiscountAmount;
+  const buyTwoGetOneOfferMessage =
+    checkoutIntent.checkout_type === 'cart'
+      ? getBuyTwoGetOneOfferMessage({
+          isEnabled: isBuyTwoGetOneFreeEnabled(settings),
+          items: displayItems,
+          buyTwoGetOneDiscountAmount,
+        })
+      : null;
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -648,7 +666,13 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
               onSetDefaultAddress={handleSetDefaultAddress}
             />
 
-            <ProductDetailsSection items={displayItems} visibleCount={visibleCount} hasSummary={hasSummary} summaryLoading={summaryLoading} />
+            <ProductDetailsSection
+              items={displayItems}
+              visibleCount={visibleCount}
+              hasSummary={hasSummary}
+              summaryLoading={summaryLoading}
+              buyTwoGetOneOfferMessage={buyTwoGetOneOfferMessage}
+            />
           </div>
 
           <aside className="space-y-3 bg-white  xl:sticky xl:top-24">
@@ -826,7 +850,7 @@ function CodOtpDialog({ open, otp, error, loading, onOtpChange, onClose, onSubmi
   );
 }
 
-function ProductDetailsSection({ items, visibleCount, hasSummary, summaryLoading }) {
+function ProductDetailsSection({ items, visibleCount, hasSummary, summaryLoading, buyTwoGetOneOfferMessage }) {
   return (
     <section aria-labelledby="payment-bag-heading" className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 px-4 py-2 sm:px-5">
@@ -840,6 +864,12 @@ function ProductDetailsSection({ items, visibleCount, hasSummary, summaryLoading
           {visibleCount} {visibleCount === 1 ? 'item' : 'items'}
         </span>
       </div>
+
+      {buyTwoGetOneOfferMessage ? (
+        <div className="border-b border-gray-100 px-4 py-3 sm:px-5">
+          <BuyTwoGetOneOfferMessage message={buyTwoGetOneOfferMessage} />
+        </div>
+      ) : null}
 
       {summaryLoading && !hasSummary ? (
         <LoaderBlock className="m-5 rounded-2xl border border-gray-100 bg-white py-12" />
@@ -862,7 +892,6 @@ function ProductDetailsSection({ items, visibleCount, hasSummary, summaryLoading
             const productSize = item.size_text ?? item.sizeLabel ?? item.size;
             const image = item.image;
             const slug = item.product_slug ?? item.slug;
-            const seller = item.seller_name ?? item.brand ?? 'Kyara Aura';
             const visiblePrice = unitPrice ?? productTotal;
             const discountPercent =
               originalPrice && visiblePrice && originalPrice > visiblePrice
@@ -895,7 +924,7 @@ function ProductDetailsSection({ items, visibleCount, hasSummary, summaryLoading
                           {productName}
                         </Link>
                         <p className="mt-1 text-xs font-semibold text-gray-500">
-                          {productSize ? `${productSize} · ` : ''}Seller: {seller}
+                          {productSize ? `${productSize} · ` : ''}
                         </p>
                       </div>
                     </div>
@@ -1395,11 +1424,11 @@ function BillDetails({ summary, visibleCount, summaryLoading }) {
                 <div className="flex items-center justify-between gap-3 text-green-700">
                   <dt className="font-semibold">
                     Scratch Discount{discountPercent > 0 ? ` (${discountPercent}%)` : ''}
-                    {scratchCouponCode ? (
+                    {/* {scratchCouponCode ? (
                       <span className="ml-2 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide">
                         {scratchCouponCode}
                       </span>
-                    ) : null}
+                    ) : null} */}
                   </dt>
                   <dd className="font-bold">-{formatInr(discountAmount)}</dd>
                 </div>

@@ -2,21 +2,18 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Heart, ShoppingBag } from 'lucide-react';
 import CartDrawer from '@/components/cart/CartDrawer';
-import CartToast from '@/components/cart/CartToast';
+import CartDuplicateModal from '@/components/cart/CartDuplicateModal';
 import WishlistButton from '@/components/WishlistButton';
 import { Loader, LoadingLabel } from '@/components/ui/loader';
 import {
-  CART_DUPLICATE_MESSAGE,
   hasCartItemWithProductSize,
   isDuplicateCartError,
 } from '@/lib/cart/duplicate';
 import { useCartStore } from '@/lib/cart/store';
 import { addCartItemApi, getCartApi } from '@/services/cart';
-import { shouldShowBuyTwoGetOneFreeBadge } from '@/lib/web-settings';
-import { useWebSettings } from '@/hooks/use-web-settings';
 
 function imageUrlFromValue(value) {
   if (!value) return '';
@@ -53,12 +50,10 @@ export default function ProductCard({
 }) {
   const setCart = useCartStore((state) => state.setCart);
   const cartItems = useCartStore((state) => state.items);
-  const { data: webSettings } = useWebSettings();
-  const showBuyTwoGetOneFreeBadge = shouldShowBuyTwoGetOneFreeBadge(webSettings);
   const [bagDrawerOpen, setBagDrawerOpen] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
   const [cartError, setCartError] = useState('');
-  const [cartToast, setCartToast] = useState(null);
+  const [duplicateCartModalOpen, setDuplicateCartModalOpen] = useState(false);
   const href = `/products/${product.slug}`;
   const originalPrice = product.oldPrice ?? product.originalPrice;
   const discountPercent =
@@ -71,15 +66,8 @@ export default function ProductCard({
   const wishlistLabel = wishlistActive ? 'Remove from wishlist' : 'Add to wishlist';
   const quickAddSize = getQuickAddSize(product);
 
-  useEffect(() => {
-    if (!cartToast) return undefined;
-
-    const timer = window.setTimeout(() => setCartToast(null), 3500);
-    return () => window.clearTimeout(timer);
-  }, [cartToast]);
-
-  const showDuplicateCartToast = () => {
-    setCartToast({ message: CART_DUPLICATE_MESSAGE, type: 'info' });
+  const showDuplicateCartModal = () => {
+    setDuplicateCartModalOpen(true);
   };
 
   const handleQuickAddToBag = async (event) => {
@@ -94,7 +82,7 @@ export default function ProductCard({
 
     if (hasCartItemWithProductSize(cartItems, quickAddSize.id)) {
       setCartError('');
-      showDuplicateCartToast();
+      showDuplicateCartModal();
       return;
     }
 
@@ -112,7 +100,7 @@ export default function ProductCard({
     } catch (error) {
       if (isDuplicateCartError(error)) {
         setBagDrawerOpen(false);
-        showDuplicateCartToast();
+        showDuplicateCartModal();
         return;
       }
 
@@ -168,11 +156,6 @@ export default function ProductCard({
       <div className="group relative block">
         <div className="relative aspect-[10/11] overflow-hidden bg-[#faf9f7] sm:aspect-square">
           <Link href={href} className="absolute inset-0 z-[1]" aria-label={product.name} />
-          {showBuyTwoGetOneFreeBadge ? (
-            <span className="absolute left-3 top-3 z-20 rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-              Buy 2 Get 1 Free
-            </span>
-          ) : null}
           <div className="absolute right-5 top-5 z-20 flex flex-col gap-3 opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
             {renderWishlistButton(
               'flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-800 shadow-sm transition hover:bg-gray-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-60',
@@ -215,13 +198,13 @@ export default function ProductCard({
           </h3>
           <div className={`${isCatalog ? 'mt-2 text-[13px]' : 'mt-2 text-md'} flex flex-wrap items-center gap-2`}>
             <p className="font-medium text-gray-700">₹{product.price?.toLocaleString('en-IN')}</p>
+            {originalPrice && originalPrice > product.price && (
+              <p className="text-gray-400 line-through">₹{originalPrice.toLocaleString('en-IN')}</p>
+            )}
             {discountPercent > 0 && (
               <span className="rounded-full border border-[#d3b987]/40 bg-[#fff8ea] px-2 py-0.5 text-[11px] font-semibold tracking-wide text-[#9a6a1f]">
                 {discountPercent}% OFF
               </span>
-            )}
-            {originalPrice && originalPrice > product.price && (
-              <p className="text-gray-400 line-through">₹{originalPrice.toLocaleString('en-IN')}</p>
             )}
           </div>
         </div>
@@ -232,7 +215,10 @@ export default function ProductCard({
         isLoading={cartLoading}
         error={cartError}
       />
-      {cartToast ? <CartToast message={cartToast.message} type={cartToast.type} /> : null}
+      <CartDuplicateModal
+        open={duplicateCartModalOpen}
+        onClose={() => setDuplicateCartModalOpen(false)}
+      />
       </>
     );
   }
@@ -244,11 +230,6 @@ export default function ProductCard({
         className="relative w-full h-44 sm:h-48 md:h-52 lg:h-56 p-2 sm:p-3 bg-gradient-to-b from-gray-50 via-gray-100 to-white shadow-[inset_0_0_32px_rgba(0,0,0,0.05)]"
       >
         <Link href={href} className="absolute inset-0 z-[1]" aria-label={product.name} />
-        {showBuyTwoGetOneFreeBadge ? (
-          <span className="absolute left-2 top-2 z-20 rounded-md bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-sm sm:left-3 sm:top-3 sm:px-2 sm:py-1 sm:text-[10px]">
-            Buy 2 Get 1 Free
-          </span>
-        ) : null}
         <div className="relative z-0 flex h-full w-full items-center justify-center">
           {productImageSrc ? (
             <Image
@@ -276,13 +257,13 @@ export default function ProductCard({
         <div className="mt-1.5 sm:mt-2 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <p className="text-sm font-semibold text-gold">₹{product.price?.toLocaleString('en-IN')}</p>
+            {originalPrice && originalPrice > product.price && (
+              <p className="text-xs text-gray-500 line-through">₹{originalPrice.toLocaleString('en-IN')}</p>
+            )}
             {discountPercent > 0 && (
               <span className="rounded-full border border-gold/30 bg-gradient-to-r from-amber-50 to-orange-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 shadow-sm sm:px-2 sm:text-[11px]">
                 {discountPercent}% OFF
               </span>
-            )}
-            {originalPrice && originalPrice > product.price && (
-              <p className="text-xs text-gray-500 line-through">₹{originalPrice.toLocaleString('en-IN')}</p>
             )}
           </div>
         </div>
@@ -319,7 +300,10 @@ export default function ProductCard({
       isLoading={cartLoading}
       error={cartError}
     />
-    {cartToast ? <CartToast message={cartToast.message} type={cartToast.type} /> : null}
+    <CartDuplicateModal
+      open={duplicateCartModalOpen}
+      onClose={() => setDuplicateCartModalOpen(false)}
+    />
     </>
   );
 }

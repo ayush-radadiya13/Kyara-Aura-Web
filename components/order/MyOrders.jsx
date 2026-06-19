@@ -3,9 +3,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  FileText,
   LocateFixed,
   PackageCheck,
   Plane,
@@ -197,11 +196,13 @@ export default function MyOrders() {
             </div>
           </aside>
 
-          <div className="mb-4 min-w-0 rounded-[1.35rem] border border-gray-100 bg-white p-3 shadow-[0_14px_40px_rgba(17,24,39,0.06)] sm:p-4 lg:mb-0 lg:h-full lg:overflow-hidden">
+          <div className="mb-4 min-w-0 rounded-[1.35rem] border border-gray-100 bg-white p-3 shadow-[0_14px_40px_rgba(17,24,39,0.06)] sm:p-4 lg:mb-0 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden">
             {detailLoading ? (
               <LoaderBlock className="min-h-[360px] rounded-[1.25rem] border border-gray-100 py-0" />
             ) : selectedOrder ? (
-              <OrderDetail order={selectedOrder} />
+              <OrderDetailScrollContainer>
+                <OrderDetail order={selectedOrder} />
+              </OrderDetailScrollContainer>
             ) : (
               <div className="flex min-h-[360px] items-center justify-center rounded-[1.25rem] border border-dashed border-gray-200 text-center">
                 <div>
@@ -343,9 +344,12 @@ function OrderCard({ order, selected, loading, onView, onCancel, onReturn }) {
         <button type="button" onClick={onView} className="h-8 rounded-full bg-gray-950 px-3 text-[0.68rem] font-bold text-white transition hover:bg-gray-800 sm:h-9 sm:px-3.5 sm:text-xs">
           View details
         </button>
-        <Link href={`/order-success/${order.id}`} className="inline-flex h-8 items-center rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 sm:h-9 sm:px-3.5 sm:text-xs">
-          Open page
-        </Link>
+        <button type="button" className="h-8 rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 sm:h-9 sm:px-3.5 sm:text-xs">
+          Download Invoice
+        </button>
+        <button type="button" className="h-8 rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 sm:h-9 sm:px-3.5 sm:text-xs">
+          Track Order
+        </button>
         {canCancel ? (
           <button type="button" onClick={onCancel} disabled={loading} className="h-8 rounded-full border border-red-100 px-3 text-[0.68rem] font-bold text-red-700 transition hover:border-red-300 disabled:opacity-50 sm:h-9 sm:px-3.5 sm:text-xs">
             {loading ? (
@@ -413,6 +417,42 @@ function getStatusTone(value) {
   return 'bg-gray-100 text-gray-700 ring-gray-200';
 }
 
+function OrderDetailScrollContainer({ children }) {
+  const scrollRef = useRef(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+
+  useEffect(() => {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return;
+
+    const checkOverflow = () => {
+      setHasOverflow(scrollEl.scrollHeight > scrollEl.clientHeight);
+    };
+
+    checkOverflow();
+
+    const resizeObserver = new ResizeObserver(checkOverflow);
+    resizeObserver.observe(scrollEl);
+
+    const contentEl = scrollEl.firstElementChild;
+    if (contentEl) {
+      resizeObserver.observe(contentEl);
+    }
+
+    return () => resizeObserver.disconnect();
+  }, [children]);
+
+  return (
+    <div
+      ref={scrollRef}
+      className={`min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${hasOverflow ? 'pb-8' : ''}`}
+      data-lenis-prevent
+    >
+      {children}
+    </div>
+  );
+}
+
 function OrderDetail({ order }) {
   const items = getOrderItems(order);
   const orderDate = formatDate(order.order_date ?? order.created_at ?? order.createdAt);
@@ -437,10 +477,6 @@ function OrderDetail({ order }) {
           </div>
 
           <div className="flex flex-row gap-2 lg:shrink-0">
-            <button type="button" className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 text-xs font-bold text-gray-700 transition hover:border-gray-950 hover:text-gray-950">
-              <FileText className="h-4 w-4" />
-              Invoice
-            </button>
             <button type="button" className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-gray-950 px-3.5 text-xs font-bold text-white transition hover:bg-gray-800">
               Track order
               <LocateFixed className="h-4 w-4" />

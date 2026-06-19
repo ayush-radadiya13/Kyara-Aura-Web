@@ -113,19 +113,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="home-scroll-stable mx-auto max-w-7xl px-4 pb-10 sm:px-6" style={{ '--home-delay': '120ms' }}>
-          <div className="mb-10 grid grid-cols-2 items-center gap-8 text-center text-xs uppercase tracking-[0.28em] text-gray-300 sm:grid-cols-3 lg:grid-cols-6">
-            {['Holliage', 'Aura', 'QKE', 'Bridal', 'Kyara', 'Lumiere'].map((brand, index) => (
-                <span
-                    key={brand}
-                    className="home-reveal font-display normal-case tracking-normal transition duration-300 hover:-translate-y-1 hover:text-gray-950"
-                    style={{ '--home-delay': `${index * 70}ms` }}
-                >
-              {brand}
-            </span>
-            ))}
-          </div>
-
+        <section className="home-scroll-stable mx-auto max-w-7xl mt-4 px-4 pb-10 sm:px-6" style={{ '--home-delay': '120ms' }}>
           <HomeCollectionShowcase
             limit={4}
             emptyMessage="No collection products available at the moment."
