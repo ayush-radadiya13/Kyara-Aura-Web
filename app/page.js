@@ -7,10 +7,10 @@ import ProductList from '@/components/ProductList';
 import { absoluteUrl, jsonLd, metadataForPage } from '@/lib/seo';
 
 const homeDescription =
-  'Discover Kyara Aura fashion jewellery, including gold plated bangles, earrings, necklaces, rings, and elegant pieces for everyday and occasion styling.';
+  'Discover Kayra Aura fashion jewellery, including gold plated bangles, earrings, necklaces, rings, and elegant pieces for everyday and occasion styling.';
 
 export const metadata = metadataForPage({
-  title: 'Kyara Aura | Fashion Jewellery for Women',
+  title: 'Kayra Aura | Fashion Jewellery for Women',
   description: homeDescription,
   path: '/',
   images: ['/assets/home1.jpg'],
@@ -20,7 +20,7 @@ export default function HomePage() {
   const organizationSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'Kyara Aura',
+    name: 'Kayra Aura',
     url: absoluteUrl('/'),
     logo: absoluteUrl('/assets/ka1.png'),
     sameAs: [],
@@ -28,7 +28,7 @@ export default function HomePage() {
   const websiteSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'Kyara Aura',
+    name: 'Kayra Aura',
     url: absoluteUrl('/'),
   };
 

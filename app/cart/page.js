@@ -2,7 +2,7 @@ import Header from '@/components/Header';
 import CartCheckout from '@/components/cart/CartCheckout';
 
 export const metadata = {
-  title: 'Cart | Kyara Aura',
+  title: 'Cart | Kayra Aura',
   description: 'Review your cart and continue to checkout.',
 };
 

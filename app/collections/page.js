@@ -9,9 +9,9 @@ const collectionDisplay = Cormorant_Garamond({
 });
 
 export const metadata = metadataForPage({
-  title: 'Jewellery Collections | Kyara Aura',
+  title: 'Jewellery Collections | Kayra Aura',
   description:
-    'Explore Kyara Aura jewellery collections with curated bangles, rings, earrings, and elegant fashion jewellery for special occasions.',
+    'Explore Kayra Aura jewellery collections with curated bangles, rings, earrings, and elegant fashion jewellery for special occasions.',
   path: '/collections',
 });
 

@@ -67,6 +67,69 @@ export async function cancelOrderApi(orderId, payload) {
 }
 
 export async function returnOrderApi(orderId, payload) {
-  const response = await customAxios.post(CHECKOUT_API_ROUTES.RETURN_ORDER(orderId), payload);
+  const isFormData = typeof FormData !== "undefined" && payload instanceof FormData;
+  const response = await customAxios.post(
+    CHECKOUT_API_ROUTES.RETURN_ORDER(orderId),
+    payload,
+    isFormData
+      ? {
+          transformRequest: [
+            (data, headers) => {
+              delete headers["Content-Type"];
+              return data;
+            },
+          ],
+        }
+      : undefined,
+  );
   return unwrapData(response);
+}
+
+function getInvoiceFilename(contentDisposition, fallbackName) {
+  if (!contentDisposition) return fallbackName;
+
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1]);
+    } catch {
+      return utf8Match[1];
+    }
+  }
+
+  const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  return filenameMatch?.[1] ?? fallbackName;
+}
+
+export async function downloadOrderInvoiceApi(order) {
+  const orderId = order?.id;
+  if (!orderId) {
+    throw new Error("Order not found.");
+  }
+
+  let downloadUrl = order?.invoice_download_url;
+
+  if (!downloadUrl) {
+    const orderDetail = await getOrderDetailApi(orderId);
+    downloadUrl = orderDetail?.invoice_download_url;
+  }
+
+  if (!downloadUrl) {
+    downloadUrl = CHECKOUT_API_ROUTES.INVOICE_DOWNLOAD(orderId);
+  }
+
+  const response = await customAxios.get(downloadUrl, {
+    responseType: "blob",
+  });
+
+  const fallbackName = `invoice-${order?.order_number ?? orderId}.pdf`;
+  const filename = getInvoiceFilename(response.headers?.["content-disposition"], fallbackName);
+  const objectUrl = URL.createObjectURL(response.data);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
 }

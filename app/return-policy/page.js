@@ -1,8 +1,8 @@
 import Header from '@/components/Header';
 
 export const metadata = {
-  title: 'Return & Refund Policy | Kyara Aura',
-  description: 'Review Kyara Aura cancellation, return, and refund terms.',
+  title: 'Return & Refund Policy | Kayra Aura',
+  description: 'Review Kayra Aura cancellation, return, and refund terms.',
 };
 
 const refundReasons = [

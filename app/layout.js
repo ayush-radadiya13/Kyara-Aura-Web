@@ -5,6 +5,7 @@ import QueryProvider from "@/providers/query-provider";
 import SmoothScrollProvider from "@/providers/smooth-scroll-provider";
 import ConditionalFooter from "@/components/ConditionalFooter";
 import WhatsAppFloatButton from "@/components/WhatsAppFloatButton";
+import { Toaster } from "@/components/ui/sonner";
 import {
   DEFAULT_SEO_DESCRIPTION,
   DEFAULT_SEO_TITLE,
@@ -51,6 +52,7 @@ export default function RootLayout({ children }) {
               <div className="flex-1">{children}</div>
               <ConditionalFooter />
               <WhatsAppFloatButton />
+              <Toaster />
             </div>
           </SmoothScrollProvider>
         </QueryProvider>

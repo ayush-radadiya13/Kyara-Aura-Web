@@ -1,9 +1,9 @@
 import Header from '@/components/Header';
 
 export const metadata = {
-  title: 'Privacy Policy | Kyara Aura',
+  title: 'Privacy Policy | Kayra Aura',
   description:
-    'Learn how Kyara Aura collects, uses, protects, and shares customer information.',
+    'Learn how Kayra Aura collects, uses, protects, and shares customer information.',
 };
 
 const usageItems = [
@@ -155,8 +155,8 @@ export default function PrivacyPolicyPage() {
               <h3 className="text-base font-semibold text-gray-900">Contact Us</h3>
               <p className="mt-3">
                 For questions, corrections, or privacy-related requests, please contact us at{' '}
-                <a className="font-medium text-gray-900 underline" href="mailto:support@kyaraaura.com">
-                  support@kyaraaura.com
+                <a className="font-medium text-gray-900 underline" href="mailto:support@kayraaura.com">
+                  support@kayraaura.com
                 </a>
                 .
               </p>

@@ -68,6 +68,7 @@ export default function ScratchCardOffer({ initialCoupon = null, onCouponChange,
             setCoupon(null);
             writeStoredCoupon(null);
             onCouponChange?.(null);
+
           }
         }
       } catch {
@@ -124,6 +125,7 @@ export default function ScratchCardOffer({ initialCoupon = null, onCouponChange,
 
   const hasCoupon = Boolean(coupon?.coupon_code);
   const discountPercent = Number(coupon?.discount_percent ?? 0);
+  const maxDiscountPercent = Number(status?.max_discount_percent ?? 0);
 
   return (
     <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_14px_34px_rgba(17,24,39,0.07)]">
@@ -135,7 +137,7 @@ export default function ScratchCardOffer({ initialCoupon = null, onCouponChange,
           <span>
             <h2 className="text-sm font-extrabold text-gray-950">Scratch Card</h2>
             <p className="text-[11px] font-semibold text-gray-500">
-              Scratch to unlock your surprise reward
+              Scratch the card and get up to {maxDiscountPercent}% discount!
             </p>
           </span>
         </span>
@@ -169,7 +171,7 @@ export default function ScratchCardOffer({ initialCoupon = null, onCouponChange,
                 brushSize={28}
                 onComplete={handleScratchComplete}
               >
-                <div className="flex h-[118px] w-[252px] items-center justify-between gap-3 bg-gray-950 p-4 text-white">
+                <div className="flex h-[118px] w-[252px] items-center justify-between gap-3 bg-white p-4 text-white">
                   <span>
                     <span className="block text-xs font-bold uppercase tracking-[0.24em] text-gray-300">
                       {scratching ? 'Revealing' : 'Scratch to reveal'}

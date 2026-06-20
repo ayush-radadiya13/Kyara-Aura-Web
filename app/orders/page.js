@@ -2,7 +2,7 @@ import Header from '@/components/Header';
 import MyOrders from '@/components/order/MyOrders';
 
 export const metadata = {
-  title: 'My Orders | Kyara Aura',
+  title: 'My Orders | Kayra Aura',
   description: 'View order history, order details, and cancellation options.',
 };
 

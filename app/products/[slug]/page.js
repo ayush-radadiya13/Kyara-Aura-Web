@@ -15,8 +15,8 @@ export async function generateMetadata({ params }) {
 
   if (!product) {
     return metadataForPage({
-      title: 'Product Not Found | Kyara Aura',
-      description: 'The requested Kyara Aura product could not be found.',
+      title: 'Product Not Found | Kayra Aura',
+      description: 'The requested Kayra Aura product could not be found.',
       path: `/products/${slug}`,
     });
   }
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }) {
   const description = productDescription(product);
 
   return metadataForPage({
-    title: `${product.name} | Kyara Aura`,
+    title: `${product.name} | Kayra Aura`,
     description,
     path: `/products/${product.slug}`,
     images: product.image ? [product.image] : ['/images/product-placeholder.svg'],
@@ -47,7 +47,7 @@ export default async function ProductPage({ params }) {
         sku: String(product._id ?? product.id ?? product.slug),
         brand: {
           '@type': 'Brand',
-          name: product.brand || 'Kyara Aura',
+          name: product.brand || 'Kayra Aura',
         },
         category: product.category?.name || 'Fashion Jewellery',
         offers: {

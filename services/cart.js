@@ -1,4 +1,5 @@
 import { isCartItemFree } from "@/lib/cart/buy-two-get-one";
+import { normalizeOrderSummary } from "@/lib/cart/order-summary";
 import { CART_API_ROUTES } from "@/lib/routes";
 import { customAxios } from "@/utils/api";
 
@@ -7,17 +8,58 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(number) ? number : fallback;
 }
 
+function imageUrlFromValue(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+
+  if (Array.isArray(value)) {
+    const primaryImage = value.find((image) => image?.is_primary) ?? value[0];
+    return imageUrlFromValue(primaryImage);
+  }
+
+  return value.image_url || value.image_path || value.url || value.src || "";
+}
+
 function getProductImage(product) {
-  const images = Array.isArray(product?.images) ? product.images : [];
+  const imageSources = [
+    product?.images,
+    product?.image,
+    product?.product_images,
+    product?.productImages,
+  ];
+  const images = imageSources.find((source) => Array.isArray(source) && source.length) ?? [];
   const primaryImage = images.find((image) => image?.is_primary) ?? images[0];
 
   return (
-    primaryImage?.image_url ||
-    primaryImage?.image_path ||
+    imageUrlFromValue(primaryImage) ||
+    imageUrlFromValue(product?.image) ||
     product?.image_url ||
     product?.image_path ||
     "/images/product-placeholder.svg"
   );
+}
+
+export function getLineItemImageSrc(item, fallback = "/images/product-placeholder.svg") {
+  const product = item?.product ?? {};
+  const imageSources = [
+    item?.image,
+    item?.image_url,
+    item?.image_path,
+    item?.product_image,
+    item?.productImage,
+    product.image,
+    product.image_url,
+    product.image_path,
+    product.images,
+    product.product_images,
+  ];
+
+  for (const source of imageSources) {
+    const imageValue = imageUrlFromValue(source);
+    if (imageValue) return imageValue;
+  }
+
+  return fallback;
 }
 
 export function normalizeCartPayload(payload) {
@@ -68,6 +110,7 @@ export function normalizeCartPayload(payload) {
       cart.buy_two_get_one_discount_amount ?? cart.buyTwoGetOneDiscountAmount,
       0,
     ),
+    orderSummary: normalizeOrderSummary(cart),
   };
 }
 

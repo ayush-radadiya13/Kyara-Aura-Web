@@ -2,8 +2,8 @@ import AuthSplitLayout from '@/components/auth/AuthSplitLayout';
 import ResetPasswordForm from './ResetPasswordForm';
 
 export const metadata = {
-  title: 'Reset Password | Kyara Aura',
-  description: 'Reset your Kyara Aura account password.',
+  title: 'Reset Password | Kayra Aura',
+  description: 'Reset your Kayra Aura account password.',
 };
 
 export default async function ResetPasswordPage({ searchParams }) {
@@ -14,7 +14,7 @@ export default async function ResetPasswordPage({ searchParams }) {
       <main className="flex flex-1 items-center bg-white justify-center overflow-hidden px-4 py-4 sm:py-6">
         <AuthSplitLayout
           videoSrc="/vedio/logo_animation.mp4"
-          videoLabel="Kyara Aura logo animation"
+          videoLabel="Kayra Aura logo animation"
           eyebrow=""
           headline=""
           mediaClassName="h-[200px] min-h-[200px] w-full self-center sm:min-h-[200px] lg:min-h-[200px]"

@@ -4,7 +4,7 @@
 
 ### Project Name
 
-Kyara Aura Web
+Kayra Aura Web
 
 ### Business Type
 
@@ -907,7 +907,7 @@ Raw cart item fields inferred from normalization:
 
 Persisted cart storage key:
 
-- `kyara-cart`
+- `kayra-cart`
 
 ### Order Model
 
@@ -1069,7 +1069,7 @@ Raw wishlist item fields:
 
 Root metadata in `app/layout.js`:
 
-- Title: `Kyara Aura Jewellery`
+- Title: `Kayra Aura Jewellery`
 - Description: `Luxury jewellery storefront built with Next.js and Tailwind CSS.`
 
 Page-level metadata found:

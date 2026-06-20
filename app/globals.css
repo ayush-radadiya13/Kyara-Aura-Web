@@ -319,3 +319,10 @@ body {
 .coupon-scallop-bottom {
   transform: rotate(180deg);
 }
+
+[data-sonner-toast][data-styled='false'] {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}

@@ -177,7 +177,7 @@ function WishlistHero({ count }) {
           Wishlist
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
-          Keep your favorite Kyara Aura pieces in one place and move them to your bag when you are ready.
+          Keep your favorite Kayra Aura pieces in one place and move them to your bag when you are ready.
         </p>
       </div>
       <div className="inline-flex items-center gap-3 self-start rounded-full border border-gray-100 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-[0_12px_30px_rgba(17,24,39,0.06)] lg:self-auto">

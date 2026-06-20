@@ -36,7 +36,7 @@ export default function Footer() {
           <Link href="/" className="relative block h-12 w-40 overflow-hidden rounded-full transition-opacity hover:opacity-80 sm:w-48">
             <Image
               src={logoUrl}
-              alt="Kyara Aura"
+              alt="Kayra Aura"
               fill
               className="object-cover object-center"
               sizes="(max-width: 640px) 160px, 192px"

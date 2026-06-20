@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Drawer } from '@base-ui/react/drawer';
 import {
@@ -17,7 +18,6 @@ import {
   PackageCheck,
   Phone,
   Plus,
-  ReceiptText,
   ShieldCheck,
   Star,
   Trash2,
@@ -42,8 +42,11 @@ import {
   updateAddressApi,
   verifyRazorpayPaymentApi,
 } from '@/services/checkout';
+import { getLineItemImageSrc } from '@/services/cart';
 import ScratchCardOffer, { clearStoredScratchCoupon, getStoredScratchCoupon } from '@/components/cart/ScratchCardOffer';
-import BuyTwoGetOneOfferMessage from '@/components/cart/BuyTwoGetOneOfferMessage';
+import OrderSummary from '@/components/cart/OrderSummary';
+import { normalizeOrderSummary, withOrderSummaryItemCount } from '@/lib/cart/order-summary';
+import { useBuyTwoGetOneOfferToast } from '@/hooks/use-buy-two-get-one-offer-toast';
 import { useWebSettings } from '@/hooks/use-web-settings';
 import { getBuyTwoGetOneOfferMessage } from '@/lib/cart/buy-two-get-one';
 import { isBuyTwoGetOneFreeEnabled } from '@/lib/web-settings';
@@ -61,7 +64,7 @@ const PAYMENT_OPTIONS = [
   {
     id: 'cod',
     title: 'Cash on Delivery',
-    description: 'Place your order now and pay when it arrives. 10% COD charge applies.',
+    description: 'Convenient Cash on Delivery available for your order',
     badge: 'Pay later',
     Icon: Wallet,
   },
@@ -255,6 +258,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
           buyTwoGetOneDiscountAmount,
         })
       : null;
+  useBuyTwoGetOneOfferToast(buyTwoGetOneOfferMessage);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -632,7 +636,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
 
   return (
     <div className="min-h-screen bg-white pb-24">
-      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:py-7">
+      <div className="mx-auto w-full max-w-7xl px-4 py-2 sm:py-4">
         <div className="mb-5">
           <h1 className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
             Payment Method
@@ -675,22 +679,30 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
             />
           </div>
 
-          <aside className="space-y-3 bg-white  xl:sticky xl:top-24">
-            <PaymentMethodSection selectedMethod={selectedMethod} onSelectMethod={setSelectedMethod} />
+          <aside className="flex flex-col gap-3 bg-white xl:sticky xl:top-24">
+            <div className="shrink-0 space-y-3">
+              <PaymentMethodSection selectedMethod={selectedMethod} onSelectMethod={setSelectedMethod} />
 
-            <ScratchCardOffer
-              initialCoupon={scratchCoupon}
-              onCouponChange={setScratchCoupon}
-              compact
+              <ScratchCardOffer
+                initialCoupon={scratchCoupon}
+                onCouponChange={setScratchCoupon}
+                compact
+              />
+            </div>
+
+            <OrderSummary
+              summary={
+                summary
+                  ? withOrderSummaryItemCount(normalizeOrderSummary(summary), visibleCount)
+                  : null
+              }
+              loading={summaryLoading}
+              showOnlinePaymentDiscount={selectedMethod === 'online'}
+              showCodCharge={selectedMethod === 'cod'}
+              emptyMessage="Select a delivery address to load your order summary with subtotal, tax, shipping, and discounts."
             />
 
-            <BillDetails
-              summary={summary}
-              visibleCount={visibleCount}
-              summaryLoading={summaryLoading}
-            />
-
-            <section className="rounded-xl border border-gray-200 bg-white p-4">
+            <section className="shrink-0 rounded-xl border border-gray-200 bg-white p-4">
               <label htmlFor="order-notes" className="text-sm font-bold text-gray-950">
                 Order notes
               </label>
@@ -704,7 +716,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
               />
             </section>
 
-            <div className="grid grid-cols-3 gap-2 rounded-xl border border-gray-200 bg-white p-3">
+            <div className="grid shrink-0 grid-cols-3 gap-2 rounded-xl border border-gray-200 bg-white p-3">
               {TRUST_POINTS.map(({ label, Icon }) => (
                 <div key={label} className="text-center">
                   <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-900">
@@ -721,7 +733,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
               disabled={!canPlaceOrder}
               loading={placingOrder}
               onClick={handlePlaceOrder}
-              className="hidden lg:flex"
+              className="hidden shrink-0 lg:flex"
             />
           </aside>
         </div>
@@ -770,18 +782,24 @@ function CodOtpDialog({ open, otp, error, loading, onOtpChange, onClose, onSubmi
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-950/45 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-3 backdrop-blur-sm sm:p-5"
       role="dialog"
       aria-modal="true"
       aria-labelledby="cod-otp-title"
     >
-      <button type="button" className="absolute inset-0" aria-label="Close OTP popup" onClick={onClose} disabled={loading} />
+      <button
+        type="button"
+        className="absolute inset-0"
+        aria-label="Close OTP popup"
+        onClick={onClose}
+        disabled={loading}
+      />
 
-      <div className="relative w-full max-w-md rounded-2xl border border-gray-100 bg-white p-5 shadow-2xl" data-lenis-prevent>
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-gray-100 bg-white p-5 shadow-2xl" data-lenis-prevent>
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 id="cod-otp-title" className="text-lg font-extrabold text-gray-950">
@@ -846,7 +864,8 @@ function CodOtpDialog({ open, otp, error, loading, onOtpChange, onClose, onSubmi
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -864,12 +883,6 @@ function ProductDetailsSection({ items, visibleCount, hasSummary, summaryLoading
           {visibleCount} {visibleCount === 1 ? 'item' : 'items'}
         </span>
       </div>
-
-      {buyTwoGetOneOfferMessage ? (
-        <div className="border-b border-gray-100 px-4 py-3 sm:px-5">
-          <BuyTwoGetOneOfferMessage message={buyTwoGetOneOfferMessage} />
-        </div>
-      ) : null}
 
       {summaryLoading && !hasSummary ? (
         <LoaderBlock className="m-5 rounded-2xl border border-gray-100 bg-white py-12" />
@@ -890,7 +903,7 @@ function ProductDetailsSection({ items, visibleCount, hasSummary, summaryLoading
             const originalPrice = getItemOriginalPrice(item);
             const productName = item.product_name ?? item.title ?? 'Product';
             const productSize = item.size_text ?? item.sizeLabel ?? item.size;
-            const image = item.image;
+            const image = getLineItemImageSrc(item);
             const slug = item.product_slug ?? item.slug;
             const visiblePrice = unitPrice ?? productTotal;
             const discountPercent =
@@ -1350,106 +1363,11 @@ function PaymentMethodIconRow() {
   );
 }
 
-function BillDetails({ summary, visibleCount, summaryLoading }) {
-  const subtotal = Number(summary?.subtotal ?? 0);
-  const taxAmount = Number(summary?.tax_amount ?? 0);
-  const shippingAmount = Number(summary?.shipping_amount ?? 0);
-  const codCharge = Number(summary?.cod_charge ?? 0);
-  const discountPercent = Number(summary?.discount_percent ?? 0);
-  const discountAmount = Number(summary?.discount_amount ?? 0);
-  const scratchCouponCode = summary?.scratch_coupon_code;
-  const totalAmount = getSummaryTotal(summary);
-
-  return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4">
-      <div className="flex items-center justify-between gap-3">
-        <span className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-950">
-            <ReceiptText className="h-5 w-5" />
-          </span>
-          <h2 className="text-lg font-bold text-gray-950">Price Details</h2>
-        </span>
-        {summaryLoading ? (
-          <LoadingLabel className="text-xs font-bold text-gray-500">
-            Refreshing...
-          </LoadingLabel>
-        ) : null}
-      </div>
-      {summaryLoading && !summary ? (
-        <LoaderBlock className="mt-4 rounded-2xl border border-gray-100 py-8" />
-      ) : !summary ? (
-        <p className="mt-4 rounded-2xl border border-dashed border-gray-300 bg-white p-4 text-sm font-semibold text-gray-600">
-          Select a delivery address to load backend-calculated subtotal, tax, shipping, and total.
-        </p>
-      ) : (
-        <dl className="mt-4 space-y-2 text-sm">
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <dl className="space-y-3">
-              <div className="flex items-center justify-between">
-                <dt className="font-semibold text-gray-700">Items</dt>
-                <dd className="font-bold text-gray-950">{visibleCount}</dd>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <dt className="font-semibold text-gray-700">Subtotal</dt>
-                <dd className="font-bold text-gray-950">
-                  {formatInr(subtotal)}
-                </dd>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <dt className="font-semibold text-gray-700">Tax</dt>
-                <dd className="font-bold text-gray-950">
-                  {formatInr(taxAmount)}
-                </dd>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <dt className="font-semibold text-gray-700">Delivery Fee</dt>
-                <dd className="font-bold text-gray-950">
-                  {formatInr(shippingAmount)}
-                </dd>
-              </div>
-
-              {codCharge > 0 ? (
-                <div className="flex items-center justify-between">
-                  <dt className="font-semibold text-gray-700">COD Charge</dt>
-                  <dd className="font-bold text-gray-950">
-                    {formatInr(codCharge)}
-                  </dd>
-                </div>
-              ) : null}
-
-              {discountAmount > 0 ? (
-                <div className="flex items-center justify-between gap-3 text-green-700">
-                  <dt className="font-semibold">
-                    Scratch Discount{discountPercent > 0 ? ` (${discountPercent}%)` : ''}
-                    {/* {scratchCouponCode ? (
-                      <span className="ml-2 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide">
-                        {scratchCouponCode}
-                      </span>
-                    ) : null} */}
-                  </dt>
-                  <dd className="font-bold">-{formatInr(discountAmount)}</dd>
-                </div>
-              ) : null}
-            </dl>
-          </div>
-          <div className="flex items-center justify-between rounded-xl border border-gray-950 bg-white px-4 py-4 text-gray-950">
-            <dt className="font-bold">Total amount</dt>
-            <dd className="font-extrabold">{formatInr(totalAmount)}</dd>
-          </div>
-        </dl>
-      )}
-    </section>
-  );
-}
-
 function CheckoutAction({ total, selectedMethod, disabled, loading, onClick, className = 'flex' }) {
   return (
     <div className={`items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 ${className}`}>
       <div>
-        <p className="text-sm font-bold text-gray-500">Total amount</p>
+        <p className="text-sm font-bold text-gray-500">Grand Total</p>
         <p className="text-xl font-extrabold text-gray-950">{formatInr(total)}</p>
       </div>
       <button

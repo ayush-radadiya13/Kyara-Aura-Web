@@ -14,7 +14,7 @@ const categoryDisplay = Cormorant_Garamond({
 function categorySeoDescription(category) {
   if (category?.description) return category.description;
   const name = category?.name || 'jewellery';
-  return `Explore Kyara Aura ${name.toLowerCase()} with elegant fashion jewellery pieces designed for daily wear, gifting, and special occasions.`;
+  return `Explore Kayra Aura ${name.toLowerCase()} with elegant fashion jewellery pieces designed for daily wear, gifting, and special occasions.`;
 }
 
 async function getSelectedCategory(searchParams) {
@@ -37,7 +37,7 @@ export async function generateMetadata({ searchParams }) {
     const categoryId = selectedCategory._id ?? selectedCategory.id ?? selectedCategory.slug;
 
     return metadataForPage({
-      title: `${selectedCategory.name} Jewellery | Kyara Aura Categories`,
+      title: `${selectedCategory.name} Jewellery | Kayra Aura Categories`,
       description: categorySeoDescription(selectedCategory),
       path: `/categories?category=${encodeURIComponent(categoryId)}`,
       images: selectedCategory.image ? [selectedCategory.image] : ['/assets/home1.jpg'],
@@ -45,9 +45,9 @@ export async function generateMetadata({ searchParams }) {
   }
 
   return metadataForPage({
-    title: 'Jewellery Categories | Kyara Aura',
+    title: 'Jewellery Categories | Kayra Aura',
     description:
-      'Browse Kyara Aura jewellery categories including bangles, earrings, necklaces, rings, and fashion jewellery collections for women.',
+      'Browse Kayra Aura jewellery categories including bangles, earrings, necklaces, rings, and fashion jewellery collections for women.',
     path: '/categories',
   });
 }
@@ -77,7 +77,7 @@ export default async function CategoriesPage() {
       </Suspense>
       {categories.length ? (
         <section className="sr-only" aria-label="Jewellery category descriptions">
-          <h2>Kyara Aura Jewellery Category Descriptions</h2>
+          <h2>Kayra Aura Jewellery Category Descriptions</h2>
           <ul>
             {categories.map((category) => (
               <li key={category._id ?? category.id ?? category.slug}>

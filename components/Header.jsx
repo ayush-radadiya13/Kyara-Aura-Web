@@ -330,7 +330,7 @@ export default function Header({ variant = 'default' }) {
             >
               <Image
                 src="/assets/ka1.png"
-                alt="Kyara Aura"
+                alt="Kayra Aura"
                 fill
                 className="object-cover object-center"
                 sizes="(max-width: 640px) 144px, 176px"
@@ -345,7 +345,7 @@ export default function Header({ variant = 'default' }) {
             <Link href={APP_ROUTES.HOME} className={logoClassName}>
               <Image
                 src="/assets/ka1.png"
-                alt="Kyara Aura"
+                alt="Kayra Aura"
                 fill
                 className="object-cover object-center"
                 sizes="(max-width: 640px) 160px, 192px"
@@ -477,7 +477,7 @@ export default function Header({ variant = 'default' }) {
             <ShoppingBag className="h-5 w-5" />
             {showAuthenticatedActions && cartQuery.isLoading ? (
               <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-gold shadow-lg shadow-gold/30">
-                <Loader size="sm" className="h-2.5 w-2.5 border border-white border-t-transparent" />
+                <Loader size="sm" className="h-2.5 w-2.5  border-t-transparent" />
               </span>
             ) : count > 0 ? (
               <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[10px] font-semibold text-white shadow-lg shadow-gold/30">

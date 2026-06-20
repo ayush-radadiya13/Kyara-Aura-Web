@@ -14,10 +14,64 @@ import {
 import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { APP_ROUTES, AUTH_PAGE_ROUTES, withRedirect } from '@/lib/routes';
-import { cancelOrderApi, getOrderDetailApi, getOrdersApi, returnOrderApi } from '@/services/checkout';
+import { cancelOrderApi, downloadOrderInvoiceApi, getOrderDetailApi, getOrdersApi, returnOrderApi } from '@/services/checkout';
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { formatInr } from '@/lib/cart/format';
+
+const RETURN_TERMS = [
+  'The product must be returned within the allowed return period.',
+  'The product must be unused and in its original condition.',
+  'Return approval is subject to verification.',
+  'The refund will be processed within 3 business days after the returned product is received and approved.',
+  'Shipping charges and promotional discounts may not be refundable unless required by applicable consumer protection laws.',
+  'Kayra Aura reserves the right to reject returns that do not meet the above conditions.',
+];
+
+const EMPTY_RETURN_FORM = {
+  reason: '',
+  full_name: '',
+  email: '',
+  mobile: '',
+  upi_id: '',
+  product_images: [null, null, null],
+};
+
+const RETURN_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+const RETURN_IMAGE_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
+
+function validateReturnImageFile(file, label) {
+  if (!file) return null;
+  if (!RETURN_IMAGE_TYPES.has(file.type)) {
+    return `${label}: use JPG, PNG, or WebP only.`;
+  }
+  if (file.size > RETURN_IMAGE_MAX_BYTES) {
+    return `${label}: must be 2 MB or smaller.`;
+  }
+  return null;
+}
+
+function mapReturnApiErrors(apiErrors) {
+  if (!apiErrors || typeof apiErrors !== 'object') return {};
+
+  const formErrors = {};
+
+  Object.entries(apiErrors).forEach(([key, messages]) => {
+    const message = Array.isArray(messages) ? messages[0] : messages;
+    if (!message) return;
+
+    if (key === 'product_images' || key.startsWith('product_images.')) {
+      formErrors.product_images = String(message);
+      return;
+    }
+
+    if (key in EMPTY_RETURN_FORM) {
+      formErrors[key] = String(message);
+    }
+  });
+
+  return formErrors;
+}
 
 export default function MyOrders() {
   const router = useRouter();
@@ -28,11 +82,16 @@ export default function MyOrders() {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionOrderId, setActionOrderId] = useState(null);
+  const [invoiceDownloadOrderId, setInvoiceDownloadOrderId] = useState(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [cancelOrderId, setCancelOrderId] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelReasonError, setCancelReasonError] = useState('');
+  const [returnOrder, setReturnOrder] = useState(null);
+  const [returnStep, setReturnStep] = useState(null);
+  const [returnForm, setReturnForm] = useState(EMPTY_RETURN_FORM);
+  const [returnFormErrors, setReturnFormErrors] = useState({});
 
   async function loadOrderDetail(orderId) {
     setDetailLoading(true);
@@ -131,23 +190,147 @@ export default function MyOrders() {
     }
   };
 
-  const handleReturnOrder = async (orderId) => {
-    const reason = window.prompt('Reason for return', 'Product issue');
-    if (reason === null) return;
+  const handleDownloadInvoice = async (order) => {
+    if (!order?.id) return;
 
-    setActionOrderId(orderId);
+    setInvoiceDownloadOrderId(order.id);
     setError('');
     setNotice('');
 
     try {
-      const payload = reason.trim() ? { reason: reason.trim() } : {};
-      await returnOrderApi(orderId, payload);
+      await downloadOrderInvoiceApi(order);
+    } catch (invoiceError) {
+      setError(getApiErrorMessage(invoiceError, 'Unable to download invoice.'));
+    } finally {
+      setInvoiceDownloadOrderId(null);
+    }
+  };
+
+  const handleReturnOrder = (order) => {
+    const deliveryDetails = getDeliveryDetails(order);
+    setReturnOrder(order);
+    setReturnStep('terms');
+    setReturnForm({
+      ...EMPTY_RETURN_FORM,
+      full_name: deliveryDetails.name,
+      email: deliveryDetails.email,
+      mobile: deliveryDetails.phone,
+    });
+    setReturnFormErrors({});
+    setError('');
+    setNotice('');
+  };
+
+  const closeReturnFlow = () => {
+    if (actionOrderId === returnOrder?.id) return;
+    setReturnOrder(null);
+    setReturnStep(null);
+    setReturnForm(EMPTY_RETURN_FORM);
+    setReturnFormErrors({});
+  };
+
+  const openReturnForm = () => {
+    setReturnStep('form');
+    setReturnFormErrors({});
+  };
+
+  const updateReturnFormField = (field, value) => {
+    setReturnForm((current) => ({ ...current, [field]: value }));
+    if (returnFormErrors[field]) {
+      setReturnFormErrors((current) => {
+        const next = { ...current };
+        delete next[field];
+        return next;
+      });
+    }
+  };
+
+  const updateReturnProductImage = (index, file) => {
+    setReturnForm((current) => {
+      const productImages = [...current.product_images];
+      productImages[index] = file;
+      return { ...current, product_images: productImages };
+    });
+    if (returnFormErrors.product_images) {
+      setReturnFormErrors((current) => {
+        const next = { ...current };
+        delete next.product_images;
+        return next;
+      });
+    }
+  };
+
+  const validateReturnForm = (order) => {
+    const errors = {};
+
+    if (!returnForm.reason.trim()) errors.reason = 'Please enter a reason for return.';
+    if (!returnForm.product_images[0]) errors.product_images = 'At least one product image is required.';
+
+    returnForm.product_images.forEach((file, index) => {
+      if (!file) return;
+      const imageError = validateReturnImageFile(file, `Image ${index + 1}`);
+      if (imageError) errors.product_images = imageError;
+    });
+
+    if (isCodOrder(order)) {
+      if (!returnForm.full_name.trim()) errors.full_name = 'Full name is required.';
+      if (!returnForm.email.trim()) errors.email = 'Email is required.';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(returnForm.email.trim())) {
+        errors.email = 'Enter a valid email address.';
+      }
+      if (!returnForm.mobile.trim()) errors.mobile = 'Mobile number is required.';
+      else if (!/^\d{10}$/.test(returnForm.mobile.trim())) {
+        errors.mobile = 'Enter a valid 10-digit mobile number.';
+      }
+      if (!returnForm.upi_id.trim()) errors.upi_id = 'UPI ID is required for COD refunds.';
+    }
+
+    return errors;
+  };
+
+  const submitReturnOrder = async () => {
+    const orderId = returnOrder?.id;
+    if (!orderId) return;
+
+    const errors = validateReturnForm(returnOrder);
+    if (Object.keys(errors).length) {
+      setReturnFormErrors(errors);
+      return;
+    }
+
+    setActionOrderId(orderId);
+    setReturnFormErrors({});
+
+    try {
+      const formData = new FormData();
+      formData.append('reason', returnForm.reason.trim());
+
+      if (isCodOrder(returnOrder)) {
+        formData.append('full_name', returnForm.full_name.trim());
+        formData.append('email', returnForm.email.trim());
+        formData.append('mobile', returnForm.mobile.trim());
+        formData.append('upi_id', returnForm.upi_id.trim());
+      }
+
+      returnForm.product_images.forEach((file, index) => {
+        if (file) formData.append(`product_images[${index}]`, file, file.name);
+      });
+
+      await returnOrderApi(orderId, formData);
       const orderList = await getOrdersApi();
       setOrders(Array.isArray(orderList) ? orderList : []);
       if (selectedOrder?.id === orderId) await loadOrderDetail(orderId);
       setNotice('Order return request submitted.');
+      setReturnOrder(null);
+      setReturnStep(null);
+      setReturnForm(EMPTY_RETURN_FORM);
     } catch (returnError) {
-      setError(getApiErrorMessage(returnError, 'Unable to return this order.'));
+      const apiFieldErrors = mapReturnApiErrors(returnError?.response?.data?.errors);
+      if (Object.keys(apiFieldErrors).length) {
+        setReturnFormErrors(apiFieldErrors);
+      } else {
+        setError(getApiErrorMessage(returnError, 'Unable to return this order.'));
+      }
     } finally {
       setActionOrderId(null);
     }
@@ -188,9 +371,11 @@ export default function MyOrders() {
                   order={order}
                   selected={selectedOrder?.id === order.id}
                   loading={actionOrderId === order.id}
+                  invoiceLoading={invoiceDownloadOrderId === order.id}
                   onView={() => loadOrderDetail(order.id)}
+                  onDownloadInvoice={() => handleDownloadInvoice(order)}
                   onCancel={() => handleCancelOrder(order.id)}
-                  onReturn={() => handleReturnOrder(order.id)}
+                  onReturn={() => handleReturnOrder(order)}
                 />
               ))}
             </div>
@@ -226,7 +411,318 @@ export default function MyOrders() {
         onClose={closeCancelDialog}
         onSubmit={submitCancelOrder}
       />
+      <ReturnTermsDialog
+        open={returnStep === 'terms'}
+        orderNumber={returnOrder ? getOrderNumber(returnOrder) : ''}
+        onClose={closeReturnFlow}
+        onContinue={openReturnForm}
+      />
+      <ReturnOrderFormDialog
+        open={returnStep === 'form'}
+        loading={actionOrderId === returnOrder?.id}
+        order={returnOrder}
+        form={returnForm}
+        errors={returnFormErrors}
+        onFieldChange={updateReturnFormField}
+        onProductImageChange={updateReturnProductImage}
+        onClose={closeReturnFlow}
+        onSubmit={submitReturnOrder}
+      />
     </section>
+  );
+}
+
+function ReturnTermsDialog({ open, orderNumber, onClose, onContinue }) {
+  useScrollLock(open);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:p-5"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="return-terms-title"
+    >
+      <button type="button" className="absolute inset-0" aria-label="Close return terms dialog" onClick={onClose} />
+
+      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[1.25rem] border border-gray-100 bg-white p-4 shadow-2xl sm:p-5" data-lenis-prevent>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="return-terms-title" className="text-lg font-bold text-gray-950">
+              Return Terms &amp; Conditions
+            </h2>
+            {orderNumber ? (
+              <p className="mt-1 text-sm font-medium text-gray-500">
+                Order {orderNumber}
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-50 text-gray-500 transition hover:text-gray-950"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <ul className="mt-4 space-y-3 text-sm font-medium leading-6 text-gray-700">
+          {RETURN_TERMS.map((term) => (
+            <li key={term} className="flex gap-2.5">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" aria-hidden="true" />
+              <span>{term}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-full border border-gray-200 px-4 text-xs font-bold text-gray-700 transition hover:border-gray-950"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            onClick={onContinue}
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-gray-950 px-4 text-xs font-bold text-white transition hover:bg-gray-800"
+          >
+            Continue to Refund
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReturnOrderFormDialog({
+  open,
+  loading,
+  order,
+  form,
+  errors,
+  onFieldChange,
+  onProductImageChange,
+  onClose,
+  onSubmit,
+}) {
+  useScrollLock(open);
+  const isCod = isCodOrder(order);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && !loading) onClose();
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [open, loading, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:p-5"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="return-order-title"
+    >
+      <button
+        type="button"
+        className="absolute inset-0"
+        aria-label="Close return order dialog"
+        onClick={onClose}
+        disabled={loading}
+      />
+
+      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[1.25rem] border border-gray-100 bg-white p-4 shadow-2xl sm:p-5" data-lenis-prevent>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="return-order-title" className="text-lg font-bold text-gray-950">
+              Request Refund
+            </h2>
+            <p className="mt-1 text-sm font-medium text-gray-500">
+              {isCod
+                ? 'Provide your refund details for this Cash on Delivery order.'
+                : 'Provide return details for this online payment order.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-50 text-gray-500 transition hover:text-gray-950 disabled:opacity-50"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-4">
+          <ReturnFormField
+            id="return-reason"
+            label="Reason"
+            error={errors.reason}
+          >
+            <textarea
+              id="return-reason"
+              value={form.reason}
+              onChange={(event) => onFieldChange('reason', event.target.value)}
+              rows={3}
+              disabled={loading}
+              className="mt-2 w-full resize-none rounded-2xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-800 outline-none transition placeholder:text-gray-300 focus:border-gray-950 disabled:opacity-50"
+              placeholder="e.g. Received wrong color"
+            />
+          </ReturnFormField>
+
+          {isCod ? (
+            <>
+              <ReturnFormField id="return-full-name" label="Full name" error={errors.full_name}>
+                <input
+                  id="return-full-name"
+                  type="text"
+                  value={form.full_name}
+                  onChange={(event) => onFieldChange('full_name', event.target.value)}
+                  disabled={loading}
+                  className="mt-2 h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 outline-none transition placeholder:text-gray-300 focus:border-gray-950 disabled:opacity-50"
+                  placeholder="Aayush Savliya"
+                />
+              </ReturnFormField>
+
+              <ReturnFormField id="return-email" label="Email" error={errors.email}>
+                <input
+                  id="return-email"
+                  type="email"
+                  value={form.email}
+                  onChange={(event) => onFieldChange('email', event.target.value)}
+                  disabled={loading}
+                  className="mt-2 h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 outline-none transition placeholder:text-gray-300 focus:border-gray-950 disabled:opacity-50"
+                  placeholder="aayush@example.com"
+                />
+              </ReturnFormField>
+
+              <ReturnFormField id="return-mobile" label="Mobile" error={errors.mobile}>
+                <input
+                  id="return-mobile"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={form.mobile}
+                  onChange={(event) => onFieldChange('mobile', event.target.value.replace(/\D/g, ''))}
+                  disabled={loading}
+                  className="mt-2 h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 outline-none transition placeholder:text-gray-300 focus:border-gray-950 disabled:opacity-50"
+                  placeholder="9876543210"
+                />
+              </ReturnFormField>
+
+              <ReturnFormField id="return-upi-id" label="UPI ID" error={errors.upi_id}>
+                <input
+                  id="return-upi-id"
+                  type="text"
+                  value={form.upi_id}
+                  onChange={(event) => onFieldChange('upi_id', event.target.value)}
+                  disabled={loading}
+                  className="mt-2 h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 outline-none transition placeholder:text-gray-300 focus:border-gray-950 disabled:opacity-50"
+                  placeholder="aayush@upi"
+                />
+              </ReturnFormField>
+            </>
+          ) : null}
+
+          <ReturnFormField label="Product images" error={errors.product_images}>
+            <div className="mt-2 space-y-2">
+              {form.product_images.map((file, index) => (
+                <label
+                  key={`return-image-${index}`}
+                  className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-3 py-2.5 transition hover:border-gray-400"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                      Image {index + 1} {index === 0 ? '(required)' : '(optional)'}
+                    </p>
+                    <p className="mt-0.5 truncate text-sm font-semibold text-gray-700">
+                      {file?.name ?? 'Choose a file'}
+                    </p>
+                    <p className="mt-0.5 text-[0.68rem] font-medium text-gray-400">JPG, PNG, or WebP · max 2 MB</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-bold text-gray-700 ring-1 ring-gray-200">
+                    Browse
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    disabled={loading}
+                    onChange={(event) => onProductImageChange(index, event.target.files?.[0] ?? null)}
+                  />
+                </label>
+              ))}
+            </div>
+          </ReturnFormField>
+        </div>
+
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-full border border-gray-200 px-4 text-xs font-bold text-gray-700 transition hover:border-gray-950 disabled:opacity-50"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={loading}
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-gray-950 px-4 text-xs font-bold text-white transition hover:bg-gray-800 disabled:opacity-50"
+          >
+            {loading ? (
+              <LoadingLabel>
+                Submitting...
+              </LoadingLabel>
+            ) : (
+              'Submit return request'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReturnFormField({ id, label, error, children }) {
+  return (
+    <div>
+      {id ? (
+        <label htmlFor={id} className="block text-xs font-bold uppercase tracking-wide text-gray-400">
+          {label}
+        </label>
+      ) : (
+        <p className="text-xs font-bold uppercase tracking-wide text-gray-400">{label}</p>
+      )}
+      {children}
+      {error ? <p className="mt-1.5 text-xs font-semibold text-red-600">{error}</p> : null}
+    </div>
   );
 }
 
@@ -322,7 +818,7 @@ function CancelOrderDialog({ open, loading, reason, error, onReasonChange, onClo
   );
 }
 
-function OrderCard({ order, selected, loading, onView, onCancel, onReturn }) {
+function OrderCard({ order, selected, loading, invoiceLoading, onView, onDownloadInvoice, onCancel, onReturn }) {
   const status = String(order.status ?? '').toLowerCase();
   const canCancel = !['cancelled', 'delivered', 'returned'].includes(status);
   const canReturn = status === 'delivered';
@@ -344,8 +840,19 @@ function OrderCard({ order, selected, loading, onView, onCancel, onReturn }) {
         <button type="button" onClick={onView} className="h-8 rounded-full bg-gray-950 px-3 text-[0.68rem] font-bold text-white transition hover:bg-gray-800 sm:h-9 sm:px-3.5 sm:text-xs">
           View details
         </button>
-        <button type="button" className="h-8 rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 sm:h-9 sm:px-3.5 sm:text-xs">
-          Download Invoice
+        <button
+          type="button"
+          onClick={onDownloadInvoice}
+          disabled={invoiceLoading}
+          className="h-8 rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 disabled:opacity-50 sm:h-9 sm:px-3.5 sm:text-xs"
+        >
+          {invoiceLoading ? (
+            <LoadingLabel>
+              Downloading...
+            </LoadingLabel>
+          ) : (
+            'Download Invoice'
+          )}
         </button>
         <button type="button" className="h-8 rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 sm:h-9 sm:px-3.5 sm:text-xs">
           Track Order
@@ -677,6 +1184,11 @@ function getPaymentLabel(order) {
   const lastFour = order.card_last_four ?? order.card_last4 ?? order.payment_last_four;
 
   return lastFour ? `${method} **${lastFour}` : method;
+}
+
+function isCodOrder(order) {
+  const method = String(order?.payment_method ?? order?.paymentMethod ?? '').toLowerCase();
+  return method === 'cod' || method.includes('cash on delivery');
 }
 
 function getDeliveryDetails(order) {

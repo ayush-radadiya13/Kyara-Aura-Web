@@ -2,8 +2,8 @@ import Header from '@/components/Header';
 import PaymentMethodFlow from '@/components/cart/PaymentMethodFlow';
 
 export const metadata = {
-  title: 'Payment Method | Kyara Aura',
-  description: 'Choose a secure payment method for your Kyara Aura order.',
+  title: 'Payment Method | Kayra Aura',
+  description: 'Choose a secure payment method for your Kayra Aura order.',
 };
 
 function getCheckoutIntent(searchParams = {}) {

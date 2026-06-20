@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Heart, ShoppingBag } from 'lucide-react';
 import CartDrawer from '@/components/cart/CartDrawer';
-import CartDuplicateModal from '@/components/cart/CartDuplicateModal';
 import WishlistButton from '@/components/WishlistButton';
 import { Loader, LoadingLabel } from '@/components/ui/loader';
 import {
@@ -13,6 +13,8 @@ import {
   isDuplicateCartError,
 } from '@/lib/cart/duplicate';
 import { useCartStore } from '@/lib/cart/store';
+import { showItemAddedToCartToast } from '@/lib/cart/toast';
+import { APP_ROUTES } from '@/lib/routes';
 import { addCartItemApi, getCartApi } from '@/services/cart';
 
 function imageUrlFromValue(value) {
@@ -48,12 +50,12 @@ export default function ProductCard({
   onWishlistClick,
   wishlistBusy = false,
 }) {
+  const router = useRouter();
   const setCart = useCartStore((state) => state.setCart);
   const cartItems = useCartStore((state) => state.items);
   const [bagDrawerOpen, setBagDrawerOpen] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
   const [cartError, setCartError] = useState('');
-  const [duplicateCartModalOpen, setDuplicateCartModalOpen] = useState(false);
   const href = `/products/${product.slug}`;
   const originalPrice = product.oldPrice ?? product.originalPrice;
   const discountPercent =
@@ -65,9 +67,10 @@ export default function ProductCard({
   const productId = product.id ?? product._id;
   const wishlistLabel = wishlistActive ? 'Remove from wishlist' : 'Add to wishlist';
   const quickAddSize = getQuickAddSize(product);
+  const isInCart = hasCartItemWithProductSize(cartItems, quickAddSize?.id);
 
-  const showDuplicateCartModal = () => {
-    setDuplicateCartModalOpen(true);
+  const goToCart = () => {
+    router.push(APP_ROUTES.CART);
   };
 
   const handleQuickAddToBag = async (event) => {
@@ -81,14 +84,12 @@ export default function ProductCard({
     }
 
     if (hasCartItemWithProductSize(cartItems, quickAddSize.id)) {
-      setCartError('');
-      showDuplicateCartModal();
+      goToCart();
       return;
     }
 
     setCartError('');
     setCartLoading(true);
-    setBagDrawerOpen(true);
 
     try {
       await addCartItemApi({
@@ -97,14 +98,17 @@ export default function ProductCard({
       });
       const cart = await getCartApi();
       setCart(cart);
+      showItemAddedToCartToast(router);
     } catch (error) {
       if (isDuplicateCartError(error)) {
-        setBagDrawerOpen(false);
-        showDuplicateCartModal();
+        const cart = await getCartApi();
+        setCart(cart);
+        goToCart();
         return;
       }
 
       setCartError(error?.response?.data?.message || error?.message || 'Unable to add this product to your bag.');
+      setBagDrawerOpen(true);
     } finally {
       setCartLoading(false);
     }
@@ -180,19 +184,21 @@ export default function ProductCard({
             type="button"
             onClick={handleQuickAddToBag}
             disabled={cartLoading}
-            className={`${isCatalog ? 'inset-x-5 bottom-5 bg-white py-2 text-gray-950 shadow-sm' : 'inset-x-0 bottom-0 bg-gray-950 py-4 text-white'} absolute z-20 translate-y-full text-sm font-semibold uppercase  transition duration-300 group-hover:translate-y-0`}
+            className={`${isCatalog ? 'inset-x-5 bottom-5 bg-white py-1 text-gray-950 shadow-sm' : 'inset-x-0 bottom-0 bg-gray-950 py-2 text-white'} absolute z-20 translate-y-full text-sm font-semibold uppercase  transition duration-300 group-hover:translate-y-0`}
           >
             {cartLoading ? (
               <LoadingLabel spinnerClassName={isCatalog ? 'border-gray-950 border-t-transparent' : 'border-white border-t-transparent'}>
                 Adding...
               </LoadingLabel>
+            ) : isInCart ? (
+              'Go to Cart'
             ) : (
               'Add to Cart'
             )}
           </button>
         </div>
 
-        <div className={isCatalog ? 'pt-4' : 'pt-5'}>
+        <div className={isCatalog ? 'pt-2' : 'pt-3'}>
           <h3 className={`${isCatalog ? 'text-[15px]' : 'text-md'} font-semibold text-gray-950 transition group-hover:text-gray-600`}>
             <Link href={href}>{product.name}</Link>
           </h3>
@@ -214,10 +220,6 @@ export default function ProductCard({
         onClose={() => setBagDrawerOpen(false)}
         isLoading={cartLoading}
         error={cartError}
-      />
-      <CartDuplicateModal
-        open={duplicateCartModalOpen}
-        onClose={() => setDuplicateCartModalOpen(false)}
       />
       </>
     );
@@ -284,6 +286,12 @@ export default function ProductCard({
                 Adding
               </LoadingLabel>
             </>
+          ) : isInCart ? (
+            <>
+              <ShoppingBag className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Go to Cart</span>
+              <span className="sm:hidden">Cart</span>
+            </>
           ) : (
             <>
               <ShoppingBag className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -299,10 +307,6 @@ export default function ProductCard({
       onClose={() => setBagDrawerOpen(false)}
       isLoading={cartLoading}
       error={cartError}
-    />
-    <CartDuplicateModal
-      open={duplicateCartModalOpen}
-      onClose={() => setDuplicateCartModalOpen(false)}
     />
     </>
   );

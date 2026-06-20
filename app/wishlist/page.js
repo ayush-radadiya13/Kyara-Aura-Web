@@ -2,8 +2,8 @@ import Header from '@/components/Header';
 import WishlistPage from '@/components/wishlist/WishlistPage';
 
 export const metadata = {
-  title: 'Wishlist | Kyara Aura',
-  description: 'View and manage your saved Kyara Aura products.',
+  title: 'Wishlist | Kayra Aura',
+  description: 'View and manage your saved Kayra Aura products.',
 };
 
 export default function WishlistRoutePage() {

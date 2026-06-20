@@ -7,7 +7,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { IndianRupee, Minus, Plus, RefreshCcw, Share2, Truck } from 'lucide-react';
 import Header from '../../../components/Header';
 import CartDrawer from '@/components/cart/CartDrawer';
-import CartDuplicateModal from '@/components/cart/CartDuplicateModal';
 import ProductList from '@/components/ProductList';
 import ProductReviewsSection from '@/components/ProductReviewsSection';
 import ProductReviewForm from '@/components/ProductReviewForm';
@@ -19,6 +18,7 @@ import {
   isDuplicateCartError,
 } from '@/lib/cart/duplicate';
 import { useCartStore } from '@/lib/cart/store';
+import { showItemAddedToCartToast } from '@/lib/cart/toast';
 import { APP_ROUTES } from '@/lib/routes';
 import { useProductBySlug } from '@/hooks/use-products';
 import { addCartItemApi, getCartApi } from '@/services/cart';
@@ -59,7 +59,6 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   const [bagDrawerOpen, setBagDrawerOpen] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
   const [cartError, setCartError] = useState('');
-  const [duplicateCartModalOpen, setDuplicateCartModalOpen] = useState(false);
   const [selectedSize, setSelectedSize] = useState('');
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [showFullInfo, setShowFullInfo] = useState(false);
@@ -89,6 +88,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   const quantityLimit = selectedSizeOption?.quantity > 0 ? selectedSizeOption.quantity : null;
   const isOutOfStock = selectedSizeOption != null && Number(selectedSizeOption.quantity) === 0;
   const canSubmit = Boolean(selectedSizeOption?.id && selectedQuantity > 0 && !isOutOfStock);
+  const isSelectedSizeInCart = hasCartItemWithProductSize(cartItems, selectedSizeOption?.id);
 
   useEffect(() => {
     if (!selectedSizeOption) return;
@@ -110,8 +110,8 @@ export default function ProductDetail({ product: initialProduct, slug }) {
     });
   }, [selectedSizeOption?.id, selectedSizeOption?.quantity, quantityLimit]);
 
-  const showDuplicateCartModal = () => {
-    setDuplicateCartModalOpen(true);
+  const goToCart = () => {
+    router.push(APP_ROUTES.CART);
   };
 
   if (isLoading) {
@@ -167,30 +167,31 @@ export default function ProductDetail({ product: initialProduct, slug }) {
     }
 
     if (hasCartItemWithProductSize(cartItems, selectedSizeOption.id)) {
-      setCartError('');
-      showDuplicateCartModal();
+      goToCart();
       return false;
     }
 
     setCartError('');
     setCartLoading(true);
-    setBagDrawerOpen(true);
 
     try {
       await addCartItemApi({
         product_size_id: selectedSizeOption.id,
         quantity: selectedQuantity,
       });
-      await refreshCart();
+      const cart = await getCartApi();
+      setCart(cart);
+      showItemAddedToCartToast(router);
       return true;
     } catch (error) {
       if (isDuplicateCartError(error)) {
-        setBagDrawerOpen(false);
-        showDuplicateCartModal();
+        await refreshCart();
+        goToCart();
         return false;
       }
 
       setCartError(error?.response?.data?.message || error?.message || 'Unable to add this product to your bag.');
+      setBagDrawerOpen(true);
       return false;
     } finally {
       setCartLoading(false);
@@ -285,7 +286,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
 
             <div className="mb-4 flex items-center justify-between gap-4">
               <p className="text-md  text-gold">
-                {product.category?.name || 'Kyara Aura Collection'}
+                {product.category?.name || 'Kayra Aura Collection'}
               </p>
               <div className="flex items-center gap-3">
                 <WishlistButton
@@ -411,13 +412,15 @@ export default function ProductDetail({ product: initialProduct, slug }) {
               <button
                 type="button"
                 onClick={addCurrentToBag}
-                disabled={cartLoading || !canSubmit}
+                disabled={cartLoading || (!isSelectedSizeInCart && !canSubmit)}
                 className="w-full bg-gray-950 px-4 py-4 text-[14px] font-semibold uppercase text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300 sm:px-7 sm:text-[14px] "
               >
                 {cartLoading ? (
                   <LoadingLabel spinnerClassName="border-white border-t-transparent">
                     Adding...
                   </LoadingLabel>
+                ) : isSelectedSizeInCart ? (
+                  'Go to Cart'
                 ) : (
                   'Add to Cart'
                 )}
@@ -634,10 +637,6 @@ export default function ProductDetail({ product: initialProduct, slug }) {
         error={cartError}
       />
       <SizeChartModal open={sizeChartOpen} onClose={() => setSizeChartOpen(false)} />
-      <CartDuplicateModal
-        open={duplicateCartModalOpen}
-        onClose={() => setDuplicateCartModalOpen(false)}
-      />
     </div>
   );
 }

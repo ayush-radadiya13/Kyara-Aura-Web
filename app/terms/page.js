@@ -1,9 +1,9 @@
 import Header from '@/components/Header';
 
 export const metadata = {
-  title: 'Terms and Conditions | Kyara Aura',
+  title: 'Terms and Conditions | Kayra Aura',
   description:
-    'Review Kyara Aura terms and conditions for purchasing and using Gold Plated Bangles for Women.',
+    'Review Kayra Aura terms and conditions for purchasing and using Gold Plated Bangles for Women.',
 };
 
 const termsSections = [
@@ -75,7 +75,7 @@ const termsSections = [
   {
     title: 'Intellectual Property',
     items: [
-      'All product images, designs, descriptions, logos, and branding on this website are the property of Kyara Aura.',
+      'All product images, designs, descriptions, logos, and branding on this website are the property of Kayra Aura.',
       'Unauthorized copying, reproduction, resale use, or commercial use is strictly prohibited.',
     ],
   },
@@ -116,7 +116,7 @@ export default function TermsPage() {
             </h1>
             <p className="mt-5">
               These Terms and Conditions apply to the purchase and use of Gold Plated Bangles
-              for Women sold on Kyara Aura. By accessing or purchasing from our website, you
+              for Women sold on Kayra Aura. By accessing or purchasing from our website, you
               agree to comply with the following terms.
             </p>
           </header>
@@ -139,8 +139,8 @@ export default function TermsPage() {
               <h2 className="text-base font-semibold text-gray-900">Contact Us</h2>
               <p className="mt-3">
                 For questions about these terms, please contact us at{' '}
-                <a className="font-medium text-gray-900 underline" href="mailto:support@kyaraaura.com">
-                  support@kyaraaura.com
+                <a className="font-medium text-gray-900 underline" href="mailto:support@kayraaura.com">
+                  support@kayraaura.com
                 </a>
                 .
               </p>

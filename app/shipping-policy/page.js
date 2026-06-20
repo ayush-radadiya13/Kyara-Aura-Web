@@ -1,8 +1,8 @@
 import Header from '@/components/Header';
 
 export const metadata = {
-  title: 'Shipping Policy | Kyara Aura',
-  description: 'Review Kyara Aura shipping policy for Gold Plated Bangles for Women.',
+  title: 'Shipping Policy | Kayra Aura',
+  description: 'Review Kayra Aura shipping policy for Gold Plated Bangles for Women.',
 };
 
 export default function ShippingPolicyPage() {
