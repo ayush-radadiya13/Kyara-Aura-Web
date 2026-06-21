@@ -1,6 +1,7 @@
 import { Cormorant_Garamond } from 'next/font/google';
 import Header from '@/components/Header';
 import ProductList from '@/components/ProductList';
+import { getCollectionProducts } from '@/lib/products';
 import { metadataForPage } from '@/lib/seo';
 
 const collectionDisplay = Cormorant_Garamond({
@@ -15,7 +16,9 @@ export const metadata = metadataForPage({
   path: '/collections',
 });
 
-export default function CollectionsPage() {
+export default async function CollectionsPage() {
+  const initialProducts = await getCollectionProducts();
+
   return (
     <div className="bg-white text-gray-950">
       <Header />
@@ -35,6 +38,7 @@ export default function CollectionsPage() {
           pageSize={16}
           variant="catalog"
           emptyMessage="No collection products available at the moment."
+          initialProducts={initialProducts}
         />
       </section>
     </div>

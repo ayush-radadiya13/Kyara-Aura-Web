@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCategories } from "@/hooks/use-categories";
+import { categoryProductsPath } from "@/lib/category-seo";
 
 export default function ProductCategoryNav({ activeCategoryId }) {
   const { data: categories = [] } = useCategories();
@@ -31,7 +32,7 @@ export default function ProductCategoryNav({ activeCategoryId }) {
       {visibleCategories.map((category, index) => {
         const isActive = category.id && category.id === activeCategoryId;
         const href = category.id
-          ? `/products?category=${encodeURIComponent(category.id)}`
+          ? categoryProductsPath(category.id)
           : "/products";
 
         return (

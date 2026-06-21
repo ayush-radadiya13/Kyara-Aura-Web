@@ -1,10 +1,12 @@
 import Header from '@/components/Header';
 import CartCheckout from '@/components/cart/CartCheckout';
+import { noIndexMetadata } from '@/lib/seo';
 
-export const metadata = {
+export const metadata = noIndexMetadata({
   title: 'Cart | Kayra Aura',
   description: 'Review your cart and continue to checkout.',
-};
+  path: '/cart',
+});
 
 export default function CartPage() {
   return (

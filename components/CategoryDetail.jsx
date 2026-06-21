@@ -5,6 +5,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { LoaderBlock } from "@/components/ui/loader";
 import { useCategoryBySlug } from "@/hooks/use-categories";
+import { categoryProductsPath } from "@/lib/category-seo";
 
 function categoryImageSrc(image) {
   if (!image || typeof image !== "string") return "";
@@ -83,7 +84,7 @@ export default function CategoryDetail({ slug }) {
             )}
 
             <Link
-              href={`/products?category=${category._id}`}
+              href={categoryProductsPath(category._id)}
               className="inline-flex items-center justify-center btn-gold px-6 py-3 text-sm font-medium"
             >
               Shop this category

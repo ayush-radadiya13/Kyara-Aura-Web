@@ -1,3 +1,4 @@
+import { categoryProductsPath, resolveCategoryId } from "@/lib/category-seo";
 import { getCategories } from "@/lib/categories";
 import { getAllProducts } from "@/lib/products";
 import { absoluteUrl } from "@/lib/seo";
@@ -34,10 +35,10 @@ export default async function sitemap() {
   }));
 
   const categoryEntries = categories.map((category) => {
-    const categoryId = category._id ?? category.id ?? category.slug;
+    const categoryId = resolveCategoryId(category);
 
     return {
-      url: absoluteUrl(`/categories?category=${encodeURIComponent(categoryId)}`),
+      url: absoluteUrl(categoryProductsPath(categoryId)),
       lastModified: new Date(category.updated_at ?? category.updatedAt ?? Date.now()),
       changeFrequency: "weekly",
       priority: 0.7,

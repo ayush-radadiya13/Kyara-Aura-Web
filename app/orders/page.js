@@ -1,10 +1,12 @@
 import Header from '@/components/Header';
 import MyOrders from '@/components/order/MyOrders';
+import { noIndexMetadata } from '@/lib/seo';
 
-export const metadata = {
+export const metadata = noIndexMetadata({
   title: 'My Orders | Kayra Aura',
   description: 'View order history, order details, and cancellation options.',
-};
+  path: '/orders',
+});
 
 export default function OrdersPage() {
   return (

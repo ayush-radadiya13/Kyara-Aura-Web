@@ -1,10 +1,12 @@
 import Header from '@/components/Header';
 import WishlistPage from '@/components/wishlist/WishlistPage';
+import { noIndexMetadata } from '@/lib/seo';
 
-export const metadata = {
+export const metadata = noIndexMetadata({
   title: 'Wishlist | Kayra Aura',
   description: 'View and manage your saved Kayra Aura products.',
-};
+  path: '/wishlist',
+});
 
 export default function WishlistRoutePage() {
   return (

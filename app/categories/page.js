@@ -4,6 +4,13 @@ import Header from '../../components/Header';
 import CategoryBrowser from '@/components/CategoryBrowser';
 import { LoaderBlock } from '@/components/ui/loader';
 import { getCategories } from '@/lib/categories';
+import {
+  categoryProductsPath,
+  categorySeoDescription,
+  getSelectedCategoryFromParams,
+  resolveCategoryId,
+} from '@/lib/category-seo';
+import { getFeaturedProducts } from '@/lib/products';
 import { metadataForPage } from '@/lib/seo';
 
 const categoryDisplay = Cormorant_Garamond({
@@ -11,35 +18,19 @@ const categoryDisplay = Cormorant_Garamond({
   weight: ['400', '500', '600'],
 });
 
-function categorySeoDescription(category) {
-  if (category?.description) return category.description;
-  const name = category?.name || 'jewellery';
-  return `Explore Kayra Aura ${name.toLowerCase()} with elegant fashion jewellery pieces designed for daily wear, gifting, and special occasions.`;
-}
-
-async function getSelectedCategory(searchParams) {
-  const params = await searchParams;
-  const categoryId = typeof params?.category === 'string' ? params.category : '';
-
-  if (!categoryId) return null;
-
-  const categories = await getCategories();
-  return categories.find((category) => {
-    const values = [category._id, category.id, category.slug].filter(Boolean).map(String);
-    return values.includes(categoryId);
-  }) ?? null;
-}
-
 export async function generateMetadata({ searchParams }) {
-  const selectedCategory = await getSelectedCategory(searchParams);
+  const selectedCategory = await getSelectedCategoryFromParams(
+    searchParams,
+    getCategories,
+  );
 
   if (selectedCategory) {
-    const categoryId = selectedCategory._id ?? selectedCategory.id ?? selectedCategory.slug;
+    const categoryId = resolveCategoryId(selectedCategory);
 
     return metadataForPage({
-      title: `${selectedCategory.name} Jewellery | Kayra Aura Categories`,
+      title: `${selectedCategory.name} Jewellery | Kayra Aura`,
       description: categorySeoDescription(selectedCategory),
-      path: `/categories?category=${encodeURIComponent(categoryId)}`,
+      path: categoryProductsPath(categoryId),
       images: selectedCategory.image ? [selectedCategory.image] : ['/assets/home1.jpg'],
     });
   }
@@ -53,7 +44,10 @@ export async function generateMetadata({ searchParams }) {
 }
 
 export default async function CategoriesPage() {
-  const categories = await getCategories();
+  const [categories, featuredProducts] = await Promise.all([
+    getCategories(),
+    getFeaturedProducts(),
+  ]);
 
   return (
     <div>
@@ -73,7 +67,10 @@ export default async function CategoriesPage() {
       </section>
 
       <Suspense fallback={<LoaderBlock />}>
-        <CategoryBrowser />
+        <CategoryBrowser
+          initialCategories={categories}
+          initialFeaturedProducts={featuredProducts}
+        />
       </Suspense>
       {categories.length ? (
         <section className="sr-only" aria-label="Jewellery category descriptions">

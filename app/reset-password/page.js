@@ -1,10 +1,12 @@
 import AuthSplitLayout from '@/components/auth/AuthSplitLayout';
 import ResetPasswordForm from './ResetPasswordForm';
+import { noIndexMetadata } from '@/lib/seo';
 
-export const metadata = {
+export const metadata = noIndexMetadata({
   title: 'Reset Password | Kayra Aura',
   description: 'Reset your Kayra Aura account password.',
-};
+  path: '/reset-password',
+});
 
 export default async function ResetPasswordPage({ searchParams }) {
   const params = await searchParams;

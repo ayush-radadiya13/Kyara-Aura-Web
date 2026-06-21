@@ -1,12 +1,45 @@
-
 import Header from '../../components/Header';
 import ProductList from '@/components/ProductList';
-import {Cormorant_Garamond} from "next/font/google";
+import { Cormorant_Garamond } from 'next/font/google';
+import {
+  categoryProductsPath,
+  categorySeoDescription,
+  getSelectedCategoryFromParams,
+  resolveCategoryId,
+} from '@/lib/category-seo';
+import { getCategories } from '@/lib/categories';
+import { getAllProducts, getProductsByCategory } from '@/lib/products';
+import { metadataForPage } from '@/lib/seo';
 
 const categoryDisplay = Cormorant_Garamond({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
 });
+
+export async function generateMetadata({ searchParams }) {
+  const selectedCategory = await getSelectedCategoryFromParams(
+    searchParams,
+    getCategories,
+  );
+
+  if (selectedCategory) {
+    const categoryId = resolveCategoryId(selectedCategory);
+
+    return metadataForPage({
+      title: `${selectedCategory.name} Jewellery | Kayra Aura`,
+      description: categorySeoDescription(selectedCategory),
+      path: categoryProductsPath(categoryId),
+      images: selectedCategory.image ? [selectedCategory.image] : ['/assets/home1.jpg'],
+    });
+  }
+
+  return metadataForPage({
+    title: 'Shop Fashion Jewellery | Kayra Aura',
+    description:
+      'Browse Kayra Aura fashion jewellery including gold plated bangles, earrings, necklaces, rings, and elegant pieces for everyday and occasion styling.',
+    path: '/products',
+  });
+}
 
 export default async function ProductsPage({ searchParams }) {
   const params = await searchParams;
@@ -14,6 +47,9 @@ export default async function ProductsPage({ searchParams }) {
     ? params.category[0]
     : params?.category;
 
+  const initialProducts = categoryId
+    ? await getProductsByCategory(categoryId)
+    : await getAllProducts();
 
   return (
     <div className="bg-white text-gray-950">
@@ -31,6 +67,7 @@ export default async function ProductsPage({ searchParams }) {
           categoryId={categoryId}
           pageSize={16}
           variant="catalog"
+          initialProducts={initialProducts}
         />
       </section>
     </div>

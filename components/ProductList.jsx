@@ -161,6 +161,7 @@ export default function ProductList({
   emptyMessage = "No products available at the moment.",
   variant = "default",
   pageSize = 12,
+  initialProducts,
 }) {
   const isCatalog = variant === "catalog";
   const [currentPage, setCurrentPage] = useState(1);
@@ -170,12 +171,19 @@ export default function ProductList({
   const [openFilter, setOpenFilter] = useState("");
   const allProductsQuery = useProducts({
     enabled: !featured && !collection,
+    ...(initialProducts && !featured && !collection
+      ? { initialData: initialProducts }
+      : {}),
   });
   const featuredProductsQuery = useFeaturedProducts({
     enabled: featured && !collection,
+    ...(initialProducts && featured && !collection
+      ? { initialData: initialProducts }
+      : {}),
   });
   const collectionProductsQuery = useCollectionProducts({
     enabled: collection,
+    ...(initialProducts && collection ? { initialData: initialProducts } : {}),
   });
   const { data: categories = [], isLoading: categoriesLoading } = useCategories({
     enabled: isCatalog,
@@ -283,7 +291,7 @@ export default function ProductList({
     setCurrentPage(1);
   };
 
-  if (query.isLoading) {
+  if (query.isLoading && !query.data?.length) {
     return <LoaderBlock />;
   }
 

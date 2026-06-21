@@ -76,8 +76,11 @@ function ProductImage({ product, imageSrc, sizes, className = "" }) {
 export default function HomeCollectionShowcase({
   limit = 4,
   emptyMessage = "No collection products available at the moment.",
+  initialProducts,
 }) {
-  const { data: products = [], isLoading, isError } = useCollectionProducts();
+  const { data: products = [], isLoading, isError } = useCollectionProducts({
+    initialData: initialProducts,
+  });
   const latestProducts = useMemo(
     () =>
       [...products]
@@ -86,7 +89,7 @@ export default function HomeCollectionShowcase({
     [limit, products],
   );
 
-  if (isLoading) {
+  if (isLoading && !products.length) {
     return <LoaderBlock />;
   }
 

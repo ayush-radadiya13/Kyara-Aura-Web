@@ -1,11 +1,13 @@
 import AuthForm from '@/components/auth/AuthForm';
 import AuthSplitLayout from '@/components/auth/AuthSplitLayout';
 import { getAuthFieldKeys } from '@/lib/auth/get-auth-field-keys';
+import { noIndexMetadata } from '@/lib/seo';
 
-export const metadata = {
+export const metadata = noIndexMetadata({
   title: 'Login | Kayra Aura',
   description: 'Sign in to your Kayra Aura account.',
-};
+  path: '/login',
+});
 
 export default async function LoginPage({ searchParams }) {
   const params = await searchParams;

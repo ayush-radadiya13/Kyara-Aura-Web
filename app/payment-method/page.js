@@ -1,10 +1,12 @@
 import Header from '@/components/Header';
 import PaymentMethodFlow from '@/components/cart/PaymentMethodFlow';
+import { noIndexMetadata } from '@/lib/seo';
 
-export const metadata = {
+export const metadata = noIndexMetadata({
   title: 'Payment Method | Kayra Aura',
   description: 'Choose a secure payment method for your Kayra Aura order.',
-};
+  path: '/payment-method',
+});
 
 function getCheckoutIntent(searchParams = {}) {
   const checkoutType = searchParams.checkout_type === 'buy_now' ? 'buy_now' : 'cart';

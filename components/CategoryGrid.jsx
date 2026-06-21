@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { LoaderBlock } from "@/components/ui/loader";
 import { useCategories } from "@/hooks/use-categories";
+import { categoryProductsPath } from "@/lib/category-seo";
 
 function categoryImageSrc(image) {
   if (!image || typeof image !== "string") return "";
@@ -13,7 +14,7 @@ function categoryImageSrc(image) {
 
 function categoryHref(category) {
   const categoryId = category?._id ?? category?.id ?? category?.slug;
-  return categoryId ? `/products?category=${encodeURIComponent(categoryId)}` : "/products";
+  return categoryId ? categoryProductsPath(categoryId) : "/products";
 }
 
 export default function CategoryGrid({
@@ -22,11 +23,14 @@ export default function CategoryGrid({
   selectedCategoryId,
   onCategorySelect,
   stackOnMobile = false,
+  initialCategories,
 }) {
-  const { data: categories = [], isLoading, isError } = useCategories();
+  const { data: categories = [], isLoading, isError } = useCategories({
+    initialData: initialCategories,
+  });
   const visibleCategories = limit ? categories.slice(0, limit) : categories;
 
-  if (isLoading) {
+  if (isLoading && !categories.length) {
     return <LoaderBlock />;
   }
 

@@ -3,7 +3,10 @@
 import CategoryGrid from "@/components/CategoryGrid";
 import ProductList from "@/components/ProductList";
 
-export default function CategoryBrowser() {
+export default function CategoryBrowser({
+  initialCategories,
+  initialFeaturedProducts,
+}) {
   return (
     <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6">
       <div className="mb-8 pt-4">
@@ -15,7 +18,11 @@ export default function CategoryBrowser() {
         </h2>
       </div>
       <div >
-        <CategoryGrid variant="strip" stackOnMobile />
+        <CategoryGrid
+          variant="strip"
+          stackOnMobile
+          initialCategories={initialCategories}
+        />
       </div>
       <div className="border-t border-gray-100 pt-12">
         <div className="mb-8">
@@ -31,6 +38,7 @@ export default function CategoryBrowser() {
           pageSize={12}
           variant="editorial"
           emptyMessage="No featured products available at the moment."
+          initialProducts={initialFeaturedProducts}
         />
       </div>
     </section>

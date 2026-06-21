@@ -4,6 +4,11 @@ import HeroCarousel from '../components/HeroCarousel';
 import CategoryGrid from '@/components/CategoryGrid';
 import HomeCollectionShowcase from '@/components/HomeCollectionShowcase';
 import ProductList from '@/components/ProductList';
+import { getCategories } from '@/lib/categories';
+import {
+  getCollectionProducts,
+  getFeaturedProducts,
+} from '@/lib/products';
 import { absoluteUrl, jsonLd, metadataForPage } from '@/lib/seo';
 
 const homeDescription =
@@ -16,7 +21,13 @@ export const metadata = metadataForPage({
   images: ['/assets/home1.jpg'],
 });
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [categories, featuredProducts, collectionProducts] = await Promise.all([
+    getCategories(),
+    getFeaturedProducts(),
+    getCollectionProducts(),
+  ]);
+
   const organizationSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -53,7 +64,7 @@ export default function HomePage() {
           <h2 className="font-display text-3xl font-light text-gray-950 sm:text-4xl ">Categories</h2>
           </div>
 
-          <CategoryGrid variant="strip" limit={6} />
+          <CategoryGrid variant="strip" limit={6} initialCategories={categories} />
         </section>
         <section className="home-scroll-stable mx-auto max-w-7xl px-4 pb-20 sm:px-6" style={{ '--home-delay': '160ms' }}>
           <div className="mb-8 flex items-center justify-between gap-6">
@@ -74,6 +85,7 @@ export default function HomePage() {
               limit={6}
               variant="editorial"
               emptyMessage="No featured products available at the moment."
+              initialProducts={featuredProducts}
           />
         </section>
 
@@ -117,6 +129,7 @@ export default function HomePage() {
           <HomeCollectionShowcase
             limit={4}
             emptyMessage=" "
+            initialProducts={collectionProducts}
           />
         </section>
 
@@ -156,6 +169,7 @@ export default function HomePage() {
                   pageSize={12}
                   variant="editorial"
                   emptyMessage="No featured products available at the moment."
+                  initialProducts={featuredProducts}
               />
             </div>
           </div>
