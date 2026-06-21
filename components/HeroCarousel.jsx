@@ -4,49 +4,34 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-const carouselImages = [
-  {
-    id: 1,
-    src: '/assets/home1.jpg',
-    alt: 'Luxury Jewellery Collection',
-    title: 'Timeless Elegance',
-    subtitle: 'Exquisite craftsmanship meets modern design'
-  },
-  {
-    id: 2,
-    src: '/assets/home2.jpg',
-    alt: 'Diamond Jewellery',
-    title: 'Brilliant Beauty',
-    subtitle: 'Handcrafted with precision and care'
-  },
-  {
-    id: 3,
-    src: '/assets/home3.jpg',
-    alt: 'Fine Jewellery Display',
-    title: 'Natural Radiance',
-    subtitle: 'Premium gems and precious metals'
-  },
-  {
-    id: 4,
-    src: '/assets/home4.jpg',
-    alt: 'Luxury Jewellery Set',
-    title: 'Exclusive Collection',
-    subtitle: 'Limited edition masterpieces'
-  }
-];
-
-export default function HeroCarousel({ variant = 'carousel' }) {
+export default function HeroCarousel({
+  variant = 'carousel',
+  images = [],
+  title = '',
+  description = '',
+}) {
+  const carouselImages = images.map((src, index) => ({
+    id: index + 1,
+    src,
+    alt: title || `Banner image ${index + 1}`,
+    title,
+    subtitle: description,
+  }));
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
+    if (carouselImages.length <= 1) {
+      return undefined;
+    }
+
     const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => 
+      setCurrentIndex((prevIndex) =>
         prevIndex === carouselImages.length - 1 ? 0 : prevIndex + 1
       );
     }, 4000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [carouselImages.length]);
 
   const goToSlide = (index) => {
     setCurrentIndex(index);
@@ -57,25 +42,26 @@ export default function HeroCarousel({ variant = 'carousel' }) {
   if (variant === 'editorial') {
     return (
       <section className="relative h-screen w-full overflow-hidden bg-white">
-        <Image
-          src={currentImage.src}
-          alt={currentImage.alt}
-          fill
-          className="object-cover opacity-60 transition-opacity duration-700"
-          priority
-          sizes="100vw"
-        />
+        {currentImage ? (
+          <Image
+            src={currentImage.src}
+            alt={currentImage.alt}
+            fill
+            className="object-cover opacity-60 transition-opacity duration-700"
+            priority
+            sizes="100vw"
+          />
+        ) : null}
 
         <div className="absolute inset-x-0 top-1/2 z-10 mx-auto flex max-w-4xl -translate-y-1/2 flex-col items-center px-6 text-center text-black">
           <p className="mb-5 text-[10px] font-semibold uppercase tracking-[0.35em] text-black/80">
             Jewellery
           </p>
           <h1 className="font-display text-5xl font-light uppercase leading-[0.92] tracking-[-0.04em] sm:text-7xl lg:text-[88px]">
-            Discover Sparkle
-            <span className="block">With Style</span>
+            {title}
           </h1>
           <p className="mt-6 max-w-xl text-[11px] leading-5 text-black/80 sm:text-xs">
-            Whether casual or formal, find the perfect jewelry for every occasion with us.
+            {description}
           </p>
           <Link
             href="/products"
@@ -93,23 +79,25 @@ export default function HeroCarousel({ variant = 'carousel' }) {
       {/* Main Image Container */}
       <div className="relative w-full h-full">
         <div className="relative w-full h-full flex items-center justify-center">
-          <Image
-            src={currentImage.src}
-            alt={currentImage.alt}
-            fill
-            className="object-cover opacity-60 transition-opacity duration-700"
-            priority
-            sizes="100vw"
-          />
+          {currentImage ? (
+            <Image
+              src={currentImage.src}
+              alt={currentImage.alt}
+              fill
+              className="object-cover opacity-60 transition-opacity duration-700"
+              priority
+              sizes="100vw"
+            />
+          ) : null}
           
           {/* Content Overlay */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center text-black px-4 max-w-4xl">
               <h1 className="font-display text-2xl sm:text-3xl md:text-5xl lg:text-7xl font-light mb-2 sm:mb-4 tracking-wide">
-                {currentImage.title}
+                {currentImage?.title}
               </h1>
               <p className="text-sm sm:text-base md:text-xl lg:text-2xl font-light tracking-wider text-black/80">
-                {currentImage.subtitle}
+                {currentImage?.subtitle}
               </p>
             </div>
           </div>

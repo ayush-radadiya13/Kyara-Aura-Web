@@ -16,8 +16,6 @@ import { useAuthStore } from '@/store/auth-store';
 import { getCartApi } from '@/services/cart';
 import PromotionalBanner from '@/components/PromotionalBanner';
 import { usePromotionalMessages } from '@/hooks/use-promotional-messages';
-import { useWebSettings } from '@/hooks/use-web-settings';
-
 const NAV_ITEMS = [
   { label: 'Home', href: APP_ROUTES.HOME },
   { label: 'Shop', href: APP_ROUTES.PRODUCTS },
@@ -42,7 +40,7 @@ const MOBILE_ICON_ITEMS = [
   { label: 'Wishlist', href: APP_ROUTES.WISHLIST, Icon: Heart },
 ];
 
-const DEFAULT_LOGO = '/assets/ka1.png';
+const LOGO = '/assets/ka-logo.png';
 
 export default function Header({ variant = 'default' }) {
   const pathname = usePathname();
@@ -75,8 +73,6 @@ export default function Header({ variant = 'default' }) {
   });
   const wishlistQuery = useWishlist({ enabled: showAuthenticatedActions });
   const { hasMessages: showPromoBanner } = usePromotionalMessages();
-  const { data: settings } = useWebSettings();
-  const logoUrl = settings?.logo_url?.trim() || DEFAULT_LOGO;
   const wishCount = wishlistQuery.data?.length ?? 0;
   const actionCounts = {
     cartCount: count,
@@ -92,9 +88,6 @@ export default function Header({ variant = 'default' }) {
   const headerClassName = 'pointer-events-none fixed left-3 right-3 top-2 z-50 sm:left-4 sm:right-4';
   const shellClassName =
     'header-glass pointer-events-auto mx-auto h-14 max-w-8xl items-center justify-between rounded-full px-4 transition-all duration-500 ease-out hover:-translate-y-0.5 sm:px-6 motion-reduce:transition-none motion-reduce:hover:translate-y-0';
-  const logoClassName = isHomeOverlay
-    ? 'relative block h-12 w-40 overflow-hidden rounded-full transition-opacity duration-300 hover:opacity-80 sm:w-48'
-    : 'relative block h-11 w-36 overflow-hidden rounded-full transition-opacity duration-300 hover:opacity-80 sm:w-44';
   const navLinkClassName = isHomeOverlay
     ? 'rounded-full px-3 py-2 text-[13px] font-semibold uppercase tracking-[0.18em] text-gray-950/80 transition-all duration-300 hover:bg-white/55 hover:text-gray-950 dark:text-gray-950/80 dark:hover:bg-white/55 dark:hover:text-gray-950'
     : 'rounded-full px-3 py-2 text-gray-700/90 transition-all duration-300 hover:bg-white/55 hover:text-gold dark:text-gray-700/90 dark:hover:bg-white/55 dark:hover:text-gold';
@@ -189,6 +182,26 @@ export default function Header({ variant = 'default' }) {
       closeSearch();
     }
   };
+
+  const renderLogo = (size = 'default') => (
+    <Link
+      href={APP_ROUTES.HOME}
+      className="inline-flex shrink-0 items-center transition-opacity duration-300 hover:opacity-80"
+    >
+      <Image
+        src={LOGO}
+        alt="Kayra Aura"
+        width={1372}
+        height={612}
+        className={
+          size === 'large'
+            ? 'h-11 w-auto max-w-[180px] sm:h-12 sm:max-w-[220px] md:h-[3.25rem] md:max-w-[270px]'
+            : 'h-10 w-auto max-w-[170px] sm:h-11 sm:max-w-[210px] md:h-12 md:max-w-[250px]'
+        }
+        priority
+      />
+    </Link>
+  );
 
   const renderSearchPanel = (containerRef, inputRef, isMobileSearch = false) => {
     const trimmedTerm = searchTerm.trim();
@@ -329,36 +342,13 @@ export default function Header({ variant = 'default' }) {
               ))}
             </nav>
           ) : (
-            <Link
-              href={APP_ROUTES.HOME}
-              className={logoClassName}
-            >
-              <Image
-                src={logoUrl}
-                alt="Kayra Aura"
-                fill
-                className="object-cover object-center"
-                sizes="(max-width: 640px) 144px, 176px"
-                priority
-                unoptimized={logoUrl.startsWith('http')}
-              />
-            </Link>
+            renderLogo()
           )}
         </div>
 
         {isHomeOverlay && (
           <div className={`${searchOpen ? 'hidden lg:flex' : 'flex'} flex-1 justify-start md:flex-none md:justify-center`}>
-            <Link href={APP_ROUTES.HOME} className={logoClassName}>
-              <Image
-                src={logoUrl}
-                alt="Kayra Aura"
-                fill
-                className="object-cover object-center"
-                sizes="(max-width: 640px) 160px, 192px"
-                priority
-                unoptimized={logoUrl.startsWith('http')}
-              />
-            </Link>
+            {renderLogo('large')}
           </div>
         )}
 

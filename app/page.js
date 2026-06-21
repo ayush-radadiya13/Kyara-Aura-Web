@@ -9,7 +9,14 @@ import {
   getCollectionProducts,
   getFeaturedProducts,
 } from '@/lib/products';
-import { absoluteUrl, jsonLd, metadataForPage } from '@/lib/seo';
+import {
+  buildOrganizationSchema,
+  buildWebsiteSchema,
+  getSocialSameAs,
+} from '@/lib/structured-data';
+import { getBannerCarouselImages, getBannerSettings } from '@/lib/banners';
+import { getWebSettings } from '@/lib/web-settings';
+import { jsonLd, metadataForPage } from '@/lib/seo';
 
 const homeDescription =
   "Discover Kayra Aura's premium fashion jewellery collection for men and women. Shop rings, bangles, earrings, necklaces, bracelets and more for every occasion.";
@@ -22,26 +29,24 @@ export const metadata = metadataForPage({
 });
 
 export default async function HomePage() {
-  const [categories, featuredProducts, collectionProducts] = await Promise.all([
-    getCategories(),
-    getFeaturedProducts(),
-    getCollectionProducts(),
-  ]);
+  const [categories, featuredProducts, collectionProducts, webSettings, bannerSettings] =
+    await Promise.all([
+      getCategories(),
+      getFeaturedProducts(),
+      getCollectionProducts(),
+      getWebSettings(),
+      getBannerSettings(),
+    ]);
 
-  const organizationSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    name: 'Kayra Aura',
-    url: absoluteUrl('/'),
-    logo: absoluteUrl('/assets/ka1.png'),
-    sameAs: [],
-  };
-  const websiteSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: 'Kayra Aura',
-    url: absoluteUrl('/'),
-  };
+  const bannerImages = getBannerCarouselImages(bannerSettings);
+  const bannerVideo = bannerSettings.video || bannerSettings.video_url;
+
+  const sameAs = getSocialSameAs(webSettings);
+  const organizationSchema = buildOrganizationSchema({
+    sameAs,
+    logo: webSettings.logo_url || webSettings.logo || '/assets/ka1.png',
+  });
+  const websiteSchema = buildWebsiteSchema();
 
   return (
       <div className="bg-white ">
@@ -55,7 +60,12 @@ export default async function HomePage() {
         />
         <Header />
         <div className="home-scroll-stable">
-          <HeroCarousel variant="editorial" />
+          <HeroCarousel
+            variant="editorial"
+            images={bannerImages}
+            title={bannerSettings.banner_title}
+            description={bannerSettings.banner_description}
+          />
         </div>
 
         {/* Categories Section */}
@@ -96,7 +106,7 @@ export default async function HomePage() {
         >
           <video
               className="home-drift pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.45]"
-              src="/vedio/vedio1.mp4"
+              src={bannerVideo || undefined}
               autoPlay
               muted
               loop
@@ -110,10 +120,10 @@ export default async function HomePage() {
               Jewellery
             </p>
             <h2 className="home-reveal font-display text-5xl font-light uppercase leading-[0.92] tracking-[-0.04em] sm:text-7xl lg:text-[92px]" style={{ '--home-delay': '420ms' }}>
-              New Arrival
+              {bannerSettings.video_title}
             </h2>
             <p className="home-reveal mt-5 max-w-xl text-xs leading-5 text-white/85 sm:text-sm" style={{ '--home-delay': '520ms' }}>
-              Presented in timeless adornment, for those who seek both beauty and refined minimalism.
+              {bannerSettings.video_description}
             </p>
             <Link
                 href="/products"

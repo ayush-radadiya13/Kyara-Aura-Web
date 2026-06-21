@@ -83,9 +83,6 @@ export default function CategoryGrid({
                 <span className="font-display text-2xl font-light leading-none sm:text-3xl">
                   {category.name}
                 </span>
-                <span className="mt-3 block text-[10px] font-semibold uppercase tracking-[0.28em] text-white/80">
-                  Shop Collection
-                </span>
               </div>
             </>
           );

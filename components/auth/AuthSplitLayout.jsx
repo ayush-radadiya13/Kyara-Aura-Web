@@ -68,7 +68,7 @@ export default function AuthSplitLayout({
               src={imageSrc}
               alt={imageAlt}
               fill
-              className="object-cover"
+              className="object-contain"
               sizes="(max-width: 1024px) 100vw, 50vw"
               priority
             />

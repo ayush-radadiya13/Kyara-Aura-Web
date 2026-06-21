@@ -1,7 +1,11 @@
 import ProductDetail from './ProductDetail';
 import ProductViewTracker from '@/components/analytics/ProductViewTracker';
 import { getProductBySlug } from '@/lib/products';
-import { absoluteUrl, jsonLd, metadataForPage } from '@/lib/seo';
+import {
+  buildBreadcrumbSchema,
+  buildProductSchema,
+} from '@/lib/structured-data';
+import { jsonLd, metadataForPage } from '@/lib/seo';
 
 function productDescription(product) {
   return String(product?.description ?? '')
@@ -23,12 +27,16 @@ export async function generateMetadata({ params }) {
   }
 
   const description = productDescription(product);
+  const productImage = product.image
+    ? [product.image]
+    : ['/images/product-placeholder.svg'];
 
   return metadataForPage({
     title: `${product.name} | Kayra Aura`,
     description,
     path: `/products/${product.slug}`,
-    images: product.image ? [product.image] : ['/images/product-placeholder.svg'],
+    images: productImage,
+    type: 'product',
   });
 }
 
@@ -36,58 +44,13 @@ export default async function ProductPage({ params }) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
 
-  const productSchema = product
-    ? {
-        '@context': 'https://schema.org',
-        '@type': 'Product',
-        name: product.name,
-        description: productDescription(product),
-        image: product.images?.length
-          ? product.images.map((image) => absoluteUrl(image))
-          : [absoluteUrl(product.image || '/images/product-placeholder.svg')],
-        sku: String(product._id ?? product.id ?? product.slug),
-        brand: {
-          '@type': 'Brand',
-          name: product.brand || 'Kayra Aura',
-        },
-        category: product.category?.name || 'Fashion Jewellery',
-        offers: {
-          '@type': 'Offer',
-          url: absoluteUrl(`/products/${product.slug}`),
-          priceCurrency: 'INR',
-          price: product.price,
-          availability: product.sizes?.some((size) => Number(size.quantity) > 0)
-            ? 'https://schema.org/InStock'
-            : 'https://schema.org/OutOfStock',
-          itemCondition: 'https://schema.org/NewCondition',
-        },
-      }
-    : null;
+  const productSchema = product ? buildProductSchema(product) : null;
   const breadcrumbSchema = product
-    ? {
-        '@context': 'https://schema.org',
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          {
-            '@type': 'ListItem',
-            position: 1,
-            name: 'Home',
-            item: absoluteUrl('/'),
-          },
-          {
-            '@type': 'ListItem',
-            position: 2,
-            name: 'Products',
-            item: absoluteUrl('/products'),
-          },
-          {
-            '@type': 'ListItem',
-            position: 3,
-            name: product.name,
-            item: absoluteUrl(`/products/${product.slug}`),
-          },
-        ],
-      }
+    ? buildBreadcrumbSchema([
+        { name: 'Home', path: '/' },
+        { name: 'Products', path: '/products' },
+        { name: product.name, path: `/products/${product.slug}` },
+      ])
     : null;
 
   return (

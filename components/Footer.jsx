@@ -26,7 +26,7 @@ export default function Footer() {
   const logoUrl = settings?.logo_url?.trim() || DEFAULT_LOGO;
   const email = settings?.email?.trim();
   const address = settings?.address?.trim();
-
+  const footerDescription = settings?.footer_description?.trim();
   const mobileNumber = settings?.mobile_number?.trim();
 
   return (
@@ -43,7 +43,10 @@ export default function Footer() {
               unoptimized={logoUrl.startsWith('http')}
             />
           </Link>
-          <div className="mt-8 space-y-3 text-md leading-5 text-black">
+          {footerDescription && (
+            <p className="mt-8 text-md leading-6 text-black">{footerDescription}</p>
+          )}
+          <div className={`${footerDescription ? 'mt-5' : 'mt-8'} space-y-3 text-md leading-5 text-black`}>
              {address && (
               <p className="flex items-center gap-2">
                 <MapPin className="h-5 w-5 shrink-0 text-black" />

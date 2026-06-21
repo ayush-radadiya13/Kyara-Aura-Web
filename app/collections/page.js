@@ -12,8 +12,9 @@ const collectionDisplay = Cormorant_Garamond({
 export const metadata = metadataForPage({
   title: 'Jewellery Collections | Kayra Aura',
   description:
-    'Explore Kayra Aura jewellery collections with curated bangles, rings, earrings, and elegant fashion jewellery for special occasions.',
+    'Explore Kayra Aura jewellery collections with curated bangles, rings, earrings, necklaces, and elegant fashion jewellery for special occasions and everyday styling.',
   path: '/collections',
+  images: ['/assets/home1.jpg'],
 });
 
 export default async function CollectionsPage() {

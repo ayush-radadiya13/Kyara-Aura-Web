@@ -816,10 +816,57 @@ function CancelOrderDialog({ open, loading, reason, error, onReasonChange, onClo
   );
 }
 
+function canCancelOrder(order) {
+  if (typeof order?.can_be_cancelled === 'boolean') {
+    return order.can_be_cancelled;
+  }
+
+  const status = String(order?.status ?? '').toLowerCase();
+  return !['cancelled', 'delivered', 'returned'].includes(status);
+}
+
+function canReturnOrder(order) {
+  if (typeof order?.can_be_returned === 'boolean') {
+    return order.can_be_returned;
+  }
+
+  return String(order?.status ?? '').toLowerCase() === 'delivered';
+}
+
+function getReturnDisplayStatus(order) {
+  const returnStatus = String(order?.shipment?.return?.status ?? '').toLowerCase();
+  const orderStatus = String(order?.status ?? '').toLowerCase();
+
+  if (orderStatus === 'returned' || returnStatus === 'delivered') {
+    return 'returned';
+  }
+
+  if (['picked_up', 'in_transit', 'out_for_delivery'].includes(returnStatus)) {
+    return 'return_processing';
+  }
+
+  if (orderStatus === 'return_requested') {
+    return 'return_requested';
+  }
+
+  return null;
+}
+
+function formatReturnDisplayStatus(status) {
+  const labels = {
+    return_requested: 'Return Requested',
+    return_processing: 'Return Processing',
+    returned: 'Returned',
+  };
+
+  return labels[status] ?? formatShipmentStatus(status);
+}
+
 function OrderCard({ order, selected, loading, invoiceLoading, onView, onDownloadInvoice, onCancel, onReturn }) {
-  const status = String(order.status ?? '').toLowerCase();
-  const canCancel = !['cancelled', 'delivered', 'returned'].includes(status);
-  const canReturn = status === 'delivered';
+  const canCancel = canCancelOrder(order);
+  const canReturn = canReturnOrder(order);
+  const shipmentStatus = order?.shipment?.shipment_status;
+  const returnDisplayStatus = getReturnDisplayStatus(order);
 
   return (
     <article className={`w-[calc(100vw-2.25rem)] min-w-[calc(100vw-2.25rem)] rounded-[1.25rem] border bg-white p-2.5 shadow-[0_12px_34px_rgba(17,24,39,0.05)] sm:w-auto sm:min-w-0 sm:p-3 ${selected ? 'border-gray-950 ring-2 ring-gray-950/10' : 'border-gray-100'}`}>
@@ -830,6 +877,12 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onDownloa
           <div className="mt-1.5 space-y-1 text-[0.65rem] font-semibold text-gray-500 sm:text-[0.68rem]">
             <StatusLine label="Order Status" value={order.status ?? 'pending'} />
             <StatusLine label="Payment status" value={order.payment_status ?? 'pending'} />
+            {shipmentStatus ? (
+              <StatusLine label="Shipment" value={formatShipmentStatus(shipmentStatus)} />
+            ) : null}
+            {returnDisplayStatus ? (
+              <StatusLine label="Return" value={formatReturnDisplayStatus(returnDisplayStatus)} />
+            ) : null}
           </div>
         </div>
         <p className="shrink-0 text-sm font-bold text-gray-950 sm:text-base">{formatMoney(order.total_amount)}</p>
@@ -852,9 +905,24 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onDownloa
             'Download Invoice'
           )}
         </button>
-        <button type="button" className="h-8 rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 sm:h-9 sm:px-3.5 sm:text-xs">
-          Track Order
-        </button>
+        {order?.shipment?.courier_tracking_url ? (
+          <a
+            href={order.shipment.courier_tracking_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-8 items-center justify-center rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 sm:h-9 sm:px-3.5 sm:text-xs"
+          >
+            Track Order
+          </a>
+        ) : (
+          <button
+            type="button"
+            disabled
+            className="h-8 cursor-not-allowed rounded-full border border-gray-100 px-3 text-[0.68rem] font-bold text-gray-400 sm:h-9 sm:px-3.5 sm:text-xs"
+          >
+            Track Order
+          </button>
+        )}
         {canCancel ? (
           <button type="button" onClick={onCancel} disabled={loading} className="h-8 rounded-full border border-red-100 px-3 text-[0.68rem] font-bold text-red-700 transition hover:border-red-300 disabled:opacity-50 sm:h-9 sm:px-3.5 sm:text-xs">
             {loading ? (
@@ -965,6 +1033,8 @@ function OrderDetail({ order }) {
     order.estimated_delivery_date ?? order.estimated_delivery ?? order.delivery_date ?? order.expected_delivery_date,
   );
   const deliveryDetails = getDeliveryDetails(order);
+  const shipment = order?.shipment;
+  const returnDisplayStatus = getReturnDisplayStatus(order);
 
   return (
     <div className="space-y-3">
@@ -982,10 +1052,26 @@ function OrderDetail({ order }) {
           </div>
 
           <div className="flex flex-row gap-2 lg:shrink-0">
-            <button type="button" className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-gray-950 px-3.5 text-xs font-bold text-white transition hover:bg-gray-800">
-              Track order
-              <LocateFixed className="h-4 w-4" />
-            </button>
+            {shipment?.courier_tracking_url ? (
+              <a
+                href={shipment.courier_tracking_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-gray-950 px-3.5 text-xs font-bold text-white transition hover:bg-gray-800"
+              >
+                Track order
+                <LocateFixed className="h-4 w-4" />
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="inline-flex h-9 cursor-not-allowed items-center justify-center gap-2 rounded-full bg-gray-200 px-3.5 text-xs font-bold text-gray-500"
+              >
+                Track order
+                <LocateFixed className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -1013,6 +1099,27 @@ function OrderDetail({ order }) {
           <div className="py-8 text-center text-sm font-semibold text-gray-400">No items found for this order.</div>
         )}
       </div>
+
+      {shipment?.shipment_status || shipment?.waybill || shipment?.provider || returnDisplayStatus ? (
+        <div className="rounded-[1.1rem] border border-gray-200 p-3">
+          <h3 className="text-base font-bold text-gray-950">Shipment</h3>
+          <div className="mt-3 space-y-1.5 text-sm">
+            {shipment?.shipment_status ? (
+              <DeliveryField
+                label="Status"
+                value={formatShipmentStatus(shipment.shipment_status, shipment.raw_status)}
+              />
+            ) : null}
+            {shipment?.waybill ? <DeliveryField label="Waybill" value={shipment.waybill} /> : null}
+            {shipment?.provider ? (
+              <DeliveryField label="Courier" value={shipment.provider} />
+            ) : null}
+            {returnDisplayStatus ? (
+              <DeliveryField label="Return" value={formatReturnDisplayStatus(returnDisplayStatus)} />
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-[1.1rem] border border-gray-200 p-3">
@@ -1221,6 +1328,17 @@ function getDeliveryDetails(order) {
     phone: address.phone ?? address.mobile ?? address.phone_number ?? order.customer_phone ?? order.phone ?? order.mobile ?? '',
     address: [street, locality, countryLine].filter(Boolean).join(', '),
   };
+}
+
+function formatShipmentStatus(status, rawStatus) {
+  if (rawStatus && String(rawStatus).trim()) {
+    return String(rawStatus).trim();
+  }
+
+  return String(status ?? '')
+    .trim()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function formatDate(value) {

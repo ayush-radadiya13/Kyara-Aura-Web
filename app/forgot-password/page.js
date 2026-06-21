@@ -42,14 +42,14 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
-      <main className="flex flex-1 items-center bg-white justify-center overflow-hidden px-4 py-4 sm:py-6">
+    <div className="flex min-h-screen flex-col">
+      <main className="flex flex-1 items-center justify-center bg-white px-4 py-4 sm:py-6">
         <AuthSplitLayout
-          videoSrc="/vedio/logo_animation.mp4"
-          videoLabel="Kayra Aura logo animation"
+          imageSrc="/assets/ka-logo.png"
+          imageAlt="Kayra Aura"
           eyebrow=""
           headline=""
-          mediaClassName="h-[200px] min-h-[200px] w-full self-center sm:min-h-[200px] lg:min-h-[200px]"
+          mediaClassName="h-[200px] min-h-[200px] w-full self-center bg-white sm:min-h-[200px] lg:min-h-[200px]"
         >
           <div className="w-full max-w-md">
             <h1 className="text-3xl font-bold text-gray-900">Forgot password</h1>
