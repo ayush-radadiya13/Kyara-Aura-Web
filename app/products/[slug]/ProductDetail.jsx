@@ -22,6 +22,7 @@ import { showItemAddedToCartToast } from '@/lib/cart/toast';
 import { APP_ROUTES } from '@/lib/routes';
 import { useProductBySlug } from '@/hooks/use-products';
 import { addCartItemApi, getCartApi } from '@/services/cart';
+import { sharePage } from '@/lib/share/web-share';
 
 function imageUrlFromValue(value) {
   if (!value) return '';
@@ -135,6 +136,13 @@ export default function ProductDetail({ product: initialProduct, slug }) {
       </div>
     );
   }
+
+  const handleShareProduct = () => {
+    void sharePage({
+      title: product.name,
+      text: product.description,
+    });
+  };
 
   const selectedPrice = selectedSizeOption?.price || product.price;
   const selectedOriginalPrice =
@@ -296,6 +304,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
                 <button
                   type="button"
                   aria-label="Share product"
+                  onClick={handleShareProduct}
                   className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition hover:border-gray-950 hover:text-gray-950"
                 >
                   <Share2 className="h-6 w-6" strokeWidth={1.8} />
