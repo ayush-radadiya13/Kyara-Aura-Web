@@ -26,6 +26,14 @@ const nextConfig = {
         protocol: "https",
         hostname: "backendqa.kayraaura.com",
       },
+      {
+        protocol: "http",
+        hostname: "backendprod.kayraaura.com",
+      },
+      {
+        protocol: "https",
+        hostname: "backendprod.kayraaura.com",
+      },
     ],
   },
 };
