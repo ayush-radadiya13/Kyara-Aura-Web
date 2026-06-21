@@ -1,4 +1,5 @@
 import ProductDetail from './ProductDetail';
+import ProductViewTracker from '@/components/analytics/ProductViewTracker';
 import { getProductBySlug } from '@/lib/products';
 import { absoluteUrl, jsonLd, metadataForPage } from '@/lib/seo';
 
@@ -103,6 +104,7 @@ export default async function ProductPage({ params }) {
           dangerouslySetInnerHTML={jsonLd(breadcrumbSchema)}
         />
       ) : null}
+      {product ? <ProductViewTracker product={product} /> : null}
       <ProductDetail product={product} slug={slug} />
     </>
   );

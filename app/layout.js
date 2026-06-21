@@ -6,6 +6,7 @@ import SmoothScrollProvider from "@/providers/smooth-scroll-provider";
 import ConditionalFooter from "@/components/ConditionalFooter";
 import WhatsAppFloatButton from "@/components/WhatsAppFloatButton";
 import { Toaster } from "@/components/ui/sonner";
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import {
   DEFAULT_SEO_DESCRIPTION,
   DEFAULT_SEO_TITLE,
@@ -51,6 +52,7 @@ export default function RootLayout({ children }) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col overflow-x-hidden">
+        <GoogleAnalytics />
         <QueryProvider>
           <SmoothScrollProvider>
             <div className="flex min-h-screen flex-col">
