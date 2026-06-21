@@ -12,10 +12,10 @@ import {
 import { absoluteUrl, jsonLd, metadataForPage } from '@/lib/seo';
 
 const homeDescription =
-  'Discover Kayra Aura fashion jewellery, including gold plated bangles, earrings, necklaces, rings, and elegant pieces for everyday and occasion styling.';
+  "Discover Kayra Aura's premium fashion jewellery collection for men and women. Shop rings, bangles, earrings, necklaces, bracelets and more for every occasion.";
 
 export const metadata = metadataForPage({
-  title: 'Kayra Aura | Fashion Jewellery for Women',
+  title: 'Kayra Aura | Premium Fashion Jewellery Collection',
   description: homeDescription,
   path: '/',
   images: ['/assets/home1.jpg'],
