@@ -27,6 +27,13 @@ export function buildAuthFormSchema(fieldKeys) {
       continue;
     }
 
+    if (key === "gender") {
+      shape[key] = z.enum(["male", "female"], {
+        errorMap: () => ({ message: "Please select your gender" }),
+      });
+      continue;
+    }
+
     if (key === "password") {
       shape[key] = z.string().min(8, "Password must be at least 8 characters");
       continue;

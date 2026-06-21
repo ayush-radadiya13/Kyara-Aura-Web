@@ -17,14 +17,16 @@ export default async function RegisterPage({ searchParams }) {
   const fieldKeys = await getAuthFieldKeys('register');
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
-      <main className="flex flex-1 items-center bg-white justify-center overflow-hidden px-4 py-4 sm:py-6">
+    <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden">
+      <main className="flex h-full min-h-0 flex-1 justify-center overflow-hidden bg-white px-3 py-3 sm:px-4 sm:py-4">
         <AuthSplitLayout
+          className="h-full w-full"
+          scrollableForm
           videoSrc="/vedio/logo_animation.mp4"
           videoLabel="Kayra Aura logo animation"
           eyebrow=""
           headline=""
-          mediaClassName="h-[200px] min-h-[200px] w-full self-center sm:min-h-[200px] lg:min-h-[200px]"
+          mediaClassName="w-full lg:sticky lg:top-0"
         >
           <AuthForm
             formType="register"

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import AuthSplitLayout from '@/components/auth/AuthSplitLayout';
+import IndianPhoneInput from '@/components/ui/indian-phone-input';
 import { Button } from '@/components/ui/button';
 import { LoadingLabel } from '@/components/ui/loader';
 import { useForgotPassword } from '@/hooks/auth';
@@ -61,13 +62,11 @@ export default function ForgotPasswordPage() {
                 <label htmlFor="phone" className="mb-1 block text-sm font-medium text-gray-700">
                   Mobile Number
                 </label>
-                <input
+                <IndianPhoneInput
                   id="phone"
-                  type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="h-11 w-full rounded border border-gray-300 px-3 text-sm"
-                  autoComplete="tel-national"
+                  onChange={setPhone}
+                  inputClassName="h-11 w-full rounded border border-gray-300 text-sm outline-none transition focus:border-gray-950"
                 />
                 {fieldError ? (
                   <p className="mt-1 text-sm text-red-600" role="alert">

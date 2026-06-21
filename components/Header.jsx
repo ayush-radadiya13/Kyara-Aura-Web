@@ -16,6 +16,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { getCartApi } from '@/services/cart';
 import PromotionalBanner from '@/components/PromotionalBanner';
 import { usePromotionalMessages } from '@/hooks/use-promotional-messages';
+import { useWebSettings } from '@/hooks/use-web-settings';
 
 const NAV_ITEMS = [
   { label: 'Home', href: APP_ROUTES.HOME },
@@ -40,6 +41,8 @@ const ACCOUNT_MENU_ITEMS = [
 const MOBILE_ICON_ITEMS = [
   { label: 'Wishlist', href: APP_ROUTES.WISHLIST, Icon: Heart },
 ];
+
+const DEFAULT_LOGO = '/assets/ka1.png';
 
 export default function Header({ variant = 'default' }) {
   const pathname = usePathname();
@@ -72,6 +75,8 @@ export default function Header({ variant = 'default' }) {
   });
   const wishlistQuery = useWishlist({ enabled: showAuthenticatedActions });
   const { hasMessages: showPromoBanner } = usePromotionalMessages();
+  const { data: settings } = useWebSettings();
+  const logoUrl = settings?.logo_url?.trim() || DEFAULT_LOGO;
   const wishCount = wishlistQuery.data?.length ?? 0;
   const actionCounts = {
     cartCount: count,
@@ -329,12 +334,13 @@ export default function Header({ variant = 'default' }) {
               className={logoClassName}
             >
               <Image
-                src="/assets/ka1.png"
+                src={logoUrl}
                 alt="Kayra Aura"
                 fill
                 className="object-cover object-center"
                 sizes="(max-width: 640px) 144px, 176px"
                 priority
+                unoptimized={logoUrl.startsWith('http')}
               />
             </Link>
           )}
@@ -344,12 +350,13 @@ export default function Header({ variant = 'default' }) {
           <div className={`${searchOpen ? 'hidden lg:flex' : 'flex'} flex-1 justify-start md:flex-none md:justify-center`}>
             <Link href={APP_ROUTES.HOME} className={logoClassName}>
               <Image
-                src="/assets/ka1.png"
+                src={logoUrl}
                 alt="Kayra Aura"
                 fill
                 className="object-cover object-center"
                 sizes="(max-width: 640px) 160px, 192px"
                 priority
+                unoptimized={logoUrl.startsWith('http')}
               />
             </Link>
           </div>

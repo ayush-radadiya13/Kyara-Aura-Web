@@ -27,6 +27,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
+import IndianPhoneInput from '@/components/ui/indian-phone-input';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { formatInr } from '@/lib/cart/format';
 import { useCartStore } from '@/lib/cart/store';
@@ -52,6 +53,7 @@ import { getBuyTwoGetOneOfferMessage } from '@/lib/cart/buy-two-get-one';
 import { isBuyTwoGetOneFreeEnabled } from '@/lib/web-settings';
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
+import { sanitizeIndianPhoneDigits } from '@/lib/phone';
 
 const PAYMENT_OPTIONS = [
   {
@@ -385,7 +387,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
       ...EMPTY_ADDRESS_FORM,
       name: address.name ?? '',
       email: address.email ?? '',
-      phone: address.phone ?? '',
+      phone: sanitizeIndianPhoneDigits(address.phone ?? ''),
       address_line_1: address.address_line_1 ?? '',
       address_line_2: address.address_line_2 ?? '',
       city: address.city ?? '',
@@ -1226,24 +1228,26 @@ function AddressForm({ addressForm, editingAddressId, savingAddress, onAddressFi
         className="sm:col-span-2"
       />
       <AddressInput label="Email" type="email" value={addressForm.email} onChange={(value) => onAddressFieldChange('email', value)} required />
-      <AddressInput label="Phone" value={addressForm.phone} onChange={(value) => onAddressFieldChange('phone', value)} required />
-      <label>
+      <AddressInput label="Phone" inputKind="phone" value={addressForm.phone} onChange={(value) => onAddressFieldChange('phone', value)} required />
+      <label className="sm:col-span-2">
         <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Address line 1</span>
         <textarea
           value={addressForm.address_line_1}
           onChange={(event) => onAddressFieldChange('address_line_1', event.target.value)}
+          placeholder="Flat no. / House no. / Street"
           required
           rows={2}
-          className="mt-1 w-full resize-none rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-gray-950"
+          className="mt-1 w-full resize-none rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-gray-950"
         />
       </label>
-      <label>
+      <label className="sm:col-span-2">
         <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Address line 2</span>
         <textarea
           value={addressForm.address_line_2}
           onChange={(event) => onAddressFieldChange('address_line_2', event.target.value)}
+          placeholder="Area / Locality / Landmark (optional)"
           rows={2}
-          className="mt-1 w-full resize-none rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-gray-950"
+          className="mt-1 w-full resize-none rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-gray-950"
         />
       </label>
       <AddressInput label="City" value={addressForm.city} onChange={(value) => onAddressFieldChange('city', value)} required />
@@ -1290,7 +1294,20 @@ function AddressForm({ addressForm, editingAddressId, savingAddress, onAddressFi
   );
 }
 
-function AddressInput({ label, value, onChange, type = 'text', required = false, className = '' }) {
+function AddressInput({ label, value, onChange, type = 'text', inputKind, required = false, className = '' }) {
+  if (inputKind === 'phone') {
+    return (
+      <label className={className}>
+        <span className="text-xs font-bold uppercase tracking-wide text-gray-500">{label}</span>
+        <IndianPhoneInput
+          value={value}
+          onChange={onChange}
+          inputClassName="mt-1 h-11 w-full rounded-2xl border border-gray-200 bg-white text-sm outline-none transition focus:border-gray-950"
+        />
+      </label>
+    );
+  }
+
   return (
     <label className={className}>
       <span className="text-xs font-bold uppercase tracking-wide text-gray-500">{label}</span>

@@ -12,7 +12,9 @@ import {
   XCircle,
 } from 'lucide-react';
 import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
+import IndianPhoneInput from '@/components/ui/indian-phone-input';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
+import { INDIAN_PHONE_PATTERN, sanitizeIndianPhoneDigits } from '@/lib/phone';
 import { APP_ROUTES, AUTH_PAGE_ROUTES, withRedirect } from '@/lib/routes';
 import { cancelOrderApi, downloadOrderInvoiceApi, getOrderDetailApi, getOrdersApi, returnOrderApi } from '@/services/checkout';
 import { useAuthStore } from '@/store/auth-store';
@@ -28,7 +30,7 @@ const RETURN_TERMS = [
   'Kayra Aura reserves the right to reject returns that do not meet the above conditions.',
 ];
 
-const EMPTY_RETURN_FORM = {
+const EMPTY_RETURN_FORM = { 
   reason: '',
   full_name: '',
   email: '',
@@ -214,7 +216,7 @@ export default function MyOrders() {
       ...EMPTY_RETURN_FORM,
       full_name: deliveryDetails.name,
       email: deliveryDetails.email,
-      mobile: deliveryDetails.phone,
+      mobile: sanitizeIndianPhoneDigits(deliveryDetails.phone),
     });
     setReturnFormErrors({});
     setError('');
@@ -279,8 +281,8 @@ export default function MyOrders() {
         errors.email = 'Enter a valid email address.';
       }
       if (!returnForm.mobile.trim()) errors.mobile = 'Mobile number is required.';
-      else if (!/^\d{10}$/.test(returnForm.mobile.trim())) {
-        errors.mobile = 'Enter a valid 10-digit mobile number.';
+      else if (!INDIAN_PHONE_PATTERN.test(returnForm.mobile.trim())) {
+        errors.mobile = 'Enter a valid 10-digit Indian mobile number.';
       }
       if (!returnForm.upi_id.trim()) errors.upi_id = 'UPI ID is required for COD refunds.';
     }
@@ -622,16 +624,12 @@ function ReturnOrderFormDialog({
               </ReturnFormField>
 
               <ReturnFormField id="return-mobile" label="Mobile" error={errors.mobile}>
-                <input
+                <IndianPhoneInput
                   id="return-mobile"
-                  type="tel"
-                  inputMode="numeric"
-                  maxLength={10}
                   value={form.mobile}
-                  onChange={(event) => onFieldChange('mobile', event.target.value.replace(/\D/g, ''))}
+                  onChange={(value) => onFieldChange('mobile', value)}
                   disabled={loading}
-                  className="mt-2 h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 outline-none transition placeholder:text-gray-300 focus:border-gray-950 disabled:opacity-50"
-                  placeholder="9876543210"
+                  inputClassName="mt-2 h-11 w-full rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-800 outline-none transition placeholder:text-gray-300 focus:border-gray-950 disabled:opacity-50"
                 />
               </ReturnFormField>
 

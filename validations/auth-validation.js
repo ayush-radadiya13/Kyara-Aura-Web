@@ -10,6 +10,9 @@ export const registerSchema = z
   .object({
     name: z.string().min(1, "Name is required"),
     email: z.string().email("Enter a valid email"),
+    gender: z.enum(["male", "female"], {
+      errorMap: () => ({ message: "Please select your gender" }),
+    }),
     password: z.string().min(8, "Password must be at least 8 characters"),
     password_confirmation: z.string().min(1, "Please confirm your password"),
     phone: z

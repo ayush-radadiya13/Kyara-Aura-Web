@@ -27,6 +27,11 @@ const geistMono = Geist_Mono({
 export const metadata = {
   metadataBase: getSiteUrl(),
   applicationName: SITE_NAME,
+  icons: {
+    icon: "/assets/ka1.png",
+    shortcut: "/assets/ka1.png",
+    apple: "/assets/ka1.png",
+  },
   ...metadataForPage({
     title: DEFAULT_SEO_TITLE,
     description: DEFAULT_SEO_DESCRIPTION,

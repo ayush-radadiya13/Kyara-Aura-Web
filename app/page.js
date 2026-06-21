@@ -116,7 +116,7 @@ export default function HomePage() {
         <section className="home-scroll-stable mx-auto max-w-7xl mt-4 px-4 pb-10 sm:px-6" style={{ '--home-delay': '120ms' }}>
           <HomeCollectionShowcase
             limit={4}
-            emptyMessage="No collection products available at the moment."
+            emptyMessage=" "
           />
         </section>
 

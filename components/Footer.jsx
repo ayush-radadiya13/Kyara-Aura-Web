@@ -46,7 +46,7 @@ export default function Footer() {
           <div className="mt-8 space-y-3 text-md leading-5 text-black">
              {address && (
               <p className="flex items-center gap-2">
-                <MapPin  className="h-3.5 w-3.5 text-black" />
+                <MapPin className="h-5 w-5 shrink-0 text-black" />
                 <a href={`tel:${address.replace(/\s/g, '')}`} className="transition hover:opacity-70">
                   {address}
                 </a>
@@ -72,50 +72,44 @@ export default function Footer() {
           <SocialLinks className="mt-6" />
         </div>
 
-        <div>
-          <h2 className="text-md font-semibold">Company</h2>
-          <nav className="mt-5 sm:grid-cols-2 space-y-3 text-md text-black">
-            {companyLinks.map((item) => (
-              <Link key={item.label} href={item.href} className="block transition hover:opacity-70">
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+        <div className="grid grid-cols-2 gap-6 lg:contents">
+          <div>
+            <h2 className="text-md font-semibold">Company</h2>
+            <nav className="mt-5 space-y-3 text-md text-black">
+              {companyLinks.map((item) => (
+                <Link key={item.label} href={item.href} className="block transition hover:opacity-70">
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          <div>
+            <h2 className="text-md font-semibold">Support</h2>
+            <nav className="mt-5 space-y-3 text-md text-black">
+              {supportLinks.map((item) => (
+                <Link key={item.label} href={item.href} className="block transition hover:opacity-70">
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
         </div>
 
         <div>
-          <h2 className="text-md font-semibold">Support</h2>
-          <nav className="mt-5 space-y-3 text-md text-black">
-            {supportLinks.map((item) => (
-              <Link key={item.label} href={item.href} className="block transition hover:opacity-70">
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-
-        <div>
-          <h2 className="text-md font-semibold">Newsletter</h2>
+          <h2 className="text-md font-semibold">Collections</h2>
           <p className="mt-5 text-md leading-5 text-black">
-            Get our latest updates and promo bi-monthly.
+            Discover selected pieces designed to complement every celebration and everyday look.
           </p>
-          <form className="mt-5">
-            <label htmlFor="footer-email" className="sr-only">
-              Email address
-            </label>
-            <input
-              id="footer-email"
-              type="email"
-              placeholder="Enter your email address ..."
-              className="w-full border-0 border-b border-black bg-transparent py-3 text-ms text-black outline-none placeholder:text-black focus:border-black"
-            />
-            <button
-              type="submit"
-              className="mt-4 w-full bg-[#d8bd92] px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.35em] text-white transition hover:bg-gray-950"
-            >
-              Subscribe
-            </button>
-          </form>
+          <p className="mt-3 text-md leading-5 text-black">
+            Explore curated bangles, rings, earrings, and elegant fashion jewellery for special occasions.
+          </p>
+          <Link
+            href={APP_ROUTES.COLLECTIONS}
+            className="mt-5 inline-block w-full bg-[#d8bd92] px-6 py-3 text-center text-[10px] font-semibold uppercase tracking-[0.35em] text-white transition hover:bg-gray-950"
+          >
+            View Collections
+          </Link>
         </div>
       </div>
     </footer>
