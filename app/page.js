@@ -14,7 +14,7 @@ import {
   buildWebsiteSchema,
   getSocialSameAs,
 } from '@/lib/structured-data';
-import { getBannerCarouselImages, getBannerSettings } from '@/lib/banners';
+import { getBannerSettings } from '@/lib/banners';
 import { getWebSettings } from '@/lib/web-settings';
 import { jsonLd, metadataForPage } from '@/lib/seo';
 
@@ -38,7 +38,6 @@ export default async function HomePage() {
       getBannerSettings(),
     ]);
 
-  const bannerImages = getBannerCarouselImages(bannerSettings);
   const bannerVideo = bannerSettings.video || bannerSettings.video_url;
 
   const sameAs = getSocialSameAs(webSettings);
@@ -62,9 +61,7 @@ export default async function HomePage() {
         <div className="home-scroll-stable">
           <HeroCarousel
             variant="editorial"
-            images={bannerImages}
-            title={bannerSettings.banner_title}
-            description={bannerSettings.banner_description}
+            initialBannerSettings={bannerSettings}
           />
         </div>
 

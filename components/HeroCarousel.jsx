@@ -3,19 +3,32 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useBanners } from '@/hooks/use-banners';
+import { getBannerCarouselImages } from '@/lib/banners';
 
 export default function HeroCarousel({
   variant = 'carousel',
   images = [],
   title = '',
   description = '',
+  initialBannerSettings,
 }) {
-  const carouselImages = images.map((src, index) => ({
+  const { data: bannerSettings } = useBanners({
+    initialData: initialBannerSettings,
+  });
+
+  const resolvedImages = bannerSettings
+    ? getBannerCarouselImages(bannerSettings)
+    : images;
+  const resolvedTitle = bannerSettings?.banner_title ?? title;
+  const resolvedDescription = bannerSettings?.banner_description ?? description;
+
+  const carouselImages = resolvedImages.map((src, index) => ({
     id: index + 1,
     src,
-    alt: title || `Banner image ${index + 1}`,
-    title,
-    subtitle: description,
+    alt: resolvedTitle || `Banner image ${index + 1}`,
+    title: resolvedTitle,
+    subtitle: resolvedDescription,
   }));
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -58,10 +71,10 @@ export default function HeroCarousel({
             Jewellery
           </p>
           <h1 className="font-display text-5xl font-light uppercase leading-[0.92] tracking-[-0.04em] sm:text-7xl lg:text-[88px]">
-            {title}
+            {resolvedTitle}
           </h1>
           <p className="mt-6 max-w-xl text-[11px] leading-5 text-black/80 sm:text-xs">
-            {description}
+            {resolvedDescription}
           </p>
           <Link
             href="/products"
