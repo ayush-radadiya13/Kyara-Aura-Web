@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { LoadingLabel } from '@/components/ui/loader';
 import AuthField from '@/components/auth/AuthField';
+import AuthFormPendingOverlay from '@/components/auth/AuthFormPendingOverlay';
 import { useLogin, useRegister } from '@/hooks/auth';
 import { useAuthSession } from '@/hooks/auth/use-auth-session';
 import { buildAuthPayload } from '@/lib/auth/fields';
@@ -57,8 +58,7 @@ export default function AuthForm({
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState(/** @type {Record<string, string>} */ ({}));
   const [formError, setFormError] = useState('');
-
-  const isSubmitting = loginMutation.isPending || registerMutation.isPending;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const setFieldValue = (key, value) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -89,6 +89,7 @@ export default function AuthForm({
       ...(formType === 'login' && rememberMe ? { remember: true } : {}),
     };
 
+    setIsSubmitting(true);
     try {
       const response =
         formType === 'login'
@@ -106,6 +107,8 @@ export default function AuthForm({
             : 'Unable to create account. Please try again.',
         ),
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -125,82 +128,106 @@ export default function AuthForm({
         ) : null}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-        {fieldKeys.map((key) => (
-          <AuthField
-            key={key}
-            fieldKey={key}
-            value={values[key] ?? ''}
-            onChange={(v) => setFieldValue(key, v)}
-            error={errors[key]}
-            formType={formType}
-          />
-        ))}
+      <div className="relative">
+        <AuthFormPendingOverlay
+          visible={isSubmitting}
+          label={formType === 'login' ? 'Signing in' : 'Creating account'}
+        />
 
-        {showLoginExtras ? (
-          <div className="flex items-center justify-between gap-4 text-sm">
-            <label className="flex cursor-pointer items-center gap-2 text-gray-600">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded-none border-none text-primary focus:ring-primary/30"
-              />
-              Remember me
-            </label>
-            <Link
-              href={AUTH_PAGE_ROUTES.FORGOT_PASSWORD}
-              className="font-medium !text-[#0C1126] hover:text-primary/80"
-            >
-              Forgot Password?
-            </Link>
-          </div>
-        ) : null}
-
-        {formError ? (
-          <p className="rounded-none border-none bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-            {formError}
-          </p>
-        ) : null}
-
-        <Button
-          type="submit"
-          variant="default"
-          disabled={isSubmitting}
-          className={cn(
-            'h-12 w-full rounded-none text-base font-semibold',
-            '!bg-[#C99B4D] text-primary-foreground hover:!bg-[#C99B4D]/90',
-          )}
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5"
+          noValidate
+          aria-busy={isSubmitting}
         >
-          {isSubmitting ? (
-            <LoadingLabel spinnerClassName="border-white border-t-transparent">
-              Please wait...
-            </LoadingLabel>
-          ) : (
-            submitLabel
-          )}
-        </Button>
-
-        <div className="space-y-3 text-center text-sm">
-          {formType === 'login' ? (
-            <p className="text-gray-600">
-              Don&apos;t have an account?{' '}
-              <Link
-                href={withRedirect(AUTH_PAGE_ROUTES.REGISTER, redirectTo)}
-                className="font-semibold text-primary hover:text-primary/80"
-              >
-                Register
-              </Link>
-            </p>
-          ) : null}
-          <Link
-            href={APP_ROUTES.HOME}
-            className="block font-semibold text-primary hover:text-primary/80"
+          <fieldset
+            disabled={isSubmitting}
+            className="m-0 min-w-0 space-y-5 border-0 p-0"
           >
-            Go to Home
-          </Link>
-        </div>
-      </form>
+            {fieldKeys.map((key) => (
+              <AuthField
+                key={key}
+                fieldKey={key}
+                value={values[key] ?? ''}
+                onChange={(v) => setFieldValue(key, v)}
+                error={errors[key]}
+                formType={formType}
+              />
+            ))}
+
+            {showLoginExtras ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 text-sm sm:gap-4">
+                <label className="flex cursor-pointer items-center gap-2 text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded-none border-none text-primary focus:ring-primary/30"
+                  />
+                  Remember me
+                </label>
+                <Link
+                  href={AUTH_PAGE_ROUTES.FORGOT_PASSWORD}
+                  className="font-medium !text-[#0C1126] hover:text-primary/80"
+                  tabIndex={isSubmitting ? -1 : undefined}
+                  aria-disabled={isSubmitting}
+                >
+                  Forgot Password?
+                </Link>
+              </div>
+            ) : null}
+
+            {formError ? (
+              <p className="rounded-none border-none bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                {formError}
+              </p>
+            ) : null}
+
+            <Button
+              type="submit"
+              variant="default"
+              disabled={isSubmitting}
+              className={cn(
+                'h-12 w-full rounded-none text-base font-semibold',
+                '!bg-[#C99B4D] text-primary-foreground hover:!bg-[#C99B4D]/90',
+                isSubmitting && 'disabled:opacity-100',
+              )}
+            >
+              {isSubmitting ? (
+                <LoadingLabel spinnerClassName="border-white border-t-transparent">
+                  Please wait...
+                </LoadingLabel>
+              ) : (
+                submitLabel
+              )}
+            </Button>
+
+            <div className="space-y-3 text-center text-sm">
+              {formType === 'login' ? (
+                <p className="text-gray-600">
+                  Don&apos;t have an account?{' '}
+                  <Link
+                    href={withRedirect(AUTH_PAGE_ROUTES.REGISTER, redirectTo)}
+                    className="font-semibold text-primary hover:text-primary/80"
+                    tabIndex={isSubmitting ? -1 : undefined}
+                    aria-disabled={isSubmitting}
+                  >
+                    Register
+                  </Link>
+                </p>
+              ) : null}
+              <Link
+                href={APP_ROUTES.HOME}
+                className="block font-semibold text-primary hover:text-primary/80"
+                tabIndex={isSubmitting ? -1 : undefined}
+                aria-disabled={isSubmitting}
+              >
+                Go to Home
+              </Link>
+            </div>
+          </fieldset>
+        </form>
+      </div>
 
 
 

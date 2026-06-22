@@ -34,6 +34,14 @@ export default function CartCheckout() {
     router.push(APP_ROUTES.PAYMENT_METHOD);
   };
 
+  if (!hasItems) {
+    return (
+      <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:py-6">
+        <CartBag />
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-4 py-4 sm:py-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-4">
@@ -42,23 +50,20 @@ export default function CartCheckout() {
         </div>
 
         <aside className="flex flex-col gap-4 lg:sticky lg:top-24">
-          {hasItems ? (
-            <div className="shrink-0 rounded-[1.15rem] ">
-              <ScratchCardOffer
-                initialCoupon={scratchCoupon}
-                onCouponChange={setScratchCoupon}
-                compact
-              />
-            </div>
-          ) : null}
+          <div className="shrink-0 rounded-[1.15rem]">
+            <ScratchCardOffer
+              initialCoupon={scratchCoupon}
+              onCouponChange={setScratchCoupon}
+              compact
+            />
+          </div>
 
           <OrderSummary summary={summary} compact />
 
           <button
             type="button"
             onClick={handleCheckout}
-            disabled={!hasItems}
-            className="flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-gray-950 px-4 text-xs font-bold text-white shadow-[0_10px_22px_rgba(17,24,39,0.16)] transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
+            className="flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-gray-950 px-4 text-xs font-bold text-white shadow-[0_10px_22px_rgba(17,24,39,0.16)] transition hover:bg-gray-800"
           >
             Go to Checkout
             <span aria-hidden="true">-&gt;</span>

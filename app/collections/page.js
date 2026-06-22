@@ -25,7 +25,7 @@ export default async function CollectionsPage() {
       <Header />
 
       <section className="mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6 lg:pb-16">
-        <div className="mb-8 text-center">
+        <div className="mb-4 text-center">
           <h1 className={`${collectionDisplay.className} mb-2 text-3xl font-medium tracking-[-0.05em] text-gray-950 md:text-5xl`}>
             Collections
           </h1>

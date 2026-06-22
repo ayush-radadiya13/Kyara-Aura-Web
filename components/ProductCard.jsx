@@ -164,7 +164,7 @@ export default function ProductCard({
     return (
       <>
       <div className="group relative block">
-        <div className="relative aspect-square overflow-hidden bg-[#faf9f7]">
+        <div className="relative aspect-[4/5] overflow-hidden bg-[#faf9f7] sm:aspect-square">
           <Link href={href} className="absolute inset-0 z-[1]" aria-label={product.name} />
           {onWishlistClick ? (
             <div className="absolute right-3 top-3 z-20">

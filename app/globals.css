@@ -326,3 +326,13 @@ body {
   padding: 0;
   box-shadow: none;
 }
+
+@media (max-width: 600px) {
+  [data-sonner-toaster] [data-sonner-toast][data-styled='false'] {
+    left: 0;
+    right: 0;
+    width: fit-content !important;
+    max-width: min(calc(100vw - 2rem), 24rem);
+    margin-inline: auto;
+  }
+}

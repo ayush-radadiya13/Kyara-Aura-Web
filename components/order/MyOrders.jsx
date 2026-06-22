@@ -629,7 +629,7 @@ function ReturnOrderFormDialog({
                   value={form.mobile}
                   onChange={(value) => onFieldChange('mobile', value)}
                   disabled={loading}
-                  inputClassName="mt-2 h-11 w-full rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-800 outline-none transition placeholder:text-gray-300 focus:border-gray-950 disabled:opacity-50"
+                  className="mt-2 h-11 w-full rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-800 outline-none transition placeholder:text-gray-300 focus-within:border-gray-950 disabled:opacity-50"
                 />
               </ReturnFormField>
 

@@ -94,10 +94,10 @@ export default function AuthField({
           showIcon
           placeholder={meta.placeholder}
           autoComplete={meta.autoComplete}
-          inputClassName={cn(
-            'w-full rounded-none border-none bg-gray-50 py-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400',
-            'focus:bg-white focus:ring-2 focus:ring-primary/25',
-            error && 'bg-red-50 ring-2 ring-red-200 focus:ring-red-200',
+          className={cn(
+            'w-full rounded-none bg-gray-50 py-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400',
+            'focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/25',
+            error && 'bg-red-50 ring-2 ring-red-200 focus-within:ring-red-200',
           )}
         />
         {error ? <p className="text-xs text-red-600">{error}</p> : null}

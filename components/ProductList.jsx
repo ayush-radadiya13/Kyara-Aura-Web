@@ -158,6 +158,7 @@ export default function ProductList({
   featured = false,
   gridClassName,
   limit,
+  offset = 0,
   emptyMessage = "No products available at the moment.",
   variant = "default",
   pageSize = 12,
@@ -219,7 +220,11 @@ export default function ProductList({
       return categoryMatches && sizeMatches && priceMatches;
     });
   }, [isCatalog, priceRange, rawProducts, selectedCategoryId, selectedSizeKeys]);
-  const products = limit ? filteredProducts.slice(0, limit) : filteredProducts;
+  const products = limit
+    ? filteredProducts.slice(offset, offset + limit)
+    : offset
+      ? filteredProducts.slice(offset)
+      : filteredProducts;
   const shouldPaginate = !limit && products.length > pageSize;
   const totalPages = shouldPaginate ? Math.ceil(products.length / pageSize) : 1;
   const activePage = Math.min(currentPage, totalPages);

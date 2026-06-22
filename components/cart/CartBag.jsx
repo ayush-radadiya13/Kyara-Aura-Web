@@ -164,11 +164,15 @@ export default function CartBag() {
   });
   useBuyTwoGetOneOfferToast(buyTwoGetOneOfferMessage);
 
+  const isEmpty = !isLoading && items.length === 0;
+
   return (
-    <section aria-labelledby="cart-bag-heading" className="min-w-0">
-      <h1 id="cart-bag-heading" className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
-        Your cart
-      </h1>
+    <section aria-labelledby={isEmpty ? undefined : 'cart-bag-heading'} className="min-w-0">
+      {!isEmpty ? (
+        <h1 id="cart-bag-heading" className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
+          Your cart
+        </h1>
+      ) : null}
 
       {items.length > 0 && (
         <div className="mt-5 flex items-center justify-between rounded-[1.4rem] border border-gray-200 bg-white px-5 py-1 ">
@@ -209,13 +213,13 @@ export default function CartBag() {
           <LoaderBlock className="py-0" />
         </div>
       ) : items.length === 0 ? (
-        <div className="mt-5 rounded-[1.5rem] border border-gray-200 bg-white py-12 text-center shadow-[0_14px_40px_rgba(17,24,39,0.06)]">
-          <p className="text-sm text-gray-600">Your cart is empty.</p>
+        <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-16 text-center sm:min-h-[55vh] sm:py-24">
+          <p className="text-base text-gray-600 sm:text-lg">Your cart is empty.</p>
           <Link
-            href="/products"
-            className="mt-3 inline-block rounded-full bg-gray-950 px-5 py-2 text-sm font-semibold text-white hover:bg-gray-800"
+            href={APP_ROUTES.PRODUCTS}
+            className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-gray-950 px-8 text-sm font-semibold text-white transition hover:bg-gray-800"
           >
-            Continue shopping
+            Continue Shopping
           </Link>
         </div>
       ) : (
