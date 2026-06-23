@@ -3,6 +3,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { AUTH_STORAGE_KEY } from "@/lib/constants";
+import { clearStoredScratchCoupon } from "@/services/scratch-card";
+import { getAuthStorageKey } from "@/utils/auth-response";
 import { clearAuthToken, setAuthToken } from "@/utils/localtoken";
 
 export const useAuthStore = create(
@@ -18,7 +20,8 @@ export const useAuthStore = create(
           return { user, token, isAuthenticated: Boolean(token) };
         }),
       logout: () =>
-        set(() => {
+        set((state) => {
+          clearStoredScratchCoupon(getAuthStorageKey(state.user, state.token));
           clearAuthToken();
           return { user: null, token: null, isAuthenticated: false };
         }),

@@ -37,3 +37,25 @@ export function extractProfile(response) {
   const root = response?.data ?? response;
   return root?.data?.user || root?.data || root?.user || root || null;
 }
+
+/**
+ * @param {object | null | undefined} user
+ * @returns {string | number | null}
+ */
+export function getAuthUserId(user) {
+  if (!user) return null;
+  return user.id ?? user.user_id ?? user.userId ?? null;
+}
+
+/**
+ * Stable per-user key for client-side storage when user id may be absent.
+ * @param {object | null | undefined} user
+ * @param {string | null | undefined} token
+ * @returns {string | null}
+ */
+export function getAuthStorageKey(user, token) {
+  const userId = getAuthUserId(user);
+  if (userId != null && userId !== "") return String(userId);
+  if (token) return `token:${token}`;
+  return null;
+}

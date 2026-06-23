@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { Cormorant_Garamond } from 'next/font/google';
 import Header from '../../components/Header';
 import CategoryBrowser from '@/components/CategoryBrowser';
-import { LoaderBlock } from '@/components/ui/loader';
+import { DotLoaderBlock } from '@/components/ui/loader';
 import { getCategories } from '@/lib/categories';
 import {
   categoryProductsPath,
@@ -60,13 +60,13 @@ export default async function CategoriesPage() {
           <h1 className={`${categoryDisplay.className} mb-2 text-5xl font-medium tracking-[-0.05em] text-gray-950 md:text-5xl`}>
             Find Your Style
           </h1>
-          <p className="mx-auto max-w-2xl text-base leading-7 text-gray-600 md:text-lg">
+          <p className="mx-auto max-w-3xl text-base leading-7 text-gray-600 md:text-lg">
             Categories tailored to your taste.
           </p>
         </div>
       </section>
 
-      <Suspense fallback={<LoaderBlock />}>
+      <Suspense fallback={<DotLoaderBlock />}>
         <CategoryBrowser
           initialCategories={categories}
           initialFeaturedProducts={featuredProducts}

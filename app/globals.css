@@ -268,7 +268,8 @@ body {
   .home-scroll-stable,
   .home-drift,
   .hero-sale-enter,
-  .hero-sale-img {
+  .hero-sale-img,
+  .ka-dot-loader__dot {
     animation: none;
     opacity: 1;
     transform: none;
@@ -277,6 +278,23 @@ body {
   .home-shine::after {
     display: none;
   }
+}
+
+@keyframes ka-dot-jump {
+  0%,
+  100% {
+    background-color: #d4a373;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    background-color: #5c3d2e;
+    transform: translate3d(0, var(--ka-dot-jump, -3rem), 0) scale(1.35);
+  }
+}
+
+.ka-dot-loader__dot {
+  will-change: transform, background-color;
+  animation: ka-dot-jump 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @keyframes hero-sale-fade-in {
@@ -318,6 +336,47 @@ body {
 
 .coupon-scallop-bottom {
   transform: rotate(180deg);
+}
+
+.ticket-offer-banner {
+  position: relative;
+  isolation: isolate;
+}
+
+.ticket-offer-banner::before,
+.ticket-offer-banner::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--ticket-notch-color, #fbfaf7);
+  transform: translateY(-50%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.ticket-offer-banner::before {
+  left: -5.5px;
+}
+
+.ticket-offer-banner::after {
+  right: -5.5px;
+}
+
+.ticket-offer-banner--compact::before,
+.ticket-offer-banner--compact::after {
+  width: 9px;
+  height: 9px;
+}
+
+.ticket-offer-banner--compact::before {
+  left: -4.5px;
+}
+
+.ticket-offer-banner--compact::after {
+  right: -4.5px;
 }
 
 [data-sonner-toast][data-styled='false'] {

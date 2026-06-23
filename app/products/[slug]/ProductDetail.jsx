@@ -12,7 +12,9 @@ import ProductReviewsSection from '@/components/ProductReviewsSection';
 import ProductReviewForm from '@/components/ProductReviewForm';
 import SizeChartModal from '@/components/SizeChartModal';
 import WishlistButton from '@/components/WishlistButton';
-import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
+import BuyTwoGetOneTicketBanner from '@/components/cart/BuyTwoGetOneTicketBanner';
+import { DotLoaderBlock, LoadingLabel } from '@/components/ui/loader';
+import { shouldShowQueryLoader } from '@/lib/query-loading';
 import {
   hasCartItemWithProductSize,
   isDuplicateCartError,
@@ -20,9 +22,12 @@ import {
 import { useCartStore } from '@/lib/cart/store';
 import { showItemAddedToCartToast } from '@/lib/cart/toast';
 import { APP_ROUTES } from '@/lib/routes';
+import { useAuthRedirect } from '@/hooks/use-auth-redirect';
 import { useProductBySlug } from '@/hooks/use-products';
+import { useWebSettings } from '@/hooks/use-web-settings';
 import { addCartItemApi, getCartApi } from '@/services/cart';
 import { sharePage } from '@/lib/share/web-share';
+import { isBuyTwoGetOneFreeEnabled } from '@/lib/web-settings';
 
 function imageUrlFromValue(value) {
   if (!value) return '';
@@ -52,6 +57,7 @@ function getProductImages(product) {
 
 export default function ProductDetail({ product: initialProduct, slug }) {
   const router = useRouter();
+  const { requireAuth, redirectToLogin } = useAuthRedirect();
   const queryClient = useQueryClient();
   const setCart = useCartStore((state) => state.setCart);
   const cartItems = useCartStore((state) => state.items);
@@ -64,10 +70,12 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [showFullInfo, setShowFullInfo] = useState(false);
   const [activeDetailTab, setActiveDetailTab] = useState('information');
-  const { data: fetchedProduct, isLoading, isError } = useProductBySlug(slug, {
+  const productQuery = useProductBySlug(slug, {
     enabled: Boolean(slug),
     initialData: initialProduct || undefined,
   });
+  const { data: settings } = useWebSettings();
+  const { data: fetchedProduct, isError } = productQuery;
   const product = fetchedProduct ?? initialProduct;
 
   const sizeOptions = useMemo(() => {
@@ -90,6 +98,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   const isOutOfStock = selectedSizeOption != null && Number(selectedSizeOption.quantity) === 0;
   const canSubmit = Boolean(selectedSizeOption?.id && selectedQuantity > 0 && !isOutOfStock);
   const isSelectedSizeInCart = hasCartItemWithProductSize(cartItems, selectedSizeOption?.id);
+  const showBuyTwoGetOneTicket = isBuyTwoGetOneFreeEnabled(settings);
 
   useEffect(() => {
     if (!selectedSizeOption) return;
@@ -115,12 +124,12 @@ export default function ProductDetail({ product: initialProduct, slug }) {
     router.push(APP_ROUTES.CART);
   };
 
-  if (isLoading) {
+  if (shouldShowQueryLoader(productQuery)) {
     return (
       <div>
         <Header />
         <section className="max-w-7xl mx-auto px-4 py-16">
-          <LoaderBlock className="py-0" />
+          <DotLoaderBlock className="py-0" />
         </section>
       </div>
     );
@@ -156,6 +165,8 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   };
 
   const addCurrentToBag = async () => {
+    if (!requireAuth()) return false;
+
     if (!selectedSizeOption?.id) {
       setCartError('Please select a valid size before adding this product to your bag.');
       setBagDrawerOpen(true);
@@ -192,6 +203,11 @@ export default function ProductDetail({ product: initialProduct, slug }) {
       showItemAddedToCartToast(router);
       return true;
     } catch (error) {
+      if (error?.response?.status === 401) {
+        redirectToLogin();
+        return false;
+      }
+
       if (isDuplicateCartError(error)) {
         await refreshCart();
         goToCart();
@@ -470,6 +486,11 @@ export default function ProductDetail({ product: initialProduct, slug }) {
               <p className="bg-[#e6e6e6] px-3 py-2 text-[11px] font-bold">
                 Get it delivered in 3-6 days
               </p>
+              {showBuyTwoGetOneTicket ? (
+                <div className="px-3 pb-2 pt-2">
+                  <BuyTwoGetOneTicketBanner fullWidth className="mt-0 w-full" notchColor="#f7f7f7" />
+                </div>
+              ) : null}
             </section>
           </section>
         </div>

@@ -18,15 +18,14 @@ export default function AuthFormPendingOverlay({
   return (
     <div
       className={cn(
-        'absolute inset-0 z-10 flex items-center justify-center',
-        'bg-white/75 backdrop-blur-[2px]',
+        'absolute inset-0 z-10 flex items-center justify-center bg-transparent backdrop-blur-[2px]',
         className,
       )}
       role="status"
       aria-live="polite"
       aria-label={label}
     >
-      <Loader size="lg" className="border-[#C99B4D] border-t-transparent" />
+      <Loader size="lg" />
       <span className="sr-only">{label}</span>
     </div>
   );

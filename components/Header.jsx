@@ -41,6 +41,8 @@ const MOBILE_ICON_ITEMS = [
 ];
 
 const LOGO = '/assets/ka-logo.png';
+const LOGO_WIDTH = 1367;
+const LOGO_HEIGHT = 594;
 
 export default function Header({ variant = 'default' }) {
   const pathname = usePathname();
@@ -183,21 +185,19 @@ export default function Header({ variant = 'default' }) {
     }
   };
 
-  const renderLogo = (size = 'default') => (
+  const renderLogo = () => (
     <Link
       href={APP_ROUTES.HOME}
-      className="inline-flex shrink-0 items-center transition-opacity duration-300 hover:opacity-80"
+      className="relative block h-10 w-[6.5rem] shrink-0 transition-opacity duration-300 hover:opacity-80 sm:h-11 sm:w-[7.25rem] md:h-[3.25rem] md:w-[8.75rem]"
+      aria-label="Kayra Aura home"
     >
       <Image
         src={LOGO}
         alt="Kayra Aura"
-        width={1372}
-        height={612}
-        className={
-          size === 'large'
-            ? 'h-11 w-auto max-w-[180px] sm:h-12 sm:max-w-[220px] md:h-[3.25rem] md:max-w-[270px]'
-            : 'h-10 w-auto max-w-[170px] sm:h-11 sm:max-w-[210px] md:h-12 md:max-w-[250px]'
-        }
+        width={LOGO_WIDTH}
+        height={LOGO_HEIGHT}
+        className="h-full w-full object-contain object-left"
+        sizes="(max-width: 640px) 104px, (max-width: 768px) 116px, 140px"
         priority
       />
     </Link>
@@ -285,7 +285,7 @@ export default function Header({ variant = 'default' }) {
     if (isLoading) {
       return (
         <span className="absolute -right-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full !bg-[#2C2C2E] shadow-lg shadow-gold/30">
-          <Loader size="sm" className="h-2.5 w-2.5 border border-white border-t-transparent" />
+          <Loader size="xs" />
         </span>
       );
     }
@@ -368,7 +368,7 @@ export default function Header({ variant = 'default' }) {
 
         {isHomeOverlay && (
           <div className={`${searchOpen ? 'hidden lg:flex' : 'flex'} flex-1 justify-start md:flex-none md:justify-center`}>
-            {renderLogo('large')}
+            {renderLogo()}
           </div>
         )}
 

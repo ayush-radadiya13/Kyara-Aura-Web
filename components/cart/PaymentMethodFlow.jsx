@@ -43,15 +43,12 @@ import {
   verifyRazorpayPaymentApi,
 } from '@/services/checkout';
 import { getLineItemImageSrc } from '@/services/cart';
-import ScratchCardOffer, { clearStoredScratchCoupon, getStoredScratchCoupon } from '@/components/cart/ScratchCardOffer';
+import ScratchCardOffer, { clearStoredScratchCoupon } from '@/components/cart/ScratchCardOffer';
 import OrderSummary from '@/components/cart/OrderSummary';
 import { normalizeOrderSummary, withOrderSummaryItemCount } from '@/lib/cart/order-summary';
-import { useBuyTwoGetOneOfferToast } from '@/hooks/use-buy-two-get-one-offer-toast';
-import { useWebSettings } from '@/hooks/use-web-settings';
-import { getBuyTwoGetOneOfferMessage } from '@/lib/cart/buy-two-get-one';
-import { isBuyTwoGetOneFreeEnabled } from '@/lib/web-settings';
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
+import { getAuthStorageKey } from '@/utils/auth-response';
 import { sanitizePincode, validateAddressForm } from '@/lib/address-validation';
 import { sanitizeIndianPhoneDigits } from '@/lib/phone';
 import { cn } from '@/lib/utils';
@@ -211,16 +208,17 @@ function buildCheckoutPayload({ checkoutIntent, selectedAddressId, selectedMetho
 export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_type: 'cart' } }) {
   const router = useRouter();
   const clearCart = useCartStore((state) => state.clearCart);
-  const cartBuyTwoGetOneDiscountAmount = useCartStore((state) => state.buyTwoGetOneDiscountAmount);
+  const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isHydrated = useAuthStore((state) => state.isHydrated);
-  const { data: settings } = useWebSettings();
+  const storageUserKey = getAuthStorageKey(user, token);
 
   const [checkoutIntent] = useState(initialCheckoutIntent);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('online');
-  const [scratchCoupon, setScratchCoupon] = useState(() => getStoredScratchCoupon());
+  const [scratchCoupon, setScratchCoupon] = useState(null);
   const [summary, setSummary] = useState(null);
   const [notes, setNotes] = useState('');
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -250,19 +248,6 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const payableTotal = hasSummary ? getSummaryTotal(summary) : 0;
   const couponCode = scratchCoupon?.coupon_code ?? '';
   const canPlaceOrder = Boolean(selectedAddressId && hasSummary && payableTotal > 0 && !placingOrder && !summaryLoading);
-  const summaryBuyTwoGetOneDiscountAmount = Number(
-    summary?.buy_two_get_one_discount_amount ?? summary?.buyTwoGetOneDiscountAmount ?? 0,
-  );
-  const buyTwoGetOneDiscountAmount = summaryBuyTwoGetOneDiscountAmount || cartBuyTwoGetOneDiscountAmount;
-  const buyTwoGetOneOfferMessage =
-    checkoutIntent.checkout_type === 'cart'
-      ? getBuyTwoGetOneOfferMessage({
-          isEnabled: isBuyTwoGetOneFreeEnabled(settings),
-          items: displayItems,
-          buyTwoGetOneDiscountAmount,
-        })
-      : null;
-  useBuyTwoGetOneOfferToast(buyTwoGetOneOfferMessage);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -548,7 +533,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
 
     if (paymentMethod === 'cod') {
       if (checkoutIntent.checkout_type === 'cart') clearCart();
-      clearStoredScratchCoupon();
+      clearStoredScratchCoupon(storageUserKey);
       setScratchCoupon(null);
       router.push(`/order-success/${order.id}`);
       return;
@@ -560,7 +545,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
 
     const verifiedOrder = await openRazorpayPayment({ order, razorpay });
     if (checkoutIntent.checkout_type === 'cart') clearCart();
-    clearStoredScratchCoupon();
+    clearStoredScratchCoupon(storageUserKey);
     setScratchCoupon(null);
     router.push(`/order-success/${verifiedOrder?.id ?? order.id}`);
   };
@@ -706,7 +691,6 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
               visibleCount={visibleCount}
               hasSummary={hasSummary}
               summaryLoading={summaryLoading}
-              buyTwoGetOneOfferMessage={buyTwoGetOneOfferMessage}
             />
           </div>
 
@@ -900,7 +884,7 @@ function CodOtpDialog({ open, otp, error, loading, onOtpChange, onClose, onSubmi
   );
 }
 
-function ProductDetailsSection({ items, visibleCount, hasSummary, summaryLoading, buyTwoGetOneOfferMessage }) {
+function ProductDetailsSection({ items, visibleCount, hasSummary, summaryLoading }) {
   return (
     <section aria-labelledby="payment-bag-heading" className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 px-4 py-2 sm:px-5">

@@ -16,7 +16,7 @@ import IndianPhoneInput from '@/components/ui/indian-phone-input';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { INDIAN_PHONE_PATTERN, sanitizeIndianPhoneDigits } from '@/lib/phone';
 import { APP_ROUTES, AUTH_PAGE_ROUTES, withRedirect } from '@/lib/routes';
-import { cancelOrderApi, downloadOrderInvoiceApi, getOrderDetailApi, getOrdersApi, returnOrderApi } from '@/services/checkout';
+import { cancelOrderApi, downloadOrderInvoiceApi, getOrderDetailApi, getOrdersApi, returnOrderApi, returnOrderPreviewApi } from '@/services/checkout';
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { formatInr } from '@/lib/cart/format';
@@ -70,6 +70,10 @@ function mapReturnApiErrors(apiErrors) {
     if (key in EMPTY_RETURN_FORM) {
       formErrors[key] = String(message);
     }
+
+    if (key === 'items' || key.startsWith('items.')) {
+      formErrors.items = String(message);
+    }
   });
 
   return formErrors;
@@ -94,6 +98,11 @@ export default function MyOrders() {
   const [returnStep, setReturnStep] = useState(null);
   const [returnForm, setReturnForm] = useState(EMPTY_RETURN_FORM);
   const [returnFormErrors, setReturnFormErrors] = useState({});
+  const [returnItemSelections, setReturnItemSelections] = useState([]);
+  const [returnDetailLoading, setReturnDetailLoading] = useState(false);
+  const [returnPreviewLoading, setReturnPreviewLoading] = useState(false);
+  const [returnPreview, setReturnPreview] = useState(null);
+  const [returnItemsError, setReturnItemsError] = useState('');
 
   async function loadOrderDetail(orderId) {
     setDetailLoading(true);
@@ -208,10 +217,13 @@ export default function MyOrders() {
     }
   };
 
-  const handleReturnOrder = (order) => {
+  const handleReturnOrder = async (order) => {
+    if (!order?.id) return;
+
     const deliveryDetails = getDeliveryDetails(order);
     setReturnOrder(order);
     setReturnStep('terms');
+    setReturnItemSelections(buildReturnItemSelections(order));
     setReturnForm({
       ...EMPTY_RETURN_FORM,
       full_name: deliveryDetails.name,
@@ -219,21 +231,105 @@ export default function MyOrders() {
       mobile: sanitizeIndianPhoneDigits(deliveryDetails.phone),
     });
     setReturnFormErrors({});
+    setReturnItemsError('');
     setError('');
     setNotice('');
+
+    setReturnDetailLoading(true);
+
+    try {
+      const orderDetail = await getOrderDetailApi(order.id);
+      const detailDelivery = getDeliveryDetails(orderDetail);
+      setReturnOrder(orderDetail);
+      setReturnItemSelections(buildReturnItemSelections(orderDetail));
+      setReturnForm({
+        ...EMPTY_RETURN_FORM,
+        full_name: detailDelivery.name,
+        email: detailDelivery.email,
+        mobile: sanitizeIndianPhoneDigits(detailDelivery.phone),
+      });
+    } catch (detailError) {
+      setError(getApiErrorMessage(detailError, 'Unable to load order details for return.'));
+      setReturnOrder(null);
+      setReturnStep(null);
+      setReturnItemSelections([]);
+    } finally {
+      setReturnDetailLoading(false);
+    }
   };
 
   const closeReturnFlow = () => {
-    if (actionOrderId === returnOrder?.id) return;
+    if (actionOrderId === returnOrder?.id || returnDetailLoading || returnPreviewLoading) return;
     setReturnOrder(null);
     setReturnStep(null);
     setReturnForm(EMPTY_RETURN_FORM);
     setReturnFormErrors({});
+    setReturnItemSelections([]);
+    setReturnItemsError('');
+    setReturnPreview(null);
   };
 
-  const openReturnForm = () => {
-    setReturnStep('form');
-    setReturnFormErrors({});
+  const openReturnItems = () => {
+    setReturnStep('items');
+    setReturnItemsError('');
+  };
+
+  const updateReturnItemQuantity = (orderItemId, quantity) => {
+    setReturnItemSelections((current) =>
+      current.map((item) =>
+        item.order_item_id === orderItemId
+          ? { ...item, quantity: Math.max(0, Math.min(item.maxQuantity, Number(quantity) || 0)) }
+          : item,
+      ),
+    );
+    if (returnItemsError) setReturnItemsError('');
+  };
+
+  const validateReturnItems = () => {
+    const selectedItems = buildReturnItemsPayload(returnItemSelections);
+    if (!selectedItems.length) {
+      return 'Select at least one item with a return quantity.';
+    }
+
+    const invalidItem = returnItemSelections.find(
+      (item) => item.quantity > 0 && (item.quantity < 1 || item.quantity > item.maxQuantity),
+    );
+    if (invalidItem) {
+      return `Enter a valid quantity for ${invalidItem.name}.`;
+    }
+
+    return '';
+  };
+
+  const continueFromReturnItems = async () => {
+    const itemsError = validateReturnItems();
+    if (itemsError) {
+      setReturnItemsError(itemsError);
+      return;
+    }
+
+    const orderId = returnOrder?.id;
+    if (!orderId) return;
+
+    const items = buildReturnItemsPayload(returnItemSelections);
+    setReturnPreviewLoading(true);
+    setReturnItemsError('');
+
+    try {
+      const preview = await returnOrderPreviewApi(orderId, { items });
+      setReturnPreview(normalizeReturnPreview(preview));
+      setReturnStep('form');
+      setReturnFormErrors({});
+    } catch (previewError) {
+      const apiFieldErrors = mapReturnApiErrors(previewError?.response?.data?.errors);
+      if (apiFieldErrors.items) {
+        setReturnItemsError(apiFieldErrors.items);
+      } else {
+        setReturnItemsError(getApiErrorMessage(previewError, 'Unable to preview this return request.'));
+      }
+    } finally {
+      setReturnPreviewLoading(false);
+    }
   };
 
   const updateReturnFormField = (field, value) => {
@@ -304,8 +400,14 @@ export default function MyOrders() {
     setReturnFormErrors({});
 
     try {
+      const items = buildReturnItemsPayload(returnItemSelections);
       const formData = new FormData();
       formData.append('reason', returnForm.reason.trim());
+
+      items.forEach((item, index) => {
+        formData.append(`items[${index}][order_item_id]`, String(item.order_item_id));
+        formData.append(`items[${index}][quantity]`, String(item.quantity));
+      });
 
       if (isCodOrder(returnOrder)) {
         formData.append('full_name', returnForm.full_name.trim());
@@ -326,6 +428,8 @@ export default function MyOrders() {
       setReturnOrder(null);
       setReturnStep(null);
       setReturnForm(EMPTY_RETURN_FORM);
+      setReturnItemSelections([]);
+      setReturnPreview(null);
     } catch (returnError) {
       const apiFieldErrors = mapReturnApiErrors(returnError?.response?.data?.errors);
       if (Object.keys(apiFieldErrors).length) {
@@ -415,14 +519,26 @@ export default function MyOrders() {
       />
       <ReturnTermsDialog
         open={returnStep === 'terms'}
+        loading={returnDetailLoading}
         orderNumber={returnOrder ? getOrderNumber(returnOrder) : ''}
         onClose={closeReturnFlow}
-        onContinue={openReturnForm}
+        onContinue={openReturnItems}
+      />
+      <ReturnItemsDialog
+        open={returnStep === 'items'}
+        loading={returnPreviewLoading}
+        items={returnItemSelections}
+        error={returnItemsError}
+        orderNumber={returnOrder ? getOrderNumber(returnOrder) : ''}
+        onQuantityChange={updateReturnItemQuantity}
+        onClose={closeReturnFlow}
+        onContinue={continueFromReturnItems}
       />
       <ReturnOrderFormDialog
         open={returnStep === 'form'}
         loading={actionOrderId === returnOrder?.id}
         order={returnOrder}
+        preview={returnPreview}
         form={returnForm}
         errors={returnFormErrors}
         onFieldChange={updateReturnFormField}
@@ -434,7 +550,7 @@ export default function MyOrders() {
   );
 }
 
-function ReturnTermsDialog({ open, orderNumber, onClose, onContinue }) {
+function ReturnTermsDialog({ open, loading, orderNumber, onClose, onContinue }) {
   useScrollLock(open);
 
   useEffect(() => {
@@ -503,9 +619,152 @@ function ReturnTermsDialog({ open, orderNumber, onClose, onContinue }) {
           <button
             type="button"
             onClick={onContinue}
-            className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-gray-950 px-4 text-xs font-bold text-white transition hover:bg-gray-800"
+            disabled={loading}
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-gray-950 px-4 text-xs font-bold text-white transition hover:bg-gray-800 disabled:opacity-50"
           >
-            Continue to Refund
+            {loading ? (
+              <LoadingLabel>
+                Loading order...
+              </LoadingLabel>
+            ) : (
+              'Continue'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReturnItemsDialog({
+  open,
+  loading,
+  items,
+  error,
+  orderNumber,
+  onQuantityChange,
+  onClose,
+  onContinue,
+}) {
+  useScrollLock(open);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && !loading) onClose();
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [open, loading, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:p-5"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="return-items-title"
+    >
+      <button
+        type="button"
+        className="absolute inset-0"
+        aria-label="Close return items dialog"
+        onClick={onClose}
+        disabled={loading}
+      />
+
+      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[1.25rem] border border-gray-100 bg-white p-4 shadow-2xl sm:p-5" data-lenis-prevent>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="return-items-title" className="text-lg font-bold text-gray-950">
+              Select items to return
+            </h2>
+            {orderNumber ? (
+              <p className="mt-1 text-sm font-medium text-gray-500">
+                Order {orderNumber}
+              </p>
+            ) : null}
+            <p className="mt-1 text-sm font-medium text-gray-500">
+              Enter the quantity you want to return for each item.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-50 text-gray-500 transition hover:text-gray-950 disabled:opacity-50"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {items.length ? (
+            items.map((item) => (
+              <div
+                key={item.order_item_id}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2.5"
+              >
+                <div className="min-w-0">
+                  <p className="break-words text-sm font-semibold text-gray-800">{item.name}</p>
+                  <p className="mt-0.5 text-xs font-medium text-gray-400">
+                    Ordered qty: {item.maxQuantity}
+                  </p>
+                </div>
+                <div className="shrink-0">
+                  <label htmlFor={`return-qty-${item.order_item_id}`} className="sr-only">
+                    Return quantity for {item.name}
+                  </label>
+                  <input
+                    id={`return-qty-${item.order_item_id}`}
+                    type="number"
+                    min={0}
+                    max={item.maxQuantity}
+                    value={item.quantity}
+                    disabled={loading}
+                    onChange={(event) => onQuantityChange(item.order_item_id, event.target.value)}
+                    className="h-10 w-20 rounded-xl border border-gray-200 bg-white px-2 text-center text-sm font-semibold text-gray-800 outline-none transition focus:border-gray-950 disabled:opacity-50"
+                  />
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="rounded-2xl border border-dashed border-gray-200 px-3 py-6 text-center text-sm font-semibold text-gray-400">
+              No items found for this order.
+            </p>
+          )}
+        </div>
+
+        {error ? <p className="mt-3 text-xs font-semibold text-red-600">{error}</p> : null}
+
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-full border border-gray-200 px-4 text-xs font-bold text-gray-700 transition hover:border-gray-950 disabled:opacity-50"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            onClick={onContinue}
+            disabled={loading || !items.length}
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-gray-950 px-4 text-xs font-bold text-white transition hover:bg-gray-800 disabled:opacity-50"
+          >
+            {loading ? (
+              <LoadingLabel>
+                Checking...
+              </LoadingLabel>
+            ) : (
+              'Continue'
+            )}
           </button>
         </div>
       </div>
@@ -517,6 +776,7 @@ function ReturnOrderFormDialog({
   open,
   loading,
   order,
+  preview,
   form,
   errors,
   onFieldChange,
@@ -579,6 +839,34 @@ function ReturnOrderFormDialog({
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {preview?.refund_amount > 0 ? (
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <p className="text-sm font-semibold text-emerald-900">
+              You will receive a refund of {formatRefundAmount(preview.refund_amount)}
+              {preview.is_partial ? ' for the selected items' : ''}.
+            </p>
+            {preview.items.length > 0 ? (
+              <ul className="mt-2 space-y-1.5">
+                {preview.items.map((item) => (
+                  <li
+                    key={item.order_item_id}
+                    className="flex items-start justify-between gap-3 text-xs font-medium text-emerald-800"
+                  >
+                    <span className="min-w-0 break-words">
+                      {item.product_name}
+                      {item.size_text ? ` · ${item.size_text}` : ''}
+                      {item.quantity > 1 ? ` × ${item.quantity}` : ''}
+                    </span>
+                    <span className="shrink-0 font-semibold">
+                      {formatRefundAmount(item.refund_amount)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="mt-4 space-y-4">
           <ReturnFormField
@@ -647,7 +935,11 @@ function ReturnOrderFormDialog({
             </>
           ) : null}
 
-          <ReturnFormField label="Product images" error={errors.product_images}>
+          <ReturnFormField
+            label="Please upload the image of the product you want to return"
+            error={errors.product_images}
+            sentenceLabel
+          >
             <div className="mt-2 space-y-2">
               {form.product_images.map((file, index) => (
                 <label
@@ -708,15 +1000,19 @@ function ReturnOrderFormDialog({
   );
 }
 
-function ReturnFormField({ id, label, error, children }) {
+function ReturnFormField({ id, label, error, sentenceLabel = false, children }) {
+  const labelClassName = sentenceLabel
+    ? 'text-sm font-semibold normal-case tracking-normal text-gray-700'
+    : 'text-xs font-bold uppercase tracking-wide text-gray-400';
+
   return (
     <div>
       {id ? (
-        <label htmlFor={id} className="block text-xs font-bold uppercase tracking-wide text-gray-400">
+        <label htmlFor={id} className={`block ${labelClassName}`}>
           {label}
         </label>
       ) : (
-        <p className="text-xs font-bold uppercase tracking-wide text-gray-400">{label}</p>
+        <p className={labelClassName}>{label}</p>
       )}
       {children}
       {error ? <p className="mt-1.5 text-xs font-semibold text-red-600">{error}</p> : null}
@@ -1186,7 +1482,7 @@ function OrderItemRow({ item }) {
             src={itemImageSrc}
             alt={productName}
             fill
-            className="object-contain p-2"
+            className="object-contain object-center"
             sizes="80px"
           />
         ) : (
@@ -1233,6 +1529,63 @@ function getOrderNumber(order, includeHash = true) {
 
 function getOrderItems(order) {
   return [order?.order_items, order?.orderItems, order?.items].find((items) => Array.isArray(items)) ?? [];
+}
+
+function getOrderItemId(item) {
+  return item.order_item_id ?? item.orderItemId ?? item.id;
+}
+
+function buildReturnItemSelections(order) {
+  return getOrderItems(order)
+    .map((item) => {
+      const orderItemId = getOrderItemId(item);
+      if (orderItemId == null) return null;
+
+      return {
+        order_item_id: orderItemId,
+        name: getItemName(item),
+        maxQuantity: Number(item.quantity ?? 1),
+        quantity: 0,
+      };
+    })
+    .filter(Boolean);
+}
+
+function buildReturnItemsPayload(selections) {
+  return selections
+    .filter((item) => Number(item.quantity) > 0)
+    .map((item) => ({
+      order_item_id: item.order_item_id,
+      quantity: Number(item.quantity),
+    }));
+}
+
+function normalizeReturnPreview(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const items = Array.isArray(raw.items) ? raw.items : [];
+  const refundAmount = Number(raw.refund_amount ?? raw.refundAmount ?? 0);
+
+  return {
+    items: items.map((item) => ({
+      order_item_id: item.order_item_id ?? item.orderItemId,
+      product_name: item.product_name ?? item.productName ?? 'Product',
+      size_text: item.size_text ?? item.sizeText ?? '',
+      quantity: Number(item.quantity ?? 0),
+      refund_amount: Number(item.refund_amount ?? item.refundAmount ?? 0),
+    })),
+    refund_amount: refundAmount,
+    is_partial: Boolean(raw.is_partial ?? raw.isPartial),
+  };
+}
+
+function formatRefundAmount(amount) {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(Number(amount) || 0);
 }
 
 function getItemName(item) {

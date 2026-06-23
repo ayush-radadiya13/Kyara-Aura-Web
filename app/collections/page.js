@@ -29,14 +29,14 @@ export default async function CollectionsPage() {
           <h1 className={`${collectionDisplay.className} mb-2 text-3xl font-medium tracking-[-0.05em] text-gray-950 md:text-5xl`}>
             Collections
           </h1>
-          <p className="mx-auto max-w-2xl text-base leading-7 text-gray-600 md:text-lg">
+          <p className="mx-auto max-w-3xl text-base leading-7 text-gray-600 md:text-lg">
             Discover selected pieces designed to complement every celebration and everyday look.
           </p>
         </div>
 
         <ProductList
           collection
-          pageSize={16}
+          pageSize={20}
           variant="catalog"
           emptyMessage="No collection products available at the moment."
           initialProducts={initialProducts}

@@ -136,8 +136,8 @@ export default async function HomePage() {
             <div className="home-reveal lg:pt-8" style={{ '--home-delay': '180ms' }}>
               <p className="mb-6 text-[10px] uppercase tracking-[0.32em] text-gray-400">Shop</p>
               <h2 className="font-display text-3xl font-light text-gray-950 sm:text-4xl">
-                On Trending
-                <span className="block">Products</span>
+                <span className="inline sm:block">Best Seller</span>{' '}
+                <span className="inline sm:block">Products</span>
               </h2>
               <p className="mt-5 text-sm leading-6 text-gray-600">
                 Discover our handpicked collection of exquisite jewellery pieces, curated to elevate
