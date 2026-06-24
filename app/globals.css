@@ -297,6 +297,58 @@ body {
   animation: ka-dot-jump 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+.cart-checkout-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  overflow: visible;
+  transform: rotate(-90deg);
+}
+
+.cart-checkout-arrow span {
+  display: block;
+  box-sizing: border-box;
+  width: 8px;
+  height: 8px;
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  transform: rotate(45deg);
+  margin: -3px;
+  animation: cart-checkout-arrow-animate 2s infinite;
+}
+
+.cart-checkout-arrow span:nth-child(2) {
+  animation-delay: -0.2s;
+}
+
+.cart-checkout-arrow span:nth-child(3) {
+  animation-delay: -0.4s;
+}
+
+@keyframes cart-checkout-arrow-animate {
+  0% {
+    opacity: 0;
+    transform: rotate(45deg) translate(-10px, -10px);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(45deg) translate(10px, 10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cart-checkout-arrow span {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 @keyframes hero-sale-fade-in {
   from {
     opacity: 0;

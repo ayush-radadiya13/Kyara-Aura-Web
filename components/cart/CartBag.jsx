@@ -16,7 +16,7 @@ import { clearCartApi, getCartApi, removeCartItemApi, updateCartQuantityApi } fr
 
 const CART_IMAGE_FALLBACK = '/images/product-placeholder.svg';
 
-export default function CartBag() {
+export default function CartBag({ checkoutSlot = null, itemsSubtotal = null }) {
   const items = useCartStore((state) => state.items);
   const buyTwoGetOneDiscountAmount = useCartStore((state) => state.buyTwoGetOneDiscountAmount);
   const setCart = useCartStore((state) => state.setCart);
@@ -168,8 +168,17 @@ export default function CartBag() {
   return (
     <section aria-labelledby={isEmpty ? undefined : 'cart-bag-heading'} className="min-w-0">
       {!isEmpty ? (
-        <h1 id="cart-bag-heading" className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
-          Your cart
+        <h1
+          id="cart-bag-heading"
+          className="flex items-baseline justify-between gap-4 text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl"
+        >
+          <span>Your cart</span>
+          {itemsSubtotal != null ? (
+            <span className="text-sm font-semibold text-gray-600 sm:text-base">
+              Items Total{' '}
+              <span className="tabular-nums text-gray-950">{formatInr(itemsSubtotal)}</span>
+            </span>
+          ) : null}
         </h1>
       ) : null}
 
@@ -333,21 +342,27 @@ export default function CartBag() {
             })}
           </ul>
 
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Link
-              href={APP_ROUTES.PRODUCTS}
-              className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-gray-950 bg-white px-6 text-sm font-bold text-gray-950 transition hover:bg-gray-50"
-            >
-              Continue Shopping
-            </Link>
+          <div className="mt-5 flex flex-col gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <Link
+                href={APP_ROUTES.PRODUCTS}
+                className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-gray-950 bg-white px-6 text-sm font-bold text-gray-950 transition hover:bg-gray-50"
+              >
+                Continue Shopping
+              </Link>
 
-            {buyTwoGetOneTicketMessage ? (
-              <BuyTwoGetOneTicketBanner
-                compact
-                fullWidthMobile
-                message={buyTwoGetOneTicketMessage}
-                className="mt-0 w-full sm:ml-auto sm:w-fit sm:shrink-0"
-              />
+              {buyTwoGetOneTicketMessage ? (
+                <BuyTwoGetOneTicketBanner
+                  compact
+                  fullWidthMobile
+                  message={buyTwoGetOneTicketMessage}
+                  className="mt-0 w-full sm:ml-auto sm:w-fit sm:shrink-0"
+                />
+              ) : null}
+            </div>
+
+            {checkoutSlot ? (
+              <div className="hidden lg:flex lg:justify-end">{checkoutSlot}</div>
             ) : null}
           </div>
         </>

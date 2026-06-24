@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { IndianRupee, Minus, Plus, RefreshCcw, Share2, Truck } from 'lucide-react';
+import { IndianRupee, Minus, Play, Plus, RefreshCcw, Share2, Truck } from 'lucide-react';
 import Header from '../../../components/Header';
 import CartDrawer from '@/components/cart/CartDrawer';
 import ProductList from '@/components/ProductList';
@@ -55,6 +55,24 @@ function getProductImages(product) {
   return singleImage ? [singleImage] : ['/images/product-1.png'];
 }
 
+function videoUrlFromProduct(product) {
+  const value = product?.video ?? product?.video_url ?? product?.videoUrl ?? '';
+  if (!value) return '';
+  if (typeof value === 'string') return value.trim();
+  return value.video_url || value.video_path || value.url || '';
+}
+
+function getProductMedia(product) {
+  const images = getProductImages(product).map((src) => ({ type: 'image', src }));
+  const videoUrl = videoUrlFromProduct(product);
+
+  if (videoUrl) {
+    images.push({ type: 'video', src: videoUrl });
+  }
+
+  return images;
+}
+
 export default function ProductDetail({ product: initialProduct, slug }) {
   const router = useRouter();
   const { requireAuth, redirectToLogin } = useAuthRedirect();
@@ -90,7 +108,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
     return apiSizeOptions ?? [];
   }, [product?.sizes]);
 
-  const productImages = getProductImages(product);
+  const productMedia = useMemo(() => getProductMedia(product), [product]);
   const activeSize = sizeOptions.some((option) => option.value === selectedSize) ? selectedSize : '';
   const selectedSizeOption = sizeOptions.find((option) => option.value === activeSize);
   const selectedQuantity = quantity === null ? 1 : Number(quantity);
@@ -271,36 +289,70 @@ export default function ProductDetail({ product: initialProduct, slug }) {
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:gap-14">
           <section className="space-y-4">
             <div className="relative h-[420px] w-full overflow-hidden bg-[#f8f8f7] sm:h-[560px] lg:h-[650px]">
-              <Image
-                src={productImages[selectedImage]}
-                alt={product.name}
-                fill
-                unoptimized={productImages[selectedImage]?.startsWith('http')}
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                priority
-              />
+              {productMedia[selectedImage]?.type === 'video' ? (
+                <video
+                  key={productMedia[selectedImage].src}
+                  src={productMedia[selectedImage].src}
+                  className="h-full w-full object-cover"
+                  controls
+                  playsInline
+                  preload="metadata"
+                  aria-label={`${product.name} product video`}
+                />
+              ) : (
+                <Image
+                  src={productMedia[selectedImage]?.src || '/images/product-1.png'}
+                  alt={product.name}
+                  fill
+                  unoptimized={productMedia[selectedImage]?.src?.startsWith('http')}
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  priority
+                />
+              )}
             </div>
 
             <div className="grid grid-cols-4 gap-3">
-              {productImages.map((image, index) => (
+              {productMedia.map((media, index) => (
                 <button
-                  key={`${image}-${index}`}
+                  key={`${media.type}-${media.src}-${index}`}
                   type="button"
                   onClick={() => setSelectedImage(index)}
                   className={`relative aspect-square overflow-hidden bg-[#f8f8f7] transition ${
                     selectedImage === index ? 'ring-1 ring-gray-950' : 'hover:ring-1 hover:ring-gray-300'
                   }`}
-                  aria-label={`View ${product.name} image ${index + 1}`}
+                  aria-label={
+                    media.type === 'video'
+                      ? `View ${product.name} video`
+                      : `View ${product.name} image ${index + 1}`
+                  }
                 >
-                  <Image
-                    src={image}
-                    alt={`${product.name} ${index + 1}`}
-                    fill
-                    unoptimized={image.startsWith('http')}
-                    className="object-contain"
-                    sizes="(max-width: 1024px) 25vw, 12vw"
-                  />
+                  {media.type === 'video' ? (
+                    <>
+                      <video
+                        src={media.src}
+                        className="h-full w-full object-cover"
+                        muted
+                        playsInline
+                        preload="metadata"
+                        aria-hidden="true"
+                      />
+                      <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-950">
+                          <Play className="h-4 w-4 fill-current" aria-hidden="true" />
+                        </span>
+                      </span>
+                    </>
+                  ) : (
+                    <Image
+                      src={media.src}
+                      alt={`${product.name} ${index + 1}`}
+                      fill
+                      unoptimized={media.src.startsWith('http')}
+                      className="object-contain"
+                      sizes="(max-width: 1024px) 25vw, 12vw"
+                    />
+                  )}
                 </button>
               ))}
             </div>

@@ -1,9 +1,9 @@
 import confetti from 'canvas-confetti';
 
-const CELEBRATION_COLORS = ['#3C2415', '#5C4033', '#8B4513', '#A0522D', '#D2691E', '#FFD700', '#FFF8DC'];
+const CELEBRATION_COLORS = ['#1a1a1a', '#2a2a2a', '#3d3d3d', '#B8860B', '#C9A227', '#D4AF37', '#F5E6C8', '#FFD700'];
 
 /**
- * Fires a short confetti burst for scratch card / gift card openings.
+ * Fires a short confetti burst when a scratch card reward is revealed.
  * @param {{ originY?: number }} [options]
  */
 export function fireCelebrationConfetti({ originY = 0.72 } = {}) {
