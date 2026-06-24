@@ -40,7 +40,6 @@ export default async function HomePage() {
   const productsBelowVideo = allProducts.slice(20, 40);
   const showBestSellerProducts = productsBelowVideo.length > 0 || featuredProducts.length > 0;
   const useFeaturedForBestSeller = productsBelowVideo.length === 0;
-  const bannerImages = getBannerCarouselImages(bannerSettings);
   const bannerVideo = bannerSettings.video || bannerSettings.video_url;
 
   const sameAs = getSocialSameAs(webSettings);
