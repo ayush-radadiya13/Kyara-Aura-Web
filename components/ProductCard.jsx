@@ -13,6 +13,7 @@ import {
 } from '@/lib/cart/duplicate';
 import { useCartStore } from '@/lib/cart/store';
 import { showItemAddedToCartToast } from '@/lib/cart/toast';
+import { useAuthRedirect } from '@/hooks/use-auth-redirect';
 import { APP_ROUTES } from '@/lib/routes';
 import { addCartItemApi, getCartApi } from '@/services/cart';
 
@@ -50,6 +51,7 @@ export default function ProductCard({
   wishlistBusy = false,
 }) {
   const router = useRouter();
+  const { requireAuth, redirectToLogin } = useAuthRedirect();
   const setCart = useCartStore((state) => state.setCart);
   const cartItems = useCartStore((state) => state.items);
   const [bagDrawerOpen, setBagDrawerOpen] = useState(false);
@@ -75,6 +77,8 @@ export default function ProductCard({
     event.preventDefault();
     event.stopPropagation();
 
+    if (!requireAuth()) return;
+
     if (!quickAddSize?.id) {
       setCartError('Please select a size on the product page before adding this item.');
       setBagDrawerOpen(true);
@@ -98,6 +102,11 @@ export default function ProductCard({
       setCart(cart);
       showItemAddedToCartToast(router);
     } catch (error) {
+      if (error?.response?.status === 401) {
+        redirectToLogin();
+        return;
+      }
+
       if (isDuplicateCartError(error)) {
         const cart = await getCartApi();
         setCart(cart);
@@ -126,10 +135,10 @@ export default function ProductCard({
           onWishlistClick(product);
         }}
         disabled={wishlistBusy}
-        className={className}
+        className={`${className} ${wishlistActive ? 'text-red-500 hover:text-white' : ''}`}
       >
         {wishlistBusy ? (
-          <Loader size="sm" className="h-4 w-4 border-current border-t-transparent" />
+          <Loader size="sm" className="h-3.5 w-3.5 border-current border-t-transparent" />
         ) : (
           <Heart
             className="h-4 w-4"
@@ -140,6 +149,9 @@ export default function ProductCard({
       </button>
     );
   };
+
+  const wishlistButtonClassName =
+    'flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-800 shadow-md ring-1 ring-black/5 transition hover:bg-gray-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-60';
 
   const renderBagButton = (className) => (
     <button
@@ -164,13 +176,11 @@ export default function ProductCard({
     return (
       <>
       <div className="group relative block">
-        <div className="relative aspect-square overflow-hidden bg-[#faf9f7]">
+        <div className="relative aspect-[4/5] overflow-hidden bg-[#faf9f7] sm:aspect-square">
           <Link href={href} className="absolute inset-0 z-[1]" aria-label={product.name} />
           {onWishlistClick ? (
-            <div className="absolute right-3 top-3 z-20">
-              {renderWishlistButton(
-                'flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-800 shadow-sm transition hover:bg-gray-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-60',
-              )}
+            <div className="absolute right-2.5 top-2.5 z-20 hidden sm:block">
+              {renderWishlistButton(wishlistButtonClassName)}
             </div>
           ) : null}
 
@@ -258,10 +268,8 @@ export default function ProductCard({
           )}
         </div>
         {onWishlistClick ? (
-          <div className="absolute right-2 top-2 z-20 sm:right-3 sm:top-3">
-            {renderWishlistButton(
-              'flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-gray-400 shadow-sm transition-colors hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-60',
-            )}
+          <div className="absolute right-2.5 top-2.5 z-20 hidden sm:block">
+            {renderWishlistButton(wishlistButtonClassName)}
           </div>
         ) : null}
         {renderBagButton(

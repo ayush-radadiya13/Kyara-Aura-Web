@@ -1,9 +1,11 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import "lenis/dist/lenis.css";
 import "./globals.css";
 import QueryProvider from "@/providers/query-provider";
 import SmoothScrollProvider from "@/providers/smooth-scroll-provider";
 import ConditionalFooter from "@/components/ConditionalFooter";
+import GlobalPendingLoader from "@/components/GlobalPendingLoader";
 import WhatsAppFloatButton from "@/components/WhatsAppFloatButton";
 import { Toaster } from "@/components/ui/sonner";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
@@ -55,6 +57,9 @@ export default function RootLayout({ children }) {
         <GoogleAnalytics />
         <QueryProvider>
           <SmoothScrollProvider>
+            <Suspense fallback={null}>
+              <GlobalPendingLoader />
+            </Suspense>
             <div className="flex min-h-screen flex-col">
               <div className="flex-1">{children}</div>
               <ConditionalFooter />

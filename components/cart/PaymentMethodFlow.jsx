@@ -12,16 +12,15 @@ import {
   CreditCard,
   Edit3,
   Gem,
-  Home,
   Mail,
   MapPin,
   PackageCheck,
-  Phone,
   Plus,
   ShieldCheck,
   Star,
   Trash2,
   Truck,
+  User,
   Wallet,
   X,
   XCircle,
@@ -44,16 +43,15 @@ import {
   verifyRazorpayPaymentApi,
 } from '@/services/checkout';
 import { getLineItemImageSrc } from '@/services/cart';
-import ScratchCardOffer, { clearStoredScratchCoupon, getStoredScratchCoupon } from '@/components/cart/ScratchCardOffer';
+import ScratchCardOffer, { clearStoredScratchCoupon } from '@/components/cart/ScratchCardOffer';
 import OrderSummary from '@/components/cart/OrderSummary';
 import { normalizeOrderSummary, withOrderSummaryItemCount } from '@/lib/cart/order-summary';
-import { useBuyTwoGetOneOfferToast } from '@/hooks/use-buy-two-get-one-offer-toast';
-import { useWebSettings } from '@/hooks/use-web-settings';
-import { getBuyTwoGetOneOfferMessage } from '@/lib/cart/buy-two-get-one';
-import { isBuyTwoGetOneFreeEnabled } from '@/lib/web-settings';
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
+import { getAuthStorageKey } from '@/utils/auth-response';
+import { sanitizePincode, validateAddressForm } from '@/lib/address-validation';
 import { sanitizeIndianPhoneDigits } from '@/lib/phone';
+import { cn } from '@/lib/utils';
 
 const PAYMENT_OPTIONS = [
   {
@@ -210,20 +208,22 @@ function buildCheckoutPayload({ checkoutIntent, selectedAddressId, selectedMetho
 export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_type: 'cart' } }) {
   const router = useRouter();
   const clearCart = useCartStore((state) => state.clearCart);
-  const cartBuyTwoGetOneDiscountAmount = useCartStore((state) => state.buyTwoGetOneDiscountAmount);
+  const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isHydrated = useAuthStore((state) => state.isHydrated);
-  const { data: settings } = useWebSettings();
+  const storageUserKey = getAuthStorageKey(user, token);
 
   const [checkoutIntent] = useState(initialCheckoutIntent);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('online');
-  const [scratchCoupon, setScratchCoupon] = useState(() => getStoredScratchCoupon());
+  const [scratchCoupon, setScratchCoupon] = useState(null);
   const [summary, setSummary] = useState(null);
   const [notes, setNotes] = useState('');
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [addressForm, setAddressForm] = useState(EMPTY_ADDRESS_FORM);
+  const [addressFormErrors, setAddressFormErrors] = useState({});
   const [editingAddressId, setEditingAddressId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -248,19 +248,6 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const payableTotal = hasSummary ? getSummaryTotal(summary) : 0;
   const couponCode = scratchCoupon?.coupon_code ?? '';
   const canPlaceOrder = Boolean(selectedAddressId && hasSummary && payableTotal > 0 && !placingOrder && !summaryLoading);
-  const summaryBuyTwoGetOneDiscountAmount = Number(
-    summary?.buy_two_get_one_discount_amount ?? summary?.buyTwoGetOneDiscountAmount ?? 0,
-  );
-  const buyTwoGetOneDiscountAmount = summaryBuyTwoGetOneDiscountAmount || cartBuyTwoGetOneDiscountAmount;
-  const buyTwoGetOneOfferMessage =
-    checkoutIntent.checkout_type === 'cart'
-      ? getBuyTwoGetOneOfferMessage({
-          isEnabled: isBuyTwoGetOneFreeEnabled(settings),
-          items: displayItems,
-          buyTwoGetOneDiscountAmount,
-        })
-      : null;
-  useBuyTwoGetOneOfferToast(buyTwoGetOneOfferMessage);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -349,11 +336,33 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   }, [checkoutIntent, couponCode, isAuthenticated, selectedAddressId, selectedMethod]);
 
   const setAddressField = (field, value) => {
-    setAddressForm((current) => ({ ...current, [field]: value }));
+    const nextValue =
+      field === 'postal_code'
+        ? sanitizePincode(value)
+        : field === 'phone'
+          ? sanitizeIndianPhoneDigits(value)
+          : value;
+
+    setAddressForm((current) => ({ ...current, [field]: nextValue }));
+
+    if (addressFormErrors[field]) {
+      setAddressFormErrors((current) => {
+        const next = { ...current };
+        delete next[field];
+        return next;
+      });
+    }
   };
 
   const handleAddressSubmit = async (event) => {
     event.preventDefault();
+
+    const validationErrors = validateAddressForm(addressForm);
+    if (Object.keys(validationErrors).length) {
+      setAddressFormErrors(validationErrors);
+      return;
+    }
+
     setSavingAddress(true);
     setError('');
 
@@ -371,6 +380,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
         setSelectedAddressId(String(addressToSelect.id));
       }
       setAddressForm(EMPTY_ADDRESS_FORM);
+      setAddressFormErrors({});
       setEditingAddressId(null);
       setShowAddressForm(false);
       showToast(editingAddressId ? 'Address updated successfully.' : 'Address saved successfully.');
@@ -383,6 +393,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
 
   const startAddressEdit = (address) => {
     setEditingAddressId(address.id);
+    setAddressFormErrors({});
     setAddressForm({
       ...EMPTY_ADDRESS_FORM,
       name: address.name ?? '',
@@ -392,7 +403,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
       address_line_2: address.address_line_2 ?? '',
       city: address.city ?? '',
       state: address.state ?? '',
-      postal_code: address.postal_code ?? '',
+      postal_code: sanitizePincode(address.postal_code ?? ''),
       country: address.country ?? 'India',
       landmark: address.landmark ?? '',
       address_type: address.address_type ?? 'home',
@@ -404,12 +415,14 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const openNewAddressDrawer = () => {
     setEditingAddressId(null);
     setAddressForm(EMPTY_ADDRESS_FORM);
+    setAddressFormErrors({});
     setShowAddressForm(true);
   };
 
   const closeAddressDrawer = () => {
     setEditingAddressId(null);
     setAddressForm(EMPTY_ADDRESS_FORM);
+    setAddressFormErrors({});
     setShowAddressForm(false);
   };
 
@@ -520,7 +533,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
 
     if (paymentMethod === 'cod') {
       if (checkoutIntent.checkout_type === 'cart') clearCart();
-      clearStoredScratchCoupon();
+      clearStoredScratchCoupon(storageUserKey);
       setScratchCoupon(null);
       router.push(`/order-success/${order.id}`);
       return;
@@ -532,7 +545,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
 
     const verifiedOrder = await openRazorpayPayment({ order, razorpay });
     if (checkoutIntent.checkout_type === 'cart') clearCart();
-    clearStoredScratchCoupon();
+    clearStoredScratchCoupon(storageUserKey);
     setScratchCoupon(null);
     router.push(`/order-success/${verifiedOrder?.id ?? order.id}`);
   };
@@ -659,6 +672,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
               selectedAddress={selectedAddress}
               showAddressForm={showAddressForm}
               addressForm={addressForm}
+              addressFormErrors={addressFormErrors}
               editingAddressId={editingAddressId}
               savingAddress={savingAddress}
               addressActionId={addressActionId}
@@ -677,7 +691,6 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
               visibleCount={visibleCount}
               hasSummary={hasSummary}
               summaryLoading={summaryLoading}
-              buyTwoGetOneOfferMessage={buyTwoGetOneOfferMessage}
             />
           </div>
 
@@ -871,7 +884,7 @@ function CodOtpDialog({ open, otp, error, loading, onOtpChange, onClose, onSubmi
   );
 }
 
-function ProductDetailsSection({ items, visibleCount, hasSummary, summaryLoading, buyTwoGetOneOfferMessage }) {
+function ProductDetailsSection({ items, visibleCount, hasSummary, summaryLoading }) {
   return (
     <section aria-labelledby="payment-bag-heading" className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 px-4 py-2 sm:px-5">
@@ -983,6 +996,7 @@ function AddressSection({
   selectedAddress,
   showAddressForm,
   addressForm,
+  addressFormErrors,
   editingAddressId,
   savingAddress,
   addressActionId,
@@ -1055,6 +1069,7 @@ function AddressSection({
         addresses={addresses}
         selectedAddressId={selectedAddressId}
         addressForm={addressForm}
+        addressFormErrors={addressFormErrors}
         editingAddressId={editingAddressId}
         savingAddress={savingAddress}
         addressActionId={addressActionId}
@@ -1078,6 +1093,7 @@ function AddressDrawer({
   addresses,
   selectedAddressId,
   addressForm,
+  addressFormErrors,
   editingAddressId,
   savingAddress,
   addressActionId,
@@ -1136,6 +1152,7 @@ function AddressDrawer({
 
               <AddressForm
                 addressForm={addressForm}
+                addressFormErrors={addressFormErrors}
                 editingAddressId={editingAddressId}
                 savingAddress={savingAddress}
                 onAddressFieldChange={onAddressFieldChange}
@@ -1217,61 +1234,125 @@ function SavedAddressCard({
   );
 }
 
-function AddressForm({ addressForm, editingAddressId, savingAddress, onAddressFieldChange, onAddressSubmit }) {
+function AddressForm({
+  addressForm,
+  addressFormErrors,
+  editingAddressId,
+  savingAddress,
+  onAddressFieldChange,
+  onAddressSubmit,
+}) {
   return (
-    <form onSubmit={onAddressSubmit} className="grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 sm:grid-cols-2">
+    <form onSubmit={onAddressSubmit} noValidate className="grid grid-cols-1 gap-4 rounded-2xl border border-gray-200 bg-white p-4 sm:grid-cols-2">
       <AddressInput
+        id="address-name"
         label="Name"
+        icon={User}
         value={addressForm.name}
         onChange={(value) => onAddressFieldChange('name', value)}
+        error={addressFormErrors.name}
         required
         className="sm:col-span-2"
       />
-      <AddressInput label="Email" type="email" value={addressForm.email} onChange={(value) => onAddressFieldChange('email', value)} required />
-      <AddressInput label="Phone" inputKind="phone" value={addressForm.phone} onChange={(value) => onAddressFieldChange('phone', value)} required />
-      <label className="sm:col-span-2">
-        <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Address line 1</span>
-        <textarea
-          value={addressForm.address_line_1}
-          onChange={(event) => onAddressFieldChange('address_line_1', event.target.value)}
-          placeholder="Flat no. / House no. / Street"
-          required
-          rows={2}
-          className="mt-1 w-full resize-none rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-gray-950"
-        />
-      </label>
-      <label className="sm:col-span-2">
-        <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Address line 2</span>
-        <textarea
-          value={addressForm.address_line_2}
-          onChange={(event) => onAddressFieldChange('address_line_2', event.target.value)}
-          placeholder="Area / Locality / Landmark (optional)"
-          rows={2}
-          className="mt-1 w-full resize-none rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-gray-950"
-        />
-      </label>
-      <AddressInput label="City" value={addressForm.city} onChange={(value) => onAddressFieldChange('city', value)} required />
-      <AddressInput label="State" value={addressForm.state} onChange={(value) => onAddressFieldChange('state', value)} required />
-      <AddressInput label="Postal code" value={addressForm.postal_code} onChange={(value) => onAddressFieldChange('postal_code', value)} required />
-      <AddressInput label="Country" value={addressForm.country} onChange={(value) => onAddressFieldChange('country', value)} required />
-      <AddressInput label="Landmark" value={addressForm.landmark} onChange={(value) => onAddressFieldChange('landmark', value)} />
-      <label>
-        <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Address type</span>
+      <AddressInput
+        id="address-email"
+        label="Email"
+        type="email"
+        icon={Mail}
+        value={addressForm.email}
+        onChange={(value) => onAddressFieldChange('email', value)}
+        error={addressFormErrors.email}
+        required
+        className="sm:col-span-2"
+      />
+      <AddressInput
+        id="address-phone"
+        label="Phone"
+        inputKind="phone"
+        value={addressForm.phone}
+        onChange={(value) => onAddressFieldChange('phone', value)}
+        error={addressFormErrors.phone}
+        required
+        className="sm:col-span-2"
+      />
+      <AddressTextarea
+        id="address-line-1"
+        label="Address line 1"
+        value={addressForm.address_line_1}
+        onChange={(value) => onAddressFieldChange('address_line_1', value)}
+        placeholder="Flat no. / House no. / Street"
+        error={addressFormErrors.address_line_1}
+        required
+        className="sm:col-span-2"
+      />
+      <AddressTextarea
+        id="address-line-2"
+        label="Address line 2"
+        value={addressForm.address_line_2}
+        onChange={(value) => onAddressFieldChange('address_line_2', value)}
+        placeholder="Area / Locality / Landmark (optional)"
+        className="sm:col-span-2"
+      />
+      <AddressInput
+        id="address-city"
+        label="City"
+        value={addressForm.city}
+        onChange={(value) => onAddressFieldChange('city', value)}
+        error={addressFormErrors.city}
+        required
+      />
+      <AddressInput
+        id="address-state"
+        label="State"
+        value={addressForm.state}
+        onChange={(value) => onAddressFieldChange('state', value)}
+        error={addressFormErrors.state}
+        required
+      />
+      <AddressInput
+        id="address-postal-code"
+        label="Postal code"
+        icon={MapPin}
+        inputMode="numeric"
+        maxLength={6}
+        value={addressForm.postal_code}
+        onChange={(value) => onAddressFieldChange('postal_code', value)}
+        error={addressFormErrors.postal_code}
+        required
+      />
+      <AddressInput
+        id="address-country"
+        label="Country"
+        value={addressForm.country}
+        onChange={(value) => onAddressFieldChange('country', value)}
+        error={addressFormErrors.country}
+        required
+      />
+      <AddressInput
+        id="address-landmark"
+        label="Landmark"
+        icon={MapPin}
+        value={addressForm.landmark}
+        onChange={(value) => onAddressFieldChange('landmark', value)}
+      />
+      <AddressField label="Address type" className="min-w-0">
         <select
+          id="address-type"
           value={addressForm.address_type}
           onChange={(event) => onAddressFieldChange('address_type', event.target.value)}
-          className="mt-1 h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm outline-none transition focus:border-gray-950"
+          className="h-11 w-full min-w-0 rounded-2xl border border-gray-200 bg-white px-3 text-sm outline-none transition focus:border-gray-950"
         >
           <option value="home">Home</option>
           <option value="work">Work</option>
           <option value="other">Other</option>
         </select>
-      </label>
-      <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+      </AddressField>
+      <label className="flex min-w-0 items-center gap-2 self-end text-sm font-semibold text-gray-700">
         <input
           type="checkbox"
           checked={addressForm.is_default}
           onChange={(event) => onAddressFieldChange('is_default', event.target.checked)}
+          className="h-4 w-4 shrink-0 rounded border-gray-300"
         />
         Set as default
       </label>
@@ -1294,31 +1375,103 @@ function AddressForm({ addressForm, editingAddressId, savingAddress, onAddressFi
   );
 }
 
-function AddressInput({ label, value, onChange, type = 'text', inputKind, required = false, className = '' }) {
+function AddressField({ label, error, className = '', children, htmlFor }) {
+  return (
+    <div className={cn('min-w-0 space-y-1', className)}>
+      {htmlFor ? (
+        <label htmlFor={htmlFor} className="block text-xs font-bold uppercase tracking-wide text-gray-500">
+          {label}
+        </label>
+      ) : (
+        <span className="block text-xs font-bold uppercase tracking-wide text-gray-500">{label}</span>
+      )}
+      <div className="min-w-0">{children}</div>
+      {error ? <p className="text-xs font-semibold text-red-600">{error}</p> : null}
+    </div>
+  );
+}
+
+function AddressTextarea({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  error,
+  required = false,
+  className = '',
+}) {
+  return (
+    <AddressField label={label} error={error} htmlFor={id} className={className}>
+      <textarea
+        id={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        rows={2}
+        className={cn(
+          'w-full min-w-0 resize-none rounded-2xl border bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-gray-400 focus:border-gray-950',
+          error ? 'border-red-300 focus:border-red-500' : 'border-gray-200',
+        )}
+      />
+    </AddressField>
+  );
+}
+
+function AddressInput({
+  id,
+  label,
+  value,
+  onChange,
+  type = 'text',
+  inputKind,
+  inputMode,
+  maxLength,
+  icon: Icon,
+  required = false,
+  error,
+  className = '',
+}) {
+  const fieldClassName = cn(
+    'flex h-11 w-full min-w-0 items-center gap-2.5 px-3.5 outline-none transition focus-within:border-gray-950',
+    error ? 'border-red-300 focus-within:border-red-500' : 'border-gray-200',
+    'rounded-2xl border bg-white text-sm',
+  );
+
   if (inputKind === 'phone') {
     return (
-      <label className={className}>
-        <span className="text-xs font-bold uppercase tracking-wide text-gray-500">{label}</span>
+      <AddressField label={label} error={error} htmlFor={id} className={className}>
         <IndianPhoneInput
+          id={id}
           value={value}
           onChange={onChange}
-          inputClassName="mt-1 h-11 w-full rounded-2xl border border-gray-200 bg-white text-sm outline-none transition focus:border-gray-950"
+          showIcon
+          className={fieldClassName}
         />
-      </label>
+      </AddressField>
     );
   }
 
   return (
-    <label className={className}>
-      <span className="text-xs font-bold uppercase tracking-wide text-gray-500">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        required={required}
-        className="mt-1 h-11 w-full rounded-2xl border border-gray-200 bg-white px-3 text-sm outline-none transition focus:border-gray-950"
-      />
-    </label>
+    <AddressField label={label} error={error} htmlFor={id} className={className}>
+      <div className={cn(fieldClassName, !Icon && 'px-3.5')}>
+        {Icon ? (
+          <Icon
+            className="h-[18px] w-[18px] shrink-0 text-gray-400"
+            aria-hidden
+          />
+        ) : null}
+        <input
+          id={id}
+          type={inputMode === 'numeric' ? 'tel' : type}
+          inputMode={inputMode}
+          maxLength={maxLength}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm leading-none outline-none ring-0 focus:ring-0"
+        />
+      </div>
+    </AddressField>
   );
 }
 

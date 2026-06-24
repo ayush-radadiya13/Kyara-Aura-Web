@@ -67,22 +67,25 @@ export default function HeroCarousel({
         ) : null}
 
         <div className="absolute inset-x-0 top-1/2 z-10 mx-auto flex max-w-4xl -translate-y-1/2 flex-col items-center px-6 text-center text-black">
-          <p className="mb-5 text-[10px] font-semibold uppercase tracking-[0.35em] text-black/80">
-            Jewellery
-          </p>
-          <h1 className="font-display text-5xl font-light uppercase leading-[0.92] tracking-[-0.04em] sm:text-7xl lg:text-[88px]">
-            {resolvedTitle}
-          </h1>
-          <p className="mt-6 max-w-xl text-[11px] leading-5 text-black/80 sm:text-xs">
-            {resolvedDescription}
-          </p>
-          <Link
-            href="/products"
-            className="mt-8 border border-black/70 px-7 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-black transition hover:bg-black hover:text-white"
-          >
-            Shop Now
-          </Link>
-        </div>
+  <p className="mb-5 text-[10px] font-semibold uppercase tracking-[0.35em] text-black/80">
+    Jewellery
+  </p>
+
+  <h1 className="font-display text-5xl font-light uppercase leading-[0.92] tracking-[-0.04em] sm:text-7xl lg:text-[88px]">
+    {resolvedTitle}
+  </h1>
+
+  <p className="mt-6 max-w-xl text-[11px] leading-5 text-black/80 sm:text-xs">
+    {resolvedDescription}
+  </p>
+
+  <Link
+    href="/products"
+    className="mt-8 border border-black/70 px-7 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-black transition hover:bg-black hover:text-white"
+  >
+    Shop Now
+  </Link>
+</div>
       </section>
     );
   }

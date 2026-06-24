@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { LoaderBlock } from "@/components/ui/loader";
+import { DotLoaderBlock, LoaderBlock } from "@/components/ui/loader";
+import { shouldShowQueryLoader } from "@/lib/query-loading";
 import { useCategories } from "@/hooks/use-categories";
 import { categoryProductsPath } from "@/lib/category-seo";
 
@@ -24,14 +25,17 @@ export default function CategoryGrid({
   onCategorySelect,
   stackOnMobile = false,
   initialCategories,
+  dotLoader = false,
 }) {
-  const { data: categories = [], isLoading, isError } = useCategories({
+  const categoriesQuery = useCategories({
     initialData: initialCategories,
   });
+  const { data: categories = [], isError } = categoriesQuery;
   const visibleCategories = limit ? categories.slice(0, limit) : categories;
 
-  if (isLoading && !categories.length) {
-    return <LoaderBlock />;
+  if (shouldShowQueryLoader(categoriesQuery)) {
+    const GridLoader = dotLoader ? DotLoaderBlock : LoaderBlock;
+    return <GridLoader />;
   }
 
   if (isError || !visibleCategories.length) {

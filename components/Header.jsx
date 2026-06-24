@@ -41,6 +41,8 @@ const MOBILE_ICON_ITEMS = [
 ];
 
 const LOGO = '/assets/ka-logo.png';
+const LOGO_WIDTH = 1367;
+const LOGO_HEIGHT = 594;
 
 export default function Header({ variant = 'default' }) {
   const pathname = usePathname();
@@ -87,7 +89,7 @@ export default function Header({ variant = 'default' }) {
   const isHomePage = pathname === APP_ROUTES.HOME;
   const headerClassName = 'pointer-events-none fixed left-3 right-3 top-2 z-50 sm:left-4 sm:right-4';
   const shellClassName =
-    'header-glass pointer-events-auto mx-auto h-14 max-w-8xl items-center justify-between rounded-full px-4 transition-all duration-500 ease-out hover:-translate-y-0.5 sm:px-6 motion-reduce:transition-none motion-reduce:hover:translate-y-0';
+    'header-glass pointer-events-auto mx-auto flex h-14 max-w-8xl items-center justify-between overflow-visible rounded-full px-4 transition-all duration-500 ease-out hover:-translate-y-0.5 sm:px-6 motion-reduce:transition-none motion-reduce:hover:translate-y-0';
   const navLinkClassName = isHomeOverlay
     ? 'rounded-full px-3 py-2 text-[13px] font-semibold uppercase tracking-[0.18em] text-gray-950/80 transition-all duration-300 hover:bg-white/55 hover:text-gray-950 dark:text-gray-950/80 dark:hover:bg-white/55 dark:hover:text-gray-950'
     : 'rounded-full px-3 py-2 text-gray-700/90 transition-all duration-300 hover:bg-white/55 hover:text-gold dark:text-gray-700/90 dark:hover:bg-white/55 dark:hover:text-gold';
@@ -183,21 +185,19 @@ export default function Header({ variant = 'default' }) {
     }
   };
 
-  const renderLogo = (size = 'default') => (
+  const renderLogo = () => (
     <Link
       href={APP_ROUTES.HOME}
-      className="inline-flex shrink-0 items-center transition-opacity duration-300 hover:opacity-80"
+      className="relative block h-10 w-[6.5rem] shrink-0 transition-opacity duration-300 hover:opacity-80 sm:h-11 sm:w-[7.25rem] md:h-[3.25rem] md:w-[8.75rem]"
+      aria-label="Kayra Aura home"
     >
       <Image
         src={LOGO}
         alt="Kayra Aura"
-        width={1372}
-        height={612}
-        className={
-          size === 'large'
-            ? 'h-11 w-auto max-w-[180px] sm:h-12 sm:max-w-[220px] md:h-[3.25rem] md:max-w-[270px]'
-            : 'h-10 w-auto max-w-[170px] sm:h-11 sm:max-w-[210px] md:h-12 md:max-w-[250px]'
-        }
+        width={LOGO_WIDTH}
+        height={LOGO_HEIGHT}
+        className="h-full w-full object-contain object-left"
+        sizes="(max-width: 640px) 104px, (max-width: 768px) 116px, 140px"
         priority
       />
     </Link>
@@ -281,6 +281,26 @@ export default function Header({ variant = 'default' }) {
     );
   };
 
+  const renderActionCountBadge = (itemCount, isLoading) => {
+    if (isLoading) {
+      return (
+        <span className="absolute -right-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full !bg-[#2C2C2E] shadow-lg shadow-gold/30">
+          <Loader size="xs" />
+        </span>
+      );
+    }
+
+    if (itemCount > 0) {
+      return (
+        <span className="absolute -right-1 -top-1 z-10 flex h-4 min-w-4 items-center justify-center rounded-full !bg-[#2C2C2E] px-0.5 text-[10px] font-semibold leading-none text-white shadow-lg shadow-gold/30">
+          {itemCount > 99 ? '99+' : itemCount}
+        </span>
+      );
+    }
+
+    return null;
+  };
+
   const renderAccountActions = (linkClassName, buttonClassName) => {
     if (showAuthenticatedActions) {
       return (
@@ -348,7 +368,7 @@ export default function Header({ variant = 'default' }) {
 
         {isHomeOverlay && (
           <div className={`${searchOpen ? 'hidden lg:flex' : 'flex'} flex-1 justify-start md:flex-none md:justify-center`}>
-            {renderLogo('large')}
+            {renderLogo()}
           </div>
         )}
 
@@ -400,19 +420,11 @@ export default function Header({ variant = 'default' }) {
               <Link
                 key={key}
                 href={href}
-                className={`relative ${iconClassName}`}
+                className={`relative overflow-visible ${iconClassName}`}
                 aria-label={itemCount > 0 ? `${label}, ${itemCount} items` : label}
               >
                 <Icon className="h-5 w-5" />
-                {countLoading ? (
-                  <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full !bg-[#2C2C2E] shadow-lg shadow-gold/30">
-                    <Loader size="sm" className="h-2.5 w-2.5 border border-white border-t-transparent" />
-                  </span>
-                ) : itemCount > 0 ? (
-                  <span className="absolute right-0 top-0 flex h-4 w-4 items-center  justify-center rounded-full !bg-[#2C2C2E] text-[10px] font-semibold text-white shadow-lg shadow-gold/30">
-                    {itemCount > 99 ? '99+' : itemCount}
-                  </span>
-                ) : null}
+                {renderActionCountBadge(itemCount, countLoading)}
               </Link>
             );
           })}
@@ -451,7 +463,7 @@ export default function Header({ variant = 'default' }) {
         </div>
 
         {/* Mobile Actions */}
-        <div className={`${searchOpen ? 'flex-1 justify-end' : ''} flex items-center gap-1 md:hidden`}>
+        <div className={`${searchOpen ? 'flex-1 justify-end' : ''} flex items-center gap-1 overflow-visible md:hidden`}>
           {/* Search */}
           <button
             type="button"
@@ -468,19 +480,14 @@ export default function Header({ variant = 'default' }) {
           {/* Cart */}
           <Link
             href={APP_ROUTES.CART}
-            className={`${searchOpen ? 'hidden' : ''} relative ${iconClassName}`}
+            className={`${searchOpen ? 'hidden' : ''} relative overflow-visible ${iconClassName}`}
             aria-label={count > 0 ? `Cart, ${count} items` : 'Cart'}
           >
             <ShoppingBag className="h-5 w-5" />
-            {showAuthenticatedActions && cartQuery.isLoading ? (
-              <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-gold shadow-lg shadow-gold/30">
-                <Loader size="sm" className="h-2.5 w-2.5  border-t-transparent" />
-              </span>
-            ) : count > 0 ? (
-              <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[10px] font-semibold text-white shadow-lg shadow-gold/30">
-                {count > 99 ? '99+' : count}
-              </span>
-            ) : null}
+            {renderActionCountBadge(
+              count,
+              showAuthenticatedActions && cartQuery.isLoading,
+            )}
           </Link>
 
           {/* Mobile Menu Toggle */}

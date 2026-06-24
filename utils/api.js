@@ -2,6 +2,7 @@
 
 import axios from "axios";
 import { AUTH_API_ROUTES, AUTH_PAGE_ROUTES } from "@/lib/routes";
+import { useApiPendingStore } from "@/store/api-pending-store";
 import { useAuthStore } from "@/store/auth-store";
 import { getAuthToken } from "@/utils/localtoken";
 
@@ -37,6 +38,46 @@ function redirectToLogin() {
 
   isRedirectingToLogin = true;
   window.location.replace(AUTH_PAGE_ROUTES.LOGIN);
+}
+
+const TRACKED_HTTP_METHODS = new Set(["get", "head"]);
+
+function shouldTrackPendingRequest(config) {
+  const method = String(config?.method ?? "get").toLowerCase();
+  return TRACKED_HTTP_METHODS.has(method);
+}
+
+function trackPendingRequest(config) {
+  if (shouldTrackPendingRequest(config)) {
+    useApiPendingStore.getState().increment();
+    config.__trackPending = true;
+  }
+
+  return config;
+}
+
+function releasePendingRequest(config) {
+  if (config?.__trackPending) {
+    useApiPendingStore.getState().decrement();
+  }
+}
+
+function attachPendingRequestTracking(instance) {
+  instance.interceptors.request.use(
+    (config) => trackPendingRequest(config),
+    (error) => Promise.reject(error),
+  );
+
+  instance.interceptors.response.use(
+    (response) => {
+      releasePendingRequest(response.config);
+      return response;
+    },
+    (error) => {
+      releasePendingRequest(error.config);
+      return Promise.reject(error);
+    },
+  );
 }
 
 export const customAxios = axios.create({
@@ -75,3 +116,6 @@ export const withoutTokenApi = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+attachPendingRequestTracking(customAxios);
+attachPendingRequestTracking(withoutTokenApi);

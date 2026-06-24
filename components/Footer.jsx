@@ -8,7 +8,7 @@ import SocialLinks from '@/components/SocialLinks';
 import { useWebSettings } from '@/hooks/use-web-settings';
 
 const companyLinks = [
-  { label: 'About Us', href: '/' },
+  { label: 'About Us', href: APP_ROUTES.ABOUT },
   { label: 'Terms & Conditions', href: APP_ROUTES.TERMS },
   { label: 'Latest Update', href: '/products' },
 ];

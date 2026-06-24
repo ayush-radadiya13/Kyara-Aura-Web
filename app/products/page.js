@@ -56,16 +56,19 @@ export default async function ProductsPage({ searchParams }) {
       <Header />
 
       <section className="mx-auto max-w-7xl px-4 pb-10 pt-4 sm:px-6 lg:pb-16">
-        <div className="mb-8 text-center">
-          <h1 className={`${categoryDisplay.className} mb-2  text-3xl font-medium tracking-[-0.05em] text-gray-950 md:text-5xl`}>
+        <div className="mb-4 text-center">
+          <h1 className={`${categoryDisplay.className} mb-2 text-3xl font-medium tracking-[-0.05em] text-gray-950 md:text-5xl`}>
             Products
           </h1>
+          <p className="mx-auto max-w-3xl text-base leading-7 text-gray-600 md:text-lg">
+            Discover timeless jewellery pieces crafted with beauty, quality, and sophistication in mind.
+          </p>
         </div>
 
         <ProductList
           key={categoryId ?? 'all-products'}
           categoryId={categoryId}
-          pageSize={16}
+          pageSize={20}
           variant="catalog"
           initialProducts={initialProducts}
         />

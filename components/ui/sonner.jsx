@@ -9,7 +9,11 @@ export function Toaster() {
       duration={3000}
       closeButton
       offset={{ bottom: '1.25rem' }}
-      mobileOffset={{ bottom: '1rem', left: '1rem', right: '1rem' }}
+      mobileOffset={{
+        bottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
+        left: 'max(1rem, env(safe-area-inset-left, 0px))',
+        right: 'max(1rem, env(safe-area-inset-right, 0px))',
+      }}
       toastOptions={{
         unstyled: false,
         classNames: {

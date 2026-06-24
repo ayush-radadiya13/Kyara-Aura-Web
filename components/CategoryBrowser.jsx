@@ -1,5 +1,6 @@
 "use client";
 
+import BuyTwoGetOnePromoBanner from "@/components/BuyTwoGetOnePromoBanner";
 import CategoryGrid from "@/components/CategoryGrid";
 import ProductList from "@/components/ProductList";
 
@@ -17,14 +18,20 @@ export default function CategoryBrowser({
           Shop by Category
         </h2>
       </div>
-      <div >
+      <div>
         <CategoryGrid
           variant="strip"
           stackOnMobile
+          dotLoader
           initialCategories={initialCategories}
         />
       </div>
-      <div className="border-t border-gray-100 pt-12">
+
+      <div className="relative left-1/2 right-1/2 -mx-[50vw] my-4 w-screen sm:my-6">
+        <BuyTwoGetOnePromoBanner />
+      </div>
+
+      <div className="border-t border-gray-100 pt-4">
         <div className="mb-8">
           <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-gold">
             Customer Favorites
@@ -35,7 +42,7 @@ export default function CategoryBrowser({
         </div>
         <ProductList
           featured
-          pageSize={12}
+          limit={12}
           variant="editorial"
           emptyMessage="No featured products available at the moment."
           initialProducts={initialFeaturedProducts}

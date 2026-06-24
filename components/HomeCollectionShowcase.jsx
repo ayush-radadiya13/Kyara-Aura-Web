@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useCollectionProducts } from "@/hooks/use-products";
 import { LoaderBlock } from "@/components/ui/loader";
+import { shouldShowQueryLoader } from "@/lib/query-loading";
 
 function imageUrlFromValue(value) {
   if (!value) return "";
@@ -78,9 +79,10 @@ export default function HomeCollectionShowcase({
   emptyMessage = "No collection products available at the moment.",
   initialProducts,
 }) {
-  const { data: products = [], isLoading, isError } = useCollectionProducts({
+  const collectionQuery = useCollectionProducts({
     initialData: initialProducts,
   });
+  const { data: products = [], isError } = collectionQuery;
   const latestProducts = useMemo(
     () =>
       [...products]
@@ -89,7 +91,7 @@ export default function HomeCollectionShowcase({
     [limit, products],
   );
 
-  if (isLoading && !products.length) {
+  if (shouldShowQueryLoader(collectionQuery)) {
     return <LoaderBlock />;
   }
 
@@ -122,15 +124,15 @@ export default function HomeCollectionShowcase({
 
       <div className="home-reveal" style={{ "--home-delay": "180ms" }}>
         <p className="mb-3 text-[10px] uppercase tracking-[0.32em] text-gray-400">New story</p>
-        <h2 className="font-display text-4xl font-light text-gray-950 transition duration-300 hover:tracking-[-0.02em] sm:text-5xl">
-          EVE Collection
+        <h2 className="font-display flex flex-row flex-wrap items-baseline gap-x-3 text-3xl font-light leading-tight text-gray-950 transition duration-300 hover:tracking-[-0.02em] sm:flex-col sm:gap-x-0 sm:gap-y-1 sm:text-4xl sm:leading-none lg:text-5xl">
+          <span>Kayra</span>
+          <span>Exclusive Collection</span>
         </h2>
         <p className="mt-4 max-w-2xl text-sm leading-6 text-gray-600">
-          Embrace the enchanting allure of the EVE Collection, a limited edition jewellery line
-          that intertwines graceful symbolism with a modern golden glow.
+          Limited-edition pieces with refined craftsmanship and timeless elegance.
         </p>
 
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3">
           {sideProducts.map((product, index) => {
         const imageSrc = getProductImageSrc(product);
         const href = `/products/${product.slug}`;
@@ -146,12 +148,12 @@ export default function HomeCollectionShowcase({
               <ProductImage
                 product={product}
                 imageSrc={imageSrc}
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 34vw, 18vw"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 34vw, 18vw"
               />
             </div>
 
-            <div className="bg-[#f4f4f3] px-4 py-4 sm:px-5">
-              <h3 className="text-base font-semibold text-gray-950 transition group-hover:text-gray-600">
+            <div className="bg-[#f4f4f3] px-3 py-3 sm:px-5 sm:py-4">
+              <h3 className="text-sm font-semibold text-gray-950 transition group-hover:text-gray-600 sm:text-base">
                 {product.name}
               </h3>
               <ProductPrice product={product} className="mt-2 text-sm" />

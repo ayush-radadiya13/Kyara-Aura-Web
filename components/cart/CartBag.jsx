@@ -4,10 +4,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useBuyTwoGetOneOfferToast } from '@/hooks/use-buy-two-get-one-offer-toast';
+import BuyTwoGetOneTicketBanner from '@/components/cart/BuyTwoGetOneTicketBanner';
 import { Loader, LoaderBlock, LoadingLabel } from '@/components/ui/loader';
 import { useWebSettings } from '@/hooks/use-web-settings';
-import { getBuyTwoGetOneOfferMessage } from '@/lib/cart/buy-two-get-one';
+import { getBuyTwoGetOneTicketMessage } from '@/lib/cart/buy-two-get-one';
 import { useCartStore } from '@/lib/cart/store';
 import { formatInr } from '@/lib/cart/format';
 import { APP_ROUTES } from '@/lib/routes';
@@ -16,7 +16,7 @@ import { clearCartApi, getCartApi, removeCartItemApi, updateCartQuantityApi } fr
 
 const CART_IMAGE_FALLBACK = '/images/product-placeholder.svg';
 
-export default function CartBag() {
+export default function CartBag({ checkoutSlot = null, itemsSubtotal = null }) {
   const items = useCartStore((state) => state.items);
   const buyTwoGetOneDiscountAmount = useCartStore((state) => state.buyTwoGetOneDiscountAmount);
   const setCart = useCartStore((state) => state.setCart);
@@ -157,18 +157,30 @@ export default function CartBag() {
   };
 
   const allSelected = items.length > 0 && selectedItemIds.length === items.length;
-  const buyTwoGetOneOfferMessage = getBuyTwoGetOneOfferMessage({
+  const buyTwoGetOneTicketMessage = getBuyTwoGetOneTicketMessage({
     isEnabled: isBuyTwoGetOneFreeEnabled(settings),
     items,
     buyTwoGetOneDiscountAmount,
   });
-  useBuyTwoGetOneOfferToast(buyTwoGetOneOfferMessage);
+
+  const isEmpty = !isLoading && items.length === 0;
 
   return (
-    <section aria-labelledby="cart-bag-heading" className="min-w-0">
-      <h1 id="cart-bag-heading" className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
-        Your cart
-      </h1>
+    <section aria-labelledby={isEmpty ? undefined : 'cart-bag-heading'} className="min-w-0">
+      {!isEmpty ? (
+        <h1
+          id="cart-bag-heading"
+          className="flex items-baseline justify-between gap-4 text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl"
+        >
+          <span>Your cart</span>
+          {itemsSubtotal != null ? (
+            <span className="text-sm font-semibold text-gray-600 sm:text-base">
+              Items Total{' '}
+              <span className="tabular-nums text-gray-950">{formatInr(itemsSubtotal)}</span>
+            </span>
+          ) : null}
+        </h1>
+      ) : null}
 
       {items.length > 0 && (
         <div className="mt-5 flex items-center justify-between rounded-[1.4rem] border border-gray-200 bg-white px-5 py-1 ">
@@ -209,13 +221,13 @@ export default function CartBag() {
           <LoaderBlock className="py-0" />
         </div>
       ) : items.length === 0 ? (
-        <div className="mt-5 rounded-[1.5rem] border border-gray-200 bg-white py-12 text-center shadow-[0_14px_40px_rgba(17,24,39,0.06)]">
-          <p className="text-sm text-gray-600">Your cart is empty.</p>
+        <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-16 text-center sm:min-h-[55vh] sm:py-24">
+          <p className="text-base text-gray-600 sm:text-lg">Your cart is empty.</p>
           <Link
-            href="/products"
-            className="mt-3 inline-block rounded-full bg-gray-950 px-5 py-2 text-sm font-semibold text-white hover:bg-gray-800"
+            href={APP_ROUTES.PRODUCTS}
+            className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-gray-950 px-8 text-sm font-semibold text-white transition hover:bg-gray-800"
           >
-            Continue shopping
+            Continue Shopping
           </Link>
         </div>
       ) : (
@@ -241,12 +253,12 @@ export default function CartBag() {
                     className="h-4 w-4 accent-gray-950"
                   />
 
-                  <div className="relative h-24 w-[72px] shrink-0 overflow-hidden rounded-xl bg-gray-100 sm:h-28 sm:w-[92px]">
+                  <div className="relative h-24 w-[72px] shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 sm:h-28 sm:w-[92px]">
                     <Image
                       src={imageSrc}
                       alt={item.title}
                       fill
-                      className="object-contain p-2"
+                      className="object-contain object-center"
                       sizes="(max-width: 640px) 72px, 92px"
                     />
                   </div>
@@ -330,12 +342,29 @@ export default function CartBag() {
             })}
           </ul>
 
-          <Link
-            href={APP_ROUTES.PRODUCTS}
-            className="mt-5 inline-flex h-11 items-center justify-center rounded-full border border-gray-950 bg-white px-6 text-sm font-bold text-gray-950 transition hover:bg-gray-50"
-          >
-            Continue Shopping
-          </Link>
+          <div className="mt-5 flex flex-col gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <Link
+                href={APP_ROUTES.PRODUCTS}
+                className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-gray-950 bg-white px-6 text-sm font-bold text-gray-950 transition hover:bg-gray-50"
+              >
+                Continue Shopping
+              </Link>
+
+              {buyTwoGetOneTicketMessage ? (
+                <BuyTwoGetOneTicketBanner
+                  compact
+                  fullWidthMobile
+                  message={buyTwoGetOneTicketMessage}
+                  className="mt-0 w-full sm:ml-auto sm:w-fit sm:shrink-0"
+                />
+              ) : null}
+            </div>
+
+            {checkoutSlot ? (
+              <div className="hidden lg:flex lg:justify-end">{checkoutSlot}</div>
+            ) : null}
+          </div>
         </>
       )}
     </section>

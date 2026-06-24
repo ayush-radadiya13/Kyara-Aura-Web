@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/Header";
-import { LoaderBlock } from "@/components/ui/loader";
+import { DotLoaderBlock } from "@/components/ui/loader";
+import { shouldShowQueryLoader } from "@/lib/query-loading";
 import { useCategoryBySlug } from "@/hooks/use-categories";
 import { categoryProductsPath } from "@/lib/category-seo";
 
@@ -14,14 +15,15 @@ function categoryImageSrc(image) {
 }
 
 export default function CategoryDetail({ slug }) {
-  const { data: category, isLoading, isError } = useCategoryBySlug(slug);
+  const categoryQuery = useCategoryBySlug(slug);
+  const { data: category, isError } = categoryQuery;
 
-  if (isLoading) {
+  if (shouldShowQueryLoader(categoryQuery)) {
     return (
       <div>
         <Header />
         <section className="max-w-7xl mx-auto px-4 py-16">
-          <LoaderBlock className="py-0" />
+          <DotLoaderBlock className="py-0" />
         </section>
       </div>
     );

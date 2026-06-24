@@ -5,10 +5,7 @@ import CategoryGrid from '@/components/CategoryGrid';
 import HomeCollectionShowcase from '@/components/HomeCollectionShowcase';
 import ProductList from '@/components/ProductList';
 import { getCategories } from '@/lib/categories';
-import {
-  getCollectionProducts,
-  getFeaturedProducts,
-} from '@/lib/products';
+import { getAllProducts, getCollectionProducts, getFeaturedProducts } from '@/lib/products';
 import {
   buildOrganizationSchema,
   buildWebsiteSchema,
@@ -29,15 +26,21 @@ export const metadata = metadataForPage({
 });
 
 export default async function HomePage() {
-  const [categories, featuredProducts, collectionProducts, webSettings, bannerSettings] =
+  const [categories, allProducts, collectionProducts, featuredProducts, webSettings, bannerSettings] =
     await Promise.all([
       getCategories(),
-      getFeaturedProducts(),
+      getAllProducts(),
       getCollectionProducts(),
+      getFeaturedProducts(),
       getWebSettings(),
       getBannerSettings(),
     ]);
 
+
+  const productsBelowVideo = allProducts.slice(20, 40);
+  const showBestSellerProducts = productsBelowVideo.length > 0 || featuredProducts.length > 0;
+  const useFeaturedForBestSeller = productsBelowVideo.length === 0;
+  const bannerImages = getBannerCarouselImages(bannerSettings);
   const bannerVideo = bannerSettings.video || bannerSettings.video_url;
 
   const sameAs = getSocialSameAs(webSettings);
@@ -66,7 +69,7 @@ export default async function HomePage() {
         </div>
 
         {/* Categories Section */}
-        <section className="home-scroll-stable mx-auto max-w-7xl px-4 py-14 sm:px-6" style={{ '--home-delay': '90ms' }}>
+        <section className="home-scroll-stable mx-auto max-w-7xl px-4 py-6 sm:px-6" style={{ '--home-delay': '90ms' }}>
           <div className="mb-8">
           <h2 className="font-display text-3xl font-light text-gray-950 sm:text-4xl ">Categories</h2>
           </div>
@@ -74,25 +77,14 @@ export default async function HomePage() {
           <CategoryGrid variant="strip" limit={6} initialCategories={categories} />
         </section>
         <section className="home-scroll-stable mx-auto max-w-7xl px-4 pb-20 sm:px-6" style={{ '--home-delay': '160ms' }}>
-          <div className="mb-8 flex items-center justify-between gap-6">
+          <div className="mb-8">
             <h2 className="font-display text-3xl font-light text-gray-950 sm:text-4xl">Products</h2>
-            <div className="hidden items-center gap-4 text-[10px] text-gray-400 sm:flex">
-              <span>Sort by</span>
-              <Link
-                  href="/products"
-                  className="border-b border-gray-200 px-5 pb-3 text-gray-950 transition duration-300 hover:-translate-y-0.5 hover:border-gray-950"
-              >
-                Women Product
-              </Link>
-              <span className="text-gray-500">⌄</span>
-            </div>
           </div>
           <ProductList
-              featured
-              limit={6}
+              limit={20}
               variant="editorial"
-              emptyMessage="No featured products available at the moment."
-              initialProducts={featuredProducts}
+              emptyMessage="No products available at the moment."
+              initialProducts={allProducts}
           />
         </section>
 
@@ -113,10 +105,7 @@ export default async function HomePage() {
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-black/20 to-black/45" />
           <div className="relative z-10 mx-auto flex min-h-[72vh] max-w-5xl flex-col items-center justify-center px-6 text-center text-white">
-            <p className="home-reveal mb-4 text-[10px] font-semibold uppercase tracking-[0.45em] text-white/80" style={{ '--home-delay': '320ms' }}>
-              Jewellery
-            </p>
-            <h2 className="home-reveal font-display text-5xl font-light uppercase leading-[0.92] tracking-[-0.04em] sm:text-7xl lg:text-[92px]" style={{ '--home-delay': '420ms' }}>
+            <h2 className="home-reveal font-display text-4xl font-light uppercase leading-[0.92] tracking-[-0.04em] sm:text-5xl lg:text-[72px]" style={{ '--home-delay': '420ms' }}>
               {bannerSettings.video_title}
             </h2>
             <p className="home-reveal mt-5 max-w-xl text-xs leading-5 text-white/85 sm:text-sm" style={{ '--home-delay': '520ms' }}>
@@ -132,7 +121,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="home-scroll-stable mx-auto max-w-7xl mt-4 px-4 pb-10 sm:px-6" style={{ '--home-delay': '120ms' }}>
+        <section className="home-scroll-stable mx-auto max-w-7xl mt-8 px-4 pb-4 sm:px-6" style={{ '--home-delay': '120ms' }}>
           <HomeCollectionShowcase
             limit={4}
             emptyMessage=" "
@@ -142,12 +131,12 @@ export default async function HomePage() {
 
         {/* Best Seller Products Section */}
         <section className="home-scroll-stable " style={{ '--home-delay': '140ms' }}>
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[260px_1fr]">
+          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[260px_1fr]">
             <div className="home-reveal lg:pt-8" style={{ '--home-delay': '180ms' }}>
               <p className="mb-6 text-[10px] uppercase tracking-[0.32em] text-gray-400">Shop</p>
               <h2 className="font-display text-3xl font-light text-gray-950 sm:text-4xl">
-                On Trending
-                <span className="block">Products</span>
+                <span className="inline sm:block">Best Seller</span>{' '}
+                <span className="inline sm:block">Products</span>
               </h2>
               <p className="mt-5 text-sm leading-6 text-gray-600">
                 Discover our handpicked collection of exquisite jewellery pieces, curated to elevate
@@ -156,28 +145,29 @@ export default async function HomePage() {
             </div>
 
             <div>
-              <div className="mb-8 flex items-center justify-between gap-6">
-                <h2 className="font-display text-3xl font-light text-gray-950 sm:text-4xl">
-                  Best Seller
-                </h2>
-                <div className="hidden items-center gap-4 text-[10px] text-gray-400 sm:flex">
-                  <span>Sort by</span>
-                  <Link
-                      href="/products"
-                      className="border-b border-gray-200 px-5 pb-3 text-gray-950 transition duration-300 hover:-translate-y-0.5 hover:border-gray-950"
-                  >
-                    Women Product
-                  </Link>
-                  <span className="text-gray-500">⌄</span>
-                </div>
-              </div>
-              <ProductList
-                  featured
-                  pageSize={12}
-                  variant="editorial"
-                  emptyMessage="No featured products available at the moment."
-                  initialProducts={featuredProducts}
-              />
+              {showBestSellerProducts ? (
+                <>
+                  <div >
+                  </div>
+                  {useFeaturedForBestSeller ? (
+                    <ProductList
+                        featured
+                        limit={4}
+                        variant="editorial"
+                        emptyMessage="No featured products available at the moment."
+                        initialProducts={featuredProducts}
+                    />
+                  ) : (
+                    <ProductList
+                        limit={4}
+                        offset={20}
+                        variant="editorial"
+                        emptyMessage="No products available at the moment."
+                        initialProducts={allProducts}
+                    />
+                  )}
+                </>
+              ) : null}
             </div>
           </div>
         </section>

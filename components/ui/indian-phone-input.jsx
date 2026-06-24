@@ -33,22 +33,28 @@ export default function IndianPhoneInput({
   prefixClassName,
 }) {
   return (
-    <div className={cn('relative', className)}>
-      {showIcon ? (
-        <Phone
-          className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-400"
-          aria-hidden
-        />
-      ) : null}
-      <span
-        className={cn(
-          'pointer-events-none absolute top-1/2 -translate-y-1/2 text-sm font-medium text-gray-500',
-          showIcon ? 'left-11' : 'left-3',
-          prefixClassName,
-        )}
-      >
-        +91
-      </span>
+    <div
+      className={cn(
+        'flex w-full min-w-0 items-center gap-2 px-3.5',
+        className,
+      )}
+    >
+      <div className="flex shrink-0 items-center gap-1">
+        {showIcon ? (
+          <Phone
+            className="h-[18px] w-[18px] shrink-0 text-gray-400"
+            aria-hidden
+          />
+        ) : null}
+        <span
+          className={cn(
+            'text-sm font-medium leading-none text-gray-500',
+            prefixClassName,
+          )}
+        >
+          +91
+        </span>
+      </div>
       <input
         id={id}
         name={name}
@@ -63,7 +69,7 @@ export default function IndianPhoneInput({
         pattern="[6-9][0-9]{9}"
         title="Enter a valid 10-digit Indian mobile number"
         className={cn(
-          showIcon ? 'pl-[5.75rem] pr-4' : 'pl-14 pr-3',
+          'min-w-0 flex-1 border-0 bg-transparent p-0 text-sm leading-none outline-none ring-0 focus:ring-0',
           inputClassName,
         )}
       />

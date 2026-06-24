@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown, Grid2X2, List, X } from "lucide-react";
+import Pagination from "@/components/Pagination";
 import ProductCard from "@/components/ProductCard";
-import { LoaderBlock } from "@/components/ui/loader";
+import { DotLoaderBlock, LoaderBlock } from "@/components/ui/loader";
 import {
   useCollectionProducts,
   useFeaturedProducts,
@@ -11,6 +12,13 @@ import {
 } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
 import { useSizes } from "@/hooks/use-sizes";
+import {
+  useAddWishlistItem,
+  useDeleteWishlistItem,
+  useWishlist,
+} from "@/hooks/use-wishlist";
+import { useAuthRedirect } from "@/hooks/use-auth-redirect";
+import { useAuthStore } from "@/store/auth-store";
 
 const PRICE_FILTER_MIN = 0;
 const PRICE_FILTER_MAX = 5000;
@@ -158,6 +166,7 @@ export default function ProductList({
   featured = false,
   gridClassName,
   limit,
+  offset = 0,
   emptyMessage = "No products available at the moment.",
   variant = "default",
   pageSize = 12,
@@ -169,6 +178,15 @@ export default function ProductList({
   const [selectedSizeKeys, setSelectedSizeKeys] = useState([]);
   const [priceRange, setPriceRange] = useState([PRICE_FILTER_MIN, PRICE_FILTER_MAX]);
   const [openFilter, setOpenFilter] = useState("");
+  const [wishlistActionProductId, setWishlistActionProductId] = useState(null);
+  const { requireAuth } = useAuthRedirect();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isHydrated = useAuthStore((state) => state.isHydrated);
+  const wishlistQuery = useWishlist({
+    enabled: isHydrated && isAuthenticated,
+  });
+  const addWishlistItem = useAddWishlistItem();
+  const deleteWishlistItem = useDeleteWishlistItem();
   const allProductsQuery = useProducts({
     enabled: !featured && !collection,
     ...(initialProducts && !featured && !collection
@@ -219,7 +237,11 @@ export default function ProductList({
       return categoryMatches && sizeMatches && priceMatches;
     });
   }, [isCatalog, priceRange, rawProducts, selectedCategoryId, selectedSizeKeys]);
-  const products = limit ? filteredProducts.slice(0, limit) : filteredProducts;
+  const products = limit
+    ? filteredProducts.slice(offset, offset + limit)
+    : offset
+      ? filteredProducts.slice(offset)
+      : filteredProducts;
   const shouldPaginate = !limit && products.length > pageSize;
   const totalPages = shouldPaginate ? Math.ceil(products.length / pageSize) : 1;
   const activePage = Math.min(currentPage, totalPages);
@@ -228,11 +250,11 @@ export default function ProductList({
     : products;
   const resultStart = products.length ? (activePage - 1) * pageSize + 1 : 0;
   const resultEnd = Math.min(activePage * pageSize, products.length);
-  const paginationPages = useMemo(() => {
-    if (!shouldPaginate) return [];
 
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }, [shouldPaginate, totalPages]);
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const selectedSizeSet = useMemo(() => new Set(selectedSizeKeys), [selectedSizeKeys]);
   const selectedCategoryLabel = useMemo(() => {
     if (!selectedCategoryId) return "";
@@ -253,6 +275,48 @@ export default function ProductList({
     selectedSizeKeys.length > 0 ||
     priceRange[0] !== PRICE_FILTER_MIN ||
     priceRange[1] !== PRICE_FILTER_MAX;
+
+  const wishlistByProductId = useMemo(() => {
+    const map = new Map();
+
+    for (const item of wishlistQuery.data ?? []) {
+      const productId =
+        item.productId ?? item.product?._id ?? item.product?.id;
+
+      if (productId) {
+        map.set(String(productId), item);
+      }
+    }
+
+    return map;
+  }, [wishlistQuery.data]);
+
+  const getProductId = (product) => String(product?._id ?? product?.id ?? "");
+
+  const handleWishlistClick = async (product) => {
+    if (!requireAuth()) return;
+
+    const productId = getProductId(product);
+    if (!productId) return;
+
+    const existingItem = wishlistByProductId.get(productId);
+    setWishlistActionProductId(productId);
+
+    try {
+      if (existingItem) {
+        await deleteWishlistItem.mutateAsync(
+          existingItem.wishlistItemId ?? existingItem.id,
+        );
+        return;
+      }
+
+      await addWishlistItem.mutateAsync(productId);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setWishlistActionProductId(null);
+    }
+  };
 
   const handlePriceRangeChange = (nextRange) => {
     setPriceRange(nextRange);
@@ -292,7 +356,8 @@ export default function ProductList({
   };
 
   if (query.isLoading && !query.data?.length) {
-    return <LoaderBlock />;
+    const ListLoader = isCatalog ? DotLoaderBlock : LoaderBlock;
+    return <ListLoader />;
   }
 
   if (query.isError || !rawProducts.length) {
@@ -304,9 +369,9 @@ export default function ProductList({
   }
 
   return (
-    <div>
+    <div >
       {isCatalog && (
-        <div className="mb-10 flex flex-col gap-5 border-y border-gray-100 py-5 text-[14px] text-gray-800 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+        <div className="mb-10 max-w-6xl flex flex-col gap-5 border-y border-gray-100 py-5 text-[14px] text-gray-800 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
           <p>
             Showing {resultStart}-{resultEnd} of {products.length} results.
           </p>
@@ -414,15 +479,6 @@ export default function ProductList({
                 </button>
               ) : null}
             </div>
-
-            <div className="hidden items-center gap-4 border-l border-gray-200 pl-7 text-gray-400 sm:flex">
-              <button type="button" aria-label="Grid view" className="transition hover:text-gray-900">
-                <Grid2X2 className="h-4 w-4" />
-              </button>
-              <button type="button" aria-label="List view" className="transition hover:text-gray-900">
-                <List className="h-4 w-4" />
-              </button>
-            </div>
           </div>
 
         </div>
@@ -445,54 +501,36 @@ export default function ProductList({
               : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6")
           }
         >
-          {visibleProducts.map((product) => (
-            <ProductCard
-              key={product._id}
-              product={product}
-              variant={isCatalog ? "editorial" : variant}
-            />
-          ))}
+          {visibleProducts.map((product) => {
+            const productId = getProductId(product);
+            const wishlistItem = wishlistByProductId.get(productId);
+            const isWishlistBusy =
+              wishlistActionProductId === productId &&
+              (addWishlistItem.isPending || deleteWishlistItem.isPending);
+
+            return (
+              <ProductCard
+                key={product._id}
+                product={product}
+                variant={isCatalog ? "editorial" : variant}
+                wishlistActive={Boolean(wishlistItem)}
+                wishlistItemId={wishlistItem?.wishlistItemId ?? wishlistItem?.id}
+                onWishlistClick={handleWishlistClick}
+                wishlistBusy={isWishlistBusy}
+              />
+            );
+          })}
         </div>
       ) : null}
 
-      {shouldPaginate && (
-        <nav
-          className="mt-12 flex flex-wrap items-center justify-center gap-2 text-xs"
-          aria-label="Products pagination"
-        >
-          <button
-            type="button"
-            onClick={() => setCurrentPage((page) => Math.max(Math.min(page, totalPages) - 1, 1))}
-            disabled={activePage === 1}
-            className="border border-gray-200 px-3 py-2 text-gray-600 transition hover:border-gray-950 hover:text-gray-950 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Prev
-          </button>
-          {paginationPages.map((page) => (
-            <button
-              key={page}
-              type="button"
-              onClick={() => setCurrentPage(page)}
-              aria-current={activePage === page ? "page" : undefined}
-              className={`h-9 min-w-9 border px-3 transition ${
-                activePage === page
-                  ? "border-gray-950 bg-gray-950 text-white"
-                  : "border-gray-200 text-gray-600 hover:border-gray-950 hover:text-gray-950"
-              }`}
-            >
-              {page}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setCurrentPage((page) => Math.min(Math.min(page, totalPages) + 1, totalPages))}
-            disabled={activePage === totalPages}
-            className="border border-gray-200 px-3 py-2 text-gray-600 transition hover:border-gray-950 hover:text-gray-950 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Next
-          </button>
-        </nav>
-      )}
+      {shouldPaginate ? (
+        <Pagination
+          currentPage={activePage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          ariaLabel={collection ? "Collections pagination" : "Products pagination"}
+        />
+      ) : null}
     </div>
   );
 }

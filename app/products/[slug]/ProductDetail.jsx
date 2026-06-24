@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { IndianRupee, Minus, Plus, RefreshCcw, Share2, Truck } from 'lucide-react';
+import { IndianRupee, Minus, Play, Plus, RefreshCcw, Share2, Truck } from 'lucide-react';
 import Header from '../../../components/Header';
 import CartDrawer from '@/components/cart/CartDrawer';
 import ProductList from '@/components/ProductList';
@@ -12,7 +12,9 @@ import ProductReviewsSection from '@/components/ProductReviewsSection';
 import ProductReviewForm from '@/components/ProductReviewForm';
 import SizeChartModal from '@/components/SizeChartModal';
 import WishlistButton from '@/components/WishlistButton';
-import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
+import BuyTwoGetOneTicketBanner from '@/components/cart/BuyTwoGetOneTicketBanner';
+import { DotLoaderBlock, LoadingLabel } from '@/components/ui/loader';
+import { shouldShowQueryLoader } from '@/lib/query-loading';
 import {
   hasCartItemWithProductSize,
   isDuplicateCartError,
@@ -20,9 +22,12 @@ import {
 import { useCartStore } from '@/lib/cart/store';
 import { showItemAddedToCartToast } from '@/lib/cart/toast';
 import { APP_ROUTES } from '@/lib/routes';
+import { useAuthRedirect } from '@/hooks/use-auth-redirect';
 import { useProductBySlug } from '@/hooks/use-products';
+import { useWebSettings } from '@/hooks/use-web-settings';
 import { addCartItemApi, getCartApi } from '@/services/cart';
 import { sharePage } from '@/lib/share/web-share';
+import { isBuyTwoGetOneFreeEnabled } from '@/lib/web-settings';
 
 function imageUrlFromValue(value) {
   if (!value) return '';
@@ -50,8 +55,27 @@ function getProductImages(product) {
   return singleImage ? [singleImage] : ['/images/product-1.png'];
 }
 
+function videoUrlFromProduct(product) {
+  const value = product?.video ?? product?.video_url ?? product?.videoUrl ?? '';
+  if (!value) return '';
+  if (typeof value === 'string') return value.trim();
+  return value.video_url || value.video_path || value.url || '';
+}
+
+function getProductMedia(product) {
+  const images = getProductImages(product).map((src) => ({ type: 'image', src }));
+  const videoUrl = videoUrlFromProduct(product);
+
+  if (videoUrl) {
+    images.push({ type: 'video', src: videoUrl });
+  }
+
+  return images;
+}
+
 export default function ProductDetail({ product: initialProduct, slug }) {
   const router = useRouter();
+  const { requireAuth, redirectToLogin } = useAuthRedirect();
   const queryClient = useQueryClient();
   const setCart = useCartStore((state) => state.setCart);
   const cartItems = useCartStore((state) => state.items);
@@ -64,10 +88,12 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const [showFullInfo, setShowFullInfo] = useState(false);
   const [activeDetailTab, setActiveDetailTab] = useState('information');
-  const { data: fetchedProduct, isLoading, isError } = useProductBySlug(slug, {
+  const productQuery = useProductBySlug(slug, {
     enabled: Boolean(slug),
     initialData: initialProduct || undefined,
   });
+  const { data: settings } = useWebSettings();
+  const { data: fetchedProduct, isError } = productQuery;
   const product = fetchedProduct ?? initialProduct;
 
   const sizeOptions = useMemo(() => {
@@ -82,7 +108,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
     return apiSizeOptions ?? [];
   }, [product?.sizes]);
 
-  const productImages = getProductImages(product);
+  const productMedia = useMemo(() => getProductMedia(product), [product]);
   const activeSize = sizeOptions.some((option) => option.value === selectedSize) ? selectedSize : '';
   const selectedSizeOption = sizeOptions.find((option) => option.value === activeSize);
   const selectedQuantity = quantity === null ? 1 : Number(quantity);
@@ -90,6 +116,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   const isOutOfStock = selectedSizeOption != null && Number(selectedSizeOption.quantity) === 0;
   const canSubmit = Boolean(selectedSizeOption?.id && selectedQuantity > 0 && !isOutOfStock);
   const isSelectedSizeInCart = hasCartItemWithProductSize(cartItems, selectedSizeOption?.id);
+  const showBuyTwoGetOneTicket = isBuyTwoGetOneFreeEnabled(settings);
 
   useEffect(() => {
     if (!selectedSizeOption) return;
@@ -115,12 +142,12 @@ export default function ProductDetail({ product: initialProduct, slug }) {
     router.push(APP_ROUTES.CART);
   };
 
-  if (isLoading) {
+  if (shouldShowQueryLoader(productQuery)) {
     return (
       <div>
         <Header />
         <section className="max-w-7xl mx-auto px-4 py-16">
-          <LoaderBlock className="py-0" />
+          <DotLoaderBlock className="py-0" />
         </section>
       </div>
     );
@@ -156,6 +183,8 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   };
 
   const addCurrentToBag = async () => {
+    if (!requireAuth()) return false;
+
     if (!selectedSizeOption?.id) {
       setCartError('Please select a valid size before adding this product to your bag.');
       setBagDrawerOpen(true);
@@ -192,6 +221,11 @@ export default function ProductDetail({ product: initialProduct, slug }) {
       showItemAddedToCartToast(router);
       return true;
     } catch (error) {
+      if (error?.response?.status === 401) {
+        redirectToLogin();
+        return false;
+      }
+
       if (isDuplicateCartError(error)) {
         await refreshCart();
         goToCart();
@@ -255,36 +289,70 @@ export default function ProductDetail({ product: initialProduct, slug }) {
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:gap-14">
           <section className="space-y-4">
             <div className="relative h-[420px] w-full overflow-hidden bg-[#f8f8f7] sm:h-[560px] lg:h-[650px]">
-              <Image
-                src={productImages[selectedImage]}
-                alt={product.name}
-                fill
-                unoptimized={productImages[selectedImage]?.startsWith('http')}
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                priority
-              />
+              {productMedia[selectedImage]?.type === 'video' ? (
+                <video
+                  key={productMedia[selectedImage].src}
+                  src={productMedia[selectedImage].src}
+                  className="h-full w-full object-cover"
+                  controls
+                  playsInline
+                  preload="metadata"
+                  aria-label={`${product.name} product video`}
+                />
+              ) : (
+                <Image
+                  src={productMedia[selectedImage]?.src || '/images/product-1.png'}
+                  alt={product.name}
+                  fill
+                  unoptimized={productMedia[selectedImage]?.src?.startsWith('http')}
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  priority
+                />
+              )}
             </div>
 
             <div className="grid grid-cols-4 gap-3">
-              {productImages.map((image, index) => (
+              {productMedia.map((media, index) => (
                 <button
-                  key={`${image}-${index}`}
+                  key={`${media.type}-${media.src}-${index}`}
                   type="button"
                   onClick={() => setSelectedImage(index)}
                   className={`relative aspect-square overflow-hidden bg-[#f8f8f7] transition ${
                     selectedImage === index ? 'ring-1 ring-gray-950' : 'hover:ring-1 hover:ring-gray-300'
                   }`}
-                  aria-label={`View ${product.name} image ${index + 1}`}
+                  aria-label={
+                    media.type === 'video'
+                      ? `View ${product.name} video`
+                      : `View ${product.name} image ${index + 1}`
+                  }
                 >
-                  <Image
-                    src={image}
-                    alt={`${product.name} ${index + 1}`}
-                    fill
-                    unoptimized={image.startsWith('http')}
-                    className="object-contain"
-                    sizes="(max-width: 1024px) 25vw, 12vw"
-                  />
+                  {media.type === 'video' ? (
+                    <>
+                      <video
+                        src={media.src}
+                        className="h-full w-full object-cover"
+                        muted
+                        playsInline
+                        preload="metadata"
+                        aria-hidden="true"
+                      />
+                      <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-950">
+                          <Play className="h-4 w-4 fill-current" aria-hidden="true" />
+                        </span>
+                      </span>
+                    </>
+                  ) : (
+                    <Image
+                      src={media.src}
+                      alt={`${product.name} ${index + 1}`}
+                      fill
+                      unoptimized={media.src.startsWith('http')}
+                      className="object-contain"
+                      sizes="(max-width: 1024px) 25vw, 12vw"
+                    />
+                  )}
                 </button>
               ))}
             </div>
@@ -470,6 +538,11 @@ export default function ProductDetail({ product: initialProduct, slug }) {
               <p className="bg-[#e6e6e6] px-3 py-2 text-[11px] font-bold">
                 Get it delivered in 3-6 days
               </p>
+              {showBuyTwoGetOneTicket ? (
+                <div className="px-3 pb-2 pt-2">
+                  <BuyTwoGetOneTicketBanner fullWidth className="mt-0 w-full" notchColor="#f7f7f7" />
+                </div>
+              ) : null}
             </section>
           </section>
         </div>

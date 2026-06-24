@@ -66,6 +66,11 @@ export async function cancelOrderApi(orderId, payload) {
   return unwrapData(response);
 }
 
+export async function returnOrderPreviewApi(orderId, payload) {
+  const response = await customAxios.post(CHECKOUT_API_ROUTES.RETURN_ORDER_PREVIEW(orderId), payload);
+  return unwrapData(response);
+}
+
 export async function returnOrderApi(orderId, payload) {
   const isFormData = typeof FormData !== "undefined" && payload instanceof FormData;
   const response = await customAxios.post(
