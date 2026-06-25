@@ -304,20 +304,32 @@ export default function Header({ variant = 'default' }) {
   const renderAccountActions = (linkClassName, buttonClassName) => {
     if (showAuthenticatedActions) {
       return (
-        <button
-          type="button"
-          className={buttonClassName}
-          onClick={handleLogout}
-          disabled={logoutMutation.isPending}
-        >
-          {logoutMutation.isPending ? (
-            <LoadingLabel>
-              Logging out...
-            </LoadingLabel>
-          ) : (
-            'Logout'
-          )}
-        </button>
+        <>
+          <Link
+            href={APP_ROUTES.PROFILE}
+            className={linkClassName}
+            onClick={() => {
+              setAccountOpen(false);
+              setMobileMenuOpen(false);
+            }}
+          >
+            My Profile
+          </Link>
+          <button
+            type="button"
+            className={buttonClassName}
+            onClick={handleLogout}
+            disabled={logoutMutation.isPending}
+          >
+            {logoutMutation.isPending ? (
+              <LoadingLabel>
+                Logging out...
+              </LoadingLabel>
+            ) : (
+              'Logout'
+            )}
+          </button>
+        </>
       );
     }
 

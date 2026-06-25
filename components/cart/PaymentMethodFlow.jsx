@@ -768,6 +768,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
 
       <CodOtpDialog
         open={codOtpDialogOpen}
+        phone={selectedAddress?.phone}
         otp={codOtp}
         error={codOtpError}
         loading={placingOrder}
@@ -781,7 +782,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   );
 }
 
-function CodOtpDialog({ open, otp, error, loading, onOtpChange, onClose, onSubmit }) {
+function CodOtpDialog({ open, phone, otp, error, loading, onOtpChange, onClose, onSubmit }) {
   useScrollLock(open);
 
   useEffect(() => {
@@ -821,7 +822,9 @@ function CodOtpDialog({ open, otp, error, loading, onOtpChange, onClose, onSubmi
               Verify COD OTP
             </h2>
             <p className="mt-1 text-sm font-semibold leading-6 text-gray-500">
-              Enter the 6-digit OTP sent for your Cash on Delivery order.
+              {phone
+                ? <>Enter the 6-digit OTP sent to <span className="font-bold text-gray-950">{phone}</span> for your Cash on Delivery order.</>
+                : 'Enter the 6-digit OTP sent for your Cash on Delivery order.'}
             </p>
           </div>
           <button
@@ -1025,7 +1028,7 @@ function AddressSection({
       </div>
 
       {selectedAddress ? (
-        <div className="2 py-2 sm:px-4">
+        <div className="px-2 py-2 sm:px-4">
           <div className=" bg-white">
             <dl className="space-y-2 text-sm leading-6">
               <div className="flex gap-2">

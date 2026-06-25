@@ -50,25 +50,53 @@ function useSquareCardSize(enabled) {
   const [cardSize, setCardSize] = useState(0);
 
   useEffect(() => {
-    if (!enabled) return undefined;
+    // Reset when disabled so re-opening the drawer always re-measures from scratch.
+    if (!enabled) {
+      setCardSize(0);
+      return undefined;
+    }
 
-    const updateSize = () => {
-      const width = containerRef.current?.offsetWidth ?? 0;
-      if (!width) return;
+    let rafId = 0;
+    let cancelled = false;
+    let observer = null;
+
+    const applyWidth = (width) => {
+      if (!width) return false;
       setCardSize(Math.floor(Math.min(Math.max(width, MIN_CARD_SIZE), MAX_CARD_SIZE)));
+      return true;
     };
 
-    updateSize();
+    const measure = () => {
+      applyWidth(containerRef.current?.offsetWidth ?? 0);
+    };
 
-    const observer = new ResizeObserver(updateSize);
-    const element = containerRef.current;
-    if (element) observer.observe(element);
+    // The card can mount inside a Drawer that animates in (transform), so the
+    // container may report offsetWidth === 0 on the first frame(s). Keep
+    // retrying on each animation frame until it has a real width, otherwise
+    // the card would stay collapsed/empty.
+    const initialMeasure = () => {
+      if (cancelled) return;
 
-    window.addEventListener('resize', updateSize);
+      const element = containerRef.current;
+      if (element && !observer) {
+        observer = new ResizeObserver(measure);
+        observer.observe(element);
+      }
+
+      const width = element?.offsetWidth ?? 0;
+      if (!applyWidth(width)) {
+        rafId = requestAnimationFrame(initialMeasure);
+      }
+    };
+
+    initialMeasure();
+    window.addEventListener('resize', measure);
 
     return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', updateSize);
+      cancelled = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      if (observer) observer.disconnect();
+      window.removeEventListener('resize', measure);
     };
   }, [enabled]);
 
@@ -220,7 +248,10 @@ function ScratchCardInteractive({
                 </CompatibleScratchCard>
               </div>
             ) : (
-              <div className="h-full w-full animate-pulse rounded-2xl bg-gradient-to-br from-[#f5f4f1] via-[#faf9f6] to-[#f0ebe0]" />
+              <div
+                className="h-full w-full animate-pulse rounded-2xl ring-1 ring-[#D4AF37]/25 shadow-[0_14px_32px_rgba(26,26,26,0.28)]"
+                style={{ backgroundColor: SCRATCH_FOIL_COLOR }}
+              />
             )}
           </div>
         </div>

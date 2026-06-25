@@ -174,8 +174,8 @@ export default function CartBag({ checkoutSlot = null, itemsSubtotal = null }) {
         >
           <span>Your cart</span>
           {itemsSubtotal != null ? (
-            <span className="text-sm font-semibold text-gray-600 sm:text-base">
-              Items Total{' '}
+            <span className="text-lg px-4 font-semibold text-gray-600 sm:text-base">
+               Total :{' '}
               <span className="tabular-nums text-gray-950">{formatInr(itemsSubtotal)}</span>
             </span>
           ) : null}

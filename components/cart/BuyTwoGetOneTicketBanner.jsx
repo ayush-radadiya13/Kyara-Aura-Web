@@ -33,7 +33,7 @@ export default function BuyTwoGetOneTicketBanner({
         href={href}
         style={{ '--ticket-notch-color': notchColor }}
         className={cn(
-          'ticket-offer-banner group relative flex items-center rounded-[10px] bg-gradient-to-r from-[#1e2f4f] via-[#2a4068] to-[#35527d] text-white ring-1 ring-inset ring-white/10 transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2a4068]',
+          'ticket-offer-banner group relative flex items-center rounded-[10px] bg-gradient-to-r from-[#1a1a1a] via-[#2a2a2a] to-[#3d3d3d] text-[#F5E6C8] ring-1 ring-inset ring-[#D4AF37]/25 transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]',
           fullWidth && 'w-full justify-between',
           fullWidthMobile && 'w-full justify-between sm:w-fit sm:max-w-full',
           !isWideLayout && 'w-fit max-w-full',
@@ -46,12 +46,12 @@ export default function BuyTwoGetOneTicketBanner({
         <span className={cn('flex min-w-0 items-center', compact ? 'gap-2' : 'gap-2.5')}>
           <span
             className={cn(
-              'flex shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10',
+              'flex shrink-0 items-center justify-center rounded-full border border-[#D4AF37]/35 bg-[#D4AF37]/15',
               compact ? 'h-6 w-6' : 'h-7 w-7',
             )}
           >
             <Gift
-              className={cn('text-white', compact ? 'h-3 w-3' : 'h-3.5 w-3.5')}
+              className={cn('text-[#D4AF37]', compact ? 'h-3 w-3' : 'h-3.5 w-3.5')}
               strokeWidth={2.25}
             />
           </span>
@@ -73,14 +73,14 @@ export default function BuyTwoGetOneTicketBanner({
           <span
             aria-hidden="true"
             className={cn(
-              'border-l border-dashed border-white/30',
+              'border-l border-dashed border-[#D4AF37]/30',
               compact ? 'mx-1 h-4' : 'mx-1.5 h-5',
             )}
           />
 
           <ChevronRight
             className={cn(
-              'text-white/90 transition group-hover:translate-x-0.5',
+              'text-[#D4AF37] transition group-hover:translate-x-0.5',
               compact ? 'h-3.5 w-3.5' : 'h-4 w-4',
             )}
             strokeWidth={2.5}

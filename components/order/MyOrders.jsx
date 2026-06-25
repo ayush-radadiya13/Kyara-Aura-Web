@@ -19,7 +19,8 @@ import { APP_ROUTES, AUTH_PAGE_ROUTES, withRedirect } from '@/lib/routes';
 import { cancelOrderApi, downloadOrderInvoiceApi, getOrderDetailApi, getOrdersApi, returnOrderApi, returnOrderPreviewApi } from '@/services/checkout';
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
-import { formatInr } from '@/lib/cart/format';
+import { formatInr, formatInrDiscount } from '@/lib/cart/format';
+import { normalizeOrderSummary } from '@/lib/cart/order-summary';
 
 const RETURN_TERMS = [
   'The product must be returned within the allowed return period.',
@@ -1159,8 +1160,9 @@ function formatReturnDisplayStatus(status) {
 }
 
 function OrderCard({ order, selected, loading, invoiceLoading, onView, onDownloadInvoice, onCancel, onReturn }) {
-  const canCancel = canCancelOrder(order);
-  const canReturn = canReturnOrder(order);
+  const cancelled = isCancelledOrder(order);
+  const canCancel = !cancelled && canCancelOrder(order);
+  const canReturn = !cancelled && canReturnOrder(order);
   const shipmentStatus = order?.shipment?.shipment_status;
   const returnDisplayStatus = getReturnDisplayStatus(order);
 
@@ -1171,7 +1173,7 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onDownloa
           <p className="text-xs font-bold uppercase tracking-wide text-gray-400">Order number</p>
           <h2 className="mt-0.5 break-words text-[0.82rem] font-bold text-gray-950 sm:text-sm">{getOrderNumber(order)}</h2>
           <div className="mt-1.5 space-y-1 text-[0.65rem] font-semibold text-gray-500 sm:text-[0.68rem]">
-            <StatusLine label="Order Status" value={order.status ?? 'pending'} />
+            <StatusLine label="Order Status" value={formatOrderStatus(order.status ?? 'pending')} />
             <StatusLine label="Payment status" value={order.payment_status ?? 'pending'} />
             {shipmentStatus ? (
               <StatusLine label="Shipment" value={formatShipmentStatus(shipmentStatus)} />
@@ -1187,38 +1189,42 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onDownloa
         <button type="button" onClick={onView} className="h-8 rounded-full bg-gray-950 px-3 text-[0.68rem] font-bold text-white transition hover:bg-gray-800 sm:h-9 sm:px-3.5 sm:text-xs">
           View details
         </button>
-        <button
-          type="button"
-          onClick={onDownloadInvoice}
-          disabled={invoiceLoading}
-          className="h-8 rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 disabled:opacity-50 sm:h-9 sm:px-3.5 sm:text-xs"
-        >
-          {invoiceLoading ? (
-            <LoadingLabel>
-              Downloading...
-            </LoadingLabel>
-          ) : (
-            'Download Invoice'
-          )}
-        </button>
-        {order?.shipment?.courier_tracking_url ? (
-          <a
-            href={order.shipment.courier_tracking_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex h-8 items-center justify-center rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 sm:h-9 sm:px-3.5 sm:text-xs"
-          >
-            Track Order
-          </a>
-        ) : (
+        {!cancelled ? (
           <button
             type="button"
-            disabled
-            className="h-8 cursor-not-allowed rounded-full border border-gray-100 px-3 text-[0.68rem] font-bold text-gray-400 sm:h-9 sm:px-3.5 sm:text-xs"
+            onClick={onDownloadInvoice}
+            disabled={invoiceLoading}
+            className="h-8 rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 disabled:opacity-50 sm:h-9 sm:px-3.5 sm:text-xs"
           >
-            Track Order
+            {invoiceLoading ? (
+              <LoadingLabel>
+                Downloading...
+              </LoadingLabel>
+            ) : (
+              'Download Invoice'
+            )}
           </button>
-        )}
+        ) : null}
+        {!cancelled ? (
+          order?.shipment?.courier_tracking_url ? (
+            <a
+              href={order.shipment.courier_tracking_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-8 items-center justify-center rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 sm:h-9 sm:px-3.5 sm:text-xs"
+            >
+              Track Order
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="h-8 cursor-not-allowed rounded-full border border-gray-100 px-3 text-[0.68rem] font-bold text-gray-400 sm:h-9 sm:px-3.5 sm:text-xs"
+            >
+              Track Order
+            </button>
+          )
+        ) : null}
         {canCancel ? (
           <button type="button" onClick={onCancel} disabled={loading} className="h-8 rounded-full border border-red-100 px-3 text-[0.68rem] font-bold text-red-700 transition hover:border-red-300 disabled:opacity-50 sm:h-9 sm:px-3.5 sm:text-xs">
             {loading ? (
@@ -1275,7 +1281,7 @@ function getStatusTone(value) {
     return 'bg-emerald-50 text-emerald-700 ring-emerald-100';
   }
 
-  if (['pending', 'processing'].includes(status)) {
+  if (['pending', 'processing', 'return_requested', 'return requested'].includes(status)) {
     return 'bg-amber-50 text-amber-700 ring-amber-100';
   }
 
@@ -1325,12 +1331,12 @@ function OrderDetailScrollContainer({ children }) {
 function OrderDetail({ order }) {
   const items = getOrderItems(order);
   const orderDate = formatDate(order.order_date ?? order.created_at ?? order.createdAt);
-  const estimatedDelivery = formatDate(
-    order.estimated_delivery_date ?? order.estimated_delivery ?? order.delivery_date ?? order.expected_delivery_date,
-  );
+  const estimatedDelivery = formatDate(getEstimatedDeliveryDate(order));
   const deliveryDetails = getDeliveryDetails(order);
   const shipment = order?.shipment;
   const returnDisplayStatus = getReturnDisplayStatus(order);
+  const cancelled = isCancelledOrder(order);
+  const amounts = normalizeOrderSummary(order);
 
   return (
     <div className="space-y-3">
@@ -1342,33 +1348,35 @@ function OrderDetail({ order }) {
               {getOrderNumber(order)}
             </h2>
             <div className="mt-2 flex flex-wrap gap-2">
-              <StatusBadge label="Order Status" value={order.status ?? 'pending'} />
+              <StatusBadge label="Order Status" value={formatOrderStatus(order.status ?? 'pending')} />
               <StatusBadge label="Payment status" value={order.payment_status ?? 'pending'} />
             </div>
           </div>
 
-          <div className="flex flex-row gap-2 lg:shrink-0">
-            {shipment?.courier_tracking_url ? (
-              <a
-                href={shipment.courier_tracking_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-gray-950 px-3.5 text-xs font-bold text-white transition hover:bg-gray-800"
-              >
-                Track order
-                <LocateFixed className="h-4 w-4" />
-              </a>
-            ) : (
-              <button
-                type="button"
-                disabled
-                className="inline-flex h-9 cursor-not-allowed items-center justify-center gap-2 rounded-full bg-gray-200 px-3.5 text-xs font-bold text-gray-500"
-              >
-                Track order
-                <LocateFixed className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          {!cancelled ? (
+            <div className="flex flex-row gap-2 lg:shrink-0">
+              {shipment?.courier_tracking_url ? (
+                <a
+                  href={shipment.courier_tracking_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-gray-950 px-3.5 text-xs font-bold text-white transition hover:bg-gray-800"
+                >
+                  Track order
+                  <LocateFixed className="h-4 w-4" />
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex h-9 cursor-not-allowed items-center justify-center gap-2 rounded-full bg-gray-200 px-3.5 text-xs font-bold text-gray-500"
+                >
+                  Track order
+                  <LocateFixed className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -1420,16 +1428,33 @@ function OrderDetail({ order }) {
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-[1.1rem] border border-gray-200 p-3">
           <h3 className="text-base font-bold text-gray-950">Payment</h3>
-          <div className="mt-3">
-            <p className="text-sm font-semibold capitalize text-gray-700">
-              Payment: {getPaymentLabel(order)}
-            </p>
+          <div className="mt-3 space-y-1.5 text-sm">
+            <DeliveryField label="Method" value={getPaymentLabel(order)} />
+            <DeliveryField label="Status" value={formatOrderStatus(order.payment_status ?? 'pending')} />
           </div>
           <dl className="mt-4 space-y-1.5 text-xs">
-            <Amount label="Subtotal" value={order.subtotal} />
-            <Amount label="Tax" value={order.tax_amount} />
-            <Amount label="Shipping" value={order.shipping_amount} />
-            <Amount label="Total" value={order.total_amount} strong />
+            {amounts.itemsSubtotal > 0 ? <Amount label="Items Total" value={amounts.itemsSubtotal} /> : null}
+            <Amount label="Subtotal" value={amounts.subtotal || order.subtotal} />
+            <Amount label="Tax (GST)" value={amounts.taxAmount} />
+            <Amount label="Shipping" value={amounts.shippingAmount} />
+            {amounts.buyTwoGetOneDiscountAmount > 0 ? (
+              <Amount label="Buy 2 Get 1 Discount" value={amounts.buyTwoGetOneDiscountAmount} discount />
+            ) : null}
+            {amounts.firstOrderDiscountAmount > 0 ? (
+              <Amount label="First Order Discount" value={amounts.firstOrderDiscountAmount} discount />
+            ) : null}
+            {amounts.onlinePaymentDiscountAmount > 0 ? (
+              <Amount label="Online Payment Discount" value={amounts.onlinePaymentDiscountAmount} discount />
+            ) : null}
+            {amounts.discountAmount > 0 ? (
+              <Amount
+                label={`Scratch Discount${amounts.discountPercent > 0 ? ` (${amounts.discountPercent}%)` : ''}`}
+                value={amounts.discountAmount}
+                discount
+              />
+            ) : null}
+            {amounts.codCharge > 0 ? <Amount label="COD Charge" value={amounts.codCharge} /> : null}
+            <Amount label="Total" value={amounts.total || order.total_amount} strong />
           </dl>
         </div>
 
@@ -1449,13 +1474,17 @@ function OrderDetail({ order }) {
   );
 }
 
-function Amount({ label, value, strong = false }) {
+function Amount({ label, value, strong = false, discount = false }) {
+  const valueClassName = discount
+    ? 'font-semibold text-emerald-700'
+    : strong
+      ? 'font-bold text-gray-950'
+      : 'font-semibold text-gray-900';
+
   return (
     <div className="flex items-center justify-between gap-4">
       <dt className={strong ? 'font-bold text-gray-950' : 'font-semibold text-gray-500'}>{label}</dt>
-      <dd className={strong ? 'font-bold text-gray-950' : 'font-semibold text-gray-900'}>
-        {formatMoney(value)}
-      </dd>
+      <dd className={valueClassName}>{discount ? formatInrDiscount(value) : formatMoney(value)}</dd>
     </div>
   );
 }
@@ -1694,11 +1723,49 @@ function formatShipmentStatus(status, rawStatus) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+const ORDER_STATUS_LABELS = {
+  return_requested: 'Return Requested',
+};
+
+function formatOrderStatus(status) {
+  const key = String(status ?? '').trim().toLowerCase();
+  if (!key) return 'Pending';
+  if (ORDER_STATUS_LABELS[key]) return ORDER_STATUS_LABELS[key];
+
+  return key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function isCancelledOrder(order) {
+  return String(order?.status ?? '').trim().toLowerCase() === 'cancelled';
+}
+
+function parseDateValue(value) {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+
+  const normalized = typeof value === 'string' ? value.trim().replace(' ', 'T') : value;
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getEstimatedDeliveryDate(order) {
+  const explicit =
+    order?.estimated_delivery_date ?? order?.estimated_delivery ?? order?.delivery_date ?? order?.expected_delivery_date;
+  if (explicit) return explicit;
+
+  const created = parseDateValue(order?.created_at ?? order?.createdAt ?? order?.order_date);
+  if (!created) return null;
+
+  const estimated = new Date(created);
+  estimated.setDate(estimated.getDate() + 4);
+  return estimated;
+}
+
 function formatDate(value) {
   if (!value) return 'Processing';
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
+  const date = parseDateValue(value);
+  if (!date) return String(value);
 
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',

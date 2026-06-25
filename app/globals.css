@@ -431,6 +431,30 @@ body {
   right: -4.5px;
 }
 
+@keyframes reviews-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.reviews-marquee-track {
+  animation: reviews-marquee var(--reviews-marquee-duration, 60s) linear infinite;
+  will-change: transform;
+}
+
+.reviews-marquee:hover .reviews-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reviews-marquee-track {
+    animation: none;
+  }
+}
+
 [data-sonner-toast][data-styled='false'] {
   background: transparent;
   border: none;

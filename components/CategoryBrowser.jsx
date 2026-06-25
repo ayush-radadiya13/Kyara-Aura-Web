@@ -1,6 +1,4 @@
 "use client";
-
-import BuyTwoGetOnePromoBanner from "@/components/BuyTwoGetOnePromoBanner";
 import CategoryGrid from "@/components/CategoryGrid";
 import ProductList from "@/components/ProductList";
 
@@ -25,10 +23,6 @@ export default function CategoryBrowser({
           dotLoader
           initialCategories={initialCategories}
         />
-      </div>
-
-      <div className="relative left-1/2 right-1/2 -mx-[50vw] my-4 w-screen sm:my-6">
-        <BuyTwoGetOnePromoBanner />
       </div>
 
       <div className="border-t border-gray-100 pt-4">

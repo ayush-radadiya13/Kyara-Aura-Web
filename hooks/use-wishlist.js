@@ -15,6 +15,10 @@ export function useWishlist(options = {}) {
   return useQuery({
     queryKey: WISHLIST_QUERY_KEY,
     queryFn: getWishlistApi,
+    // Always hit the API instead of serving the shared in-memory cache so the
+    // wishlist GET request fires (and is visible in the Network tab) on every
+    // mount of the wishlist page / header.
+    staleTime: 0,
     refetchOnMount: "always",
     retry: false,
     ...options,

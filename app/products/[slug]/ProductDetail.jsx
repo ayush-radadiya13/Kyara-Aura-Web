@@ -29,14 +29,22 @@ import { addCartItemApi, getCartApi } from '@/services/cart';
 import { sharePage } from '@/lib/share/web-share';
 import { isBuyTwoGetOneFreeEnabled } from '@/lib/web-settings';
 
+const VIDEO_EXTENSION_PATTERN = /\.(mp4|webm|ogg|ogv|mov|m4v)(\?.*)?$/i;
+
 function imageUrlFromValue(value) {
   if (!value) return '';
   if (typeof value === 'string') return value;
-  return value.image_url || value.image_path || '';
+  return value.image_url || value.image_path || value.video_url || value.url || '';
 }
 
+function isVideoUrl(src) {
+  return typeof src === 'string' && VIDEO_EXTENSION_PATTERN.test(src);
+}
+
+const GALLERY_SIZE = 4;
+
 function getProductImages(product) {
-  const imageSources = [product?.gallery, product?.images, product?.image, product?.product_images, product?.productImages];
+  const imageSources = [product?.images, product?.product_images, product?.productImages];
   const imageList = imageSources.find((source) => Array.isArray(source) && source.length);
 
   if (imageList?.length) {
@@ -48,29 +56,69 @@ function getProductImages(product) {
         return Number(first?.sort_order ?? 0) - Number(second?.sort_order ?? 0);
       })
       .map(imageUrlFromValue)
-      .filter(Boolean);
+      .filter(Boolean)
+      // Guard against a video that the backend tucked into the images array;
+      // never feed a video URL to next/image.
+      .filter((src) => !isVideoUrl(src));
   }
 
   const singleImage = product?.image_url || product?.image_path;
-  return singleImage ? [singleImage] : ['/images/product-1.png'];
+  return singleImage && !isVideoUrl(singleImage) ? [singleImage] : [];
 }
 
 function videoUrlFromProduct(product) {
   const value = product?.video ?? product?.video_url ?? product?.videoUrl ?? '';
-  if (!value) return '';
-  if (typeof value === 'string') return value.trim();
-  return value.video_url || value.video_path || value.url || '';
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  if (value && typeof value === 'object') {
+    const resolved = value.video_url || value.video_path || value.url || '';
+    if (resolved) return resolved;
+  }
+
+  // Fall back to scanning the media arrays for a video that the backend may
+  // have stored alongside the product images.
+  const mediaSources = [product?.images, product?.product_images, product?.productImages];
+  const mediaList = mediaSources.find((source) => Array.isArray(source) && source.length) ?? [];
+  for (const item of mediaList) {
+    const src = imageUrlFromValue(item);
+    if (isVideoUrl(src)) return src;
+  }
+
+  return '';
 }
 
 function getProductMedia(product) {
-  const images = getProductImages(product).map((src) => ({ type: 'image', src }));
+  const imageItems = getProductImages(product).map((src) => ({ type: 'image', src }));
   const videoUrl = videoUrlFromProduct(product);
+  const videoItem = videoUrl ? { type: 'video', src: videoUrl } : null;
 
-  if (videoUrl) {
-    images.push({ type: 'video', src: videoUrl });
+  const media = videoItem ? [...imageItems, videoItem] : [...imageItems];
+
+  if (!media.length) {
+    return [{ type: 'image', src: '/images/product-1.png' }];
   }
 
-  return images;
+  // Always render exactly GALLERY_SIZE tiles. When there are too few real
+  // media items, repeat the available images to fill the grid (the video,
+  // if present, always keeps a single slot).
+  if (media.length < GALLERY_SIZE && imageItems.length) {
+    const padded = [...media];
+    let index = 0;
+    while (padded.length < GALLERY_SIZE) {
+      const source = imageItems[index % imageItems.length];
+      padded.splice(videoItem ? padded.length - 1 : padded.length, 0, { ...source });
+      index += 1;
+    }
+    return padded;
+  }
+
+  if (media.length > GALLERY_SIZE) {
+    if (videoItem) {
+      return [...imageItems.slice(0, GALLERY_SIZE - 1), videoItem];
+    }
+    return media.slice(0, GALLERY_SIZE);
+  }
+
+  return media;
 }
 
 export default function ProductDetail({ product: initialProduct, slug }) {
@@ -273,7 +321,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   const hasMoreProductInfo = product.specs.length > 4;
   const visibleProductSpecs = showFullInfo ? product.specs : product.specs.slice(0, 4);
   const productReviews = Array.isArray(product.reviews) ? product.reviews : [];
-  const reviewsCount = product.reviews_count ?? productReviews.length;
+  const reviewsCount = product.review_count ?? productReviews.length;
   const detailTabs = [
     { id: 'information', label: 'Product Information' },
     { id: 'description', label: 'Description' },
@@ -405,7 +453,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
                 <div className="flex items-center gap-2 text-md text-gray-400">
                   <span className="text-[#c9a75d]">★★★★★</span>
                   <span>
-                    ({reviewsCount} {reviewsCount === 1 ? 'Review' : 'Reviews'})
+                    {reviewsCount === 1 ? 'Review' : 'Reviews'} ({reviewsCount})
                   </span>
                 </div>
               </div>
@@ -631,8 +679,13 @@ export default function ProductDetail({ product: initialProduct, slug }) {
                   <div className="border border-gray-100 p-5">
                     <h2 className="mb-3 text-lg font-bold text-gray-900">Size Guide</h2>
                     <p>
-                      Choose the size that feels secure without pressure. If you are between two sizes,
-                      select the larger option for comfortable everyday wear.
+                      Choosing the right size ensures your piece sits comfortably and looks its best
+                      every time you wear it. Start by selecting a size that feels secure without any
+                      pressure or tightness against your skin. If you find yourself between two sizes,
+                      we recommend choosing the larger option for relaxed, all-day comfort. For rings
+                      and bangles, measure an existing piece you already own and compare it with the
+                      measurements provided above. Remember that fingers and wrists can swell slightly
+                      in warm weather, so a little extra room is always a safe and comfortable choice.
                     </p>
                   </div>
                   <div className="border border-gray-100 p-5">
