@@ -117,7 +117,6 @@ function OrderError({ message }) {
     <div className="mx-auto max-w-4xl border border-gray-100  px-5 py-3">
       <MessageHeading tone="failed" icon={XCircle} label="Order details unavailable" />
       <h1 className="mt-3 text-xl font-bold text-gray-950 sm:text-3xl">Unable to load this order</h1>
-      <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold leading-6 text-red-700">{message}</p>
     </div>
   );
 }
@@ -271,10 +270,6 @@ function ProductRatingSection({ order }) {
 
       {submitted ? (
         <p className="mt-3 text-sm text-green-700">Thank you for your rating!</p>
-      ) : null}
-
-      {error ? (
-        <p className="mt-3 text-sm text-red-600">{error}</p>
       ) : null}
     </div>
   );

@@ -206,9 +206,7 @@ export default function Header({ variant = 'default' }) {
   const renderSearchPanel = (containerRef, inputRef, isMobileSearch = false) => {
     const trimmedTerm = searchTerm.trim();
     const showSearchContent = searchOpen && trimmedTerm.length >= 2;
-    const searchStatus = searchProductsQuery.isError
-        ? 'Unable to search right now.'
-        : 'No products found.';
+    const searchStatus = 'No products found.';
 
     return (
       <form

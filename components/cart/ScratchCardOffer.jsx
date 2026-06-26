@@ -257,7 +257,6 @@ function ScratchCardInteractive({
         </div>
       )}
 
-      {error ? <p className="mt-2.5 text-center text-[11px] font-semibold text-red-600">{error}</p> : null}
     </div>
   );
 }

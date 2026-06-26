@@ -75,6 +75,6 @@ export async function sharePage(content: ShareContent = {}): Promise<void> {
   try {
     await copyUrlToClipboard(url);
   } catch {
-    toast.error('Unable to share this page');
+    // Sharing failed silently; no error message is shown to the user.
   }
 }

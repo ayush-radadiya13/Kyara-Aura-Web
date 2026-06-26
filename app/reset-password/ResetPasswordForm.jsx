@@ -101,11 +101,6 @@ export default function ResetPasswordForm({ token = '', email = '' }) {
           onChange={(value) => setFieldValue('password_confirmation', value)}
         />
 
-        {formError ? (
-          <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-            {formError}
-          </p>
-        ) : null}
         {successMessage ? (
           <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-800" role="status">
             {successMessage}
@@ -153,11 +148,6 @@ function Field({ id, label, value, onChange, error, type = 'text' }) {
         className="h-11 w-full rounded border border-gray-300 px-3 text-sm"
         autoComplete={type === 'password' ? 'new-password' : id}
       />
-      {error ? (
-        <p className="mt-1 text-sm text-red-600" role="alert">
-          {error}
-        </p>
-      ) : null}
     </div>
   );
 }

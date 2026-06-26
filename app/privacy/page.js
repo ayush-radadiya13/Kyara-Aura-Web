@@ -155,8 +155,8 @@ export default function PrivacyPolicyPage() {
               <h3 className="text-base font-semibold text-gray-900">Contact Us</h3>
               <p className="mt-3">
                 For questions, corrections, or privacy-related requests, please contact us at{' '}
-                <a className="font-medium text-gray-900 underline" href="mailto:support@kayraaura.com">
-                  support@kayraaura.com
+                <a className="font-medium text-gray-900 underline" href="mailto:kayraaura4u@gmail.com">
+                  kayraaura4u@gmail.com
                 </a>
                 .
               </p>

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Drawer } from '@base-ui/react/drawer';
@@ -37,13 +37,19 @@ import {
   deleteAddressApi,
   getAddressesApi,
   getCheckoutSummaryApi,
+  getOrderDetailApi,
   sendCodOrderOtpApi,
   setDefaultAddressApi,
   updateAddressApi,
-  verifyRazorpayPaymentApi,
 } from '@/services/checkout';
 import { getLineItemImageSrc } from '@/services/cart';
+import {
+  clearPendingPayment,
+  getPendingPayment,
+  setPendingPayment,
+} from '@/lib/payment/pending-payment';
 import ScratchCardOffer, { clearStoredScratchCoupon } from '@/components/cart/ScratchCardOffer';
+import AddressRegionFields from '@/components/cart/AddressRegionFields';
 import OrderSummary from '@/components/cart/OrderSummary';
 import { normalizeOrderSummary, withOrderSummaryItemCount } from '@/lib/cart/order-summary';
 import { useAuthStore } from '@/store/auth-store';
@@ -99,6 +105,23 @@ const EMPTY_ADDRESS_FORM = {
   address_type: 'home',
   is_default: false,
 };
+
+const PAID_PAYMENT_STATUSES = new Set([
+  'paid',
+  'captured',
+  'completed',
+  'success',
+  'successful',
+  'confirmed',
+]);
+
+function isOrderPaid(order) {
+  const paymentStatus = String(order?.payment_status ?? '').trim().toLowerCase();
+  if (PAID_PAYMENT_STATUSES.has(paymentStatus)) return true;
+
+  const orderStatus = String(order?.status ?? '').trim().toLowerCase();
+  return ['confirmed', 'processing', 'shipped', 'delivered', 'completed'].includes(orderStatus);
+}
 
 function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -236,6 +259,8 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const [error, setError] = useState('');
   const [paymentNotice, setPaymentNotice] = useState('');
   const [toast, setToast] = useState(null);
+  const [pendingPaymentOrderId, setPendingPaymentOrderId] = useState('');
+  const [checkingPendingPayment, setCheckingPendingPayment] = useState(false);
 
   const selectedAddress = useMemo(
     () => addresses.find((address) => String(address.id) === String(selectedAddressId)),
@@ -258,6 +283,92 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
+  };
+
+  // Fallback recovery: a UPI app cannot be forced to return the user to the browser, so when
+  // they come back to this page we re-check the in-flight order. If the backend already marked
+  // it paid (via the redirect callback or a Razorpay webhook), we forward to order success.
+  const resolvePendingPayment = useCallback(
+    async ({ silent = true } = {}) => {
+      const pending = getPendingPayment();
+      if (!pending?.orderId) {
+        setPendingPaymentOrderId('');
+        return false;
+      }
+
+      setPendingPaymentOrderId(String(pending.orderId));
+
+      try {
+        const orderDetail = await getOrderDetailApi(pending.orderId);
+
+        if (isOrderPaid(orderDetail)) {
+          if (pending.checkoutType === 'cart') clearCart();
+          clearStoredScratchCoupon(storageUserKey);
+          setScratchCoupon(null);
+          clearPendingPayment();
+          setPendingPaymentOrderId('');
+          router.replace(APP_ROUTES.ORDER_SUCCESS(orderDetail?.id ?? pending.orderId));
+          return true;
+        }
+
+        if (!silent) {
+          setToast({
+            message: 'Payment is still being confirmed. Finish it in your UPI app, then check again.',
+            type: 'error',
+          });
+        }
+        return false;
+      } catch {
+        if (!silent) {
+          setToast({ message: 'Unable to check payment status right now. Please try again.', type: 'error' });
+        }
+        return false;
+      }
+    },
+    [clearCart, router, storageUserKey],
+  );
+
+  useEffect(() => {
+    if (!isHydrated || !isAuthenticated) return undefined;
+
+    let cancelled = false;
+
+    const runCheck = () => {
+      if (cancelled) return;
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      resolvePendingPayment({ silent: true });
+    };
+
+    runCheck();
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') runCheck();
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', runCheck);
+    window.addEventListener('pageshow', runCheck);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', runCheck);
+      window.removeEventListener('pageshow', runCheck);
+    };
+  }, [isHydrated, isAuthenticated, resolvePendingPayment]);
+
+  const handleManualPendingCheck = async () => {
+    setCheckingPendingPayment(true);
+    try {
+      await resolvePendingPayment({ silent: false });
+    } finally {
+      setCheckingPendingPayment(false);
+    }
+  };
+
+  const dismissPendingPayment = () => {
+    clearPendingPayment();
+    setPendingPaymentOrderId('');
   };
 
   useEffect(() => {
@@ -446,8 +557,15 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
 
     try {
       await setDefaultAddressApi(addressId);
-      await refreshAddresses(addressId);
-      showToast('Default address updated.');
+      // Update in place so the address keeps its position in the list; only the
+      // default flag changes (re-fetching would reorder the default to the top).
+      setAddresses((current) =>
+        current.map((address) => ({
+          ...address,
+          is_default: String(address.id) === String(addressId),
+        })),
+      );
+      setSelectedAddressId(String(addressId));
     } catch (addressError) {
       setError(getApiErrorMessage(addressError, 'Unable to set default address.'));
     } finally {
@@ -479,6 +597,14 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
       throw new Error('Razorpay SDK failed to load. Please check your connection and try again.');
     }
 
+    // Redirect mode (vs the JS `handler` callback) is Razorpay's recommended flow for
+    // mobile UPI: payment happens in an external app (GPay/PhonePe/Paytm) and the browser
+    // tab is frequently discarded while backgrounded. A top-level redirect to callback_url
+    // survives that, whereas an in-page handler closure would be lost and the order stranded.
+    const callbackUrl = new URL(APP_ROUTES.PAYMENT_CALLBACK, window.location.origin);
+    callbackUrl.searchParams.set('order_id', String(order.id));
+    callbackUrl.searchParams.set('checkout_type', checkoutIntent.checkout_type);
+
     return new Promise((resolve, reject) => {
       const paymentObject = new window.Razorpay({
         key: razorpay.key,
@@ -488,23 +614,13 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
         description: razorpay.description,
         order_id: razorpay.order_id,
         prefill: razorpay.prefill,
-        handler: async (response) => {
-          try {
-            const verifiedOrder = await verifyRazorpayPaymentApi({
-              order_id: order.id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-
-            resolve(verifiedOrder);
-          } catch (verifyError) {
-            reject(verifyError);
-          }
-        },
+        redirect: true,
+        callback_url: callbackUrl.toString(),
         modal: {
           ondismiss: () => {
-            reject(new Error('Payment window closed. Your order is still pending.'));
+            // On success the page navigates away to callback_url, so this only fires when
+            // the user closes checkout without completing payment.
+            reject(new Error('Payment window closed before completion. Your order is still pending — you can retry the payment.'));
           },
         },
         theme: {
@@ -512,7 +628,15 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
         },
       });
 
+      paymentObject.on('payment.failed', (response) => {
+        reject(new Error(response?.error?.description || 'Payment failed. Please try again.'));
+      });
+
       paymentObject.open();
+
+      // Intentionally no resolve(): a successful payment triggers a full-page redirect to
+      // callback_url, which finalizes verification on the dedicated processing page.
+      void resolve;
     });
   };
 
@@ -543,11 +667,19 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
       throw new Error('Razorpay checkout data missing.');
     }
 
-    const verifiedOrder = await openRazorpayPayment({ order, razorpay });
-    if (checkoutIntent.checkout_type === 'cart') clearCart();
-    clearStoredScratchCoupon(storageUserKey);
-    setScratchCoupon(null);
-    router.push(`/order-success/${verifiedOrder?.id ?? order.id}`);
+    // Persist the in-flight payment so we can recover the order if the user returns to the
+    // site without the callback completing (e.g. closed the tab while in their UPI app).
+    setPendingPayment({
+      orderId: order.id,
+      checkoutType: checkoutIntent.checkout_type,
+      razorpayOrderId: razorpay.order_id,
+    });
+    setPendingPaymentOrderId(String(order.id));
+
+    // On success Razorpay redirects to the callback page, which verifies the payment, clears
+    // the cart/coupon, and lands on the order-success page. We only return here when the user
+    // dismisses checkout without paying (openRazorpayPayment rejects in that case).
+    await openRazorpayPayment({ order, razorpay });
   };
 
   const handlePlaceOrder = async () => {
@@ -658,9 +790,38 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
           </h1>
         </div>
 
-        {(error || paymentNotice || (checkoutIntent.checkout_type === 'buy_now' && !checkoutIntent.product_size_id)) ? (
-          <div className="mb-5 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700">
-            {error || paymentNotice || 'Buy now checkout is missing a selected product size.'}
+
+        {pendingPaymentOrderId ? (
+          <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <p className="font-bold">Waiting for payment confirmation</p>
+            <p className="mt-1 font-semibold leading-6">
+              If you paid through a UPI app (Google Pay, PhonePe, Paytm), return here after the payment
+              completes. We will confirm it automatically — or tap the button below to check now.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleManualPendingCheck}
+                disabled={checkingPendingPayment}
+                className="inline-flex h-10 items-center justify-center rounded-full bg-gray-950 px-5 text-xs font-bold text-white transition hover:bg-gray-800 disabled:opacity-50"
+              >
+                {checkingPendingPayment ? (
+                  <LoadingLabel spinnerClassName="border-white border-t-transparent">
+                    Checking...
+                  </LoadingLabel>
+                ) : (
+                  "I've completed payment"
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={dismissPendingPayment}
+                disabled={checkingPendingPayment}
+                className="inline-flex h-10 items-center justify-center rounded-full border border-amber-300 bg-white px-5 text-xs font-bold text-amber-900 transition hover:border-amber-500 disabled:opacity-50"
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
         ) : null}
 
@@ -777,7 +938,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
         onSubmit={handleSubmitCodOtp}
       />
 
-      {toast ? <Toast message={toast.message} type={toast.type} /> : null}
+      {toast && toast.type !== 'error' ? <Toast message={toast.message} type={toast.type} /> : null}
     </div>
   );
 }
@@ -855,8 +1016,6 @@ function CodOtpDialog({ open, phone, otp, error, loading, onOtpChange, onClose, 
           className="mt-2 h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-center text-xl font-extrabold tracking-[0.45em] text-gray-950 outline-none transition placeholder:tracking-normal focus:border-gray-950 disabled:opacity-60"
           placeholder="000000"
         />
-        {error ? <p className="mt-2 text-sm font-semibold text-red-600">{error}</p> : null}
-
         <div className="mt-5 flex gap-2">
           <button
             type="button"
@@ -1178,44 +1337,63 @@ function SavedAddressCard({
   onDeleteAddress,
   onSetDefaultAddress,
 }) {
+  const isUpdating = addressActionId === address.id;
+
+  const handleSelect = () => {
+    if (isUpdating) return;
+    onSelectAddress(String(address.id));
+    if (!address.is_default) {
+      onSetDefaultAddress(address.id);
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleSelect();
+    }
+  };
+
   return (
-    <div className={`rounded-2xl border bg-white p-3 transition ${isSelected ? 'border-gray-950' : 'border-gray-200'}`}>
+    <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={isSelected}
+      onClick={handleSelect}
+      onKeyDown={handleKeyDown}
+      className={`cursor-pointer rounded-2xl border bg-white p-3 transition ${isSelected ? 'border-gray-950' : 'border-gray-200 hover:border-gray-400'}`}
+    >
       <div className="flex items-start gap-3">
-        <button
-          type="button"
-          onClick={() => onSelectAddress(String(address.id))}
+        <span
+          aria-hidden="true"
           className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${isSelected ? 'border-gray-950 bg-gray-950' : 'border-gray-300 bg-white'}`}
-          aria-label={`Select ${address.name} address`}
         >
           {isSelected ? <span className="h-2 w-2 rounded-full bg-white" /> : null}
-        </button>
+        </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => onSelectAddress(String(address.id))} className="text-left text-sm font-extrabold text-gray-950">
-              {address.name}
-            </button>
+            <span className="text-left text-sm font-extrabold text-gray-950">{address.name}</span>
             {address.address_type ? (
               <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-700">
                 {address.address_type}
               </span>
             ) : null}
+            {address.is_default ? (
+              <span className="rounded-full bg-gray-950 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                Default
+              </span>
+            ) : null}
+            {isUpdating ? <LoadingLabel className="text-[10px] font-bold text-gray-500">Setting default...</LoadingLabel> : null}
           </div>
           <p className="mt-2 text-xs leading-5 text-gray-600">{getAddressText(address)}</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {!address.is_default ? (
-              <button
-                type="button"
-                onClick={() => onSetDefaultAddress(address.id)}
-                disabled={addressActionId === address.id}
-                className="rounded-full border border-gray-200 px-3 py-1 text-xs font-bold text-gray-700 transition hover:border-gray-950 hover:text-gray-950 disabled:opacity-50"
-              >
-                {addressActionId === address.id ? <LoadingLabel>Setting...</LoadingLabel> : 'Set default'}
-              </button>
-            ) : null}
             <button
               type="button"
-              onClick={() => onEditAddress(address)}
-              disabled={addressActionId === address.id}
+              onClick={(event) => {
+                event.stopPropagation();
+                onEditAddress(address);
+              }}
+              disabled={isUpdating}
               className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1 text-xs font-bold text-gray-700 transition hover:border-gray-950 hover:text-gray-950 disabled:opacity-50"
             >
               <Edit3 className="h-3 w-3" />
@@ -1223,8 +1401,11 @@ function SavedAddressCard({
             </button>
             <button
               type="button"
-              onClick={() => onDeleteAddress(address.id)}
-              disabled={addressActionId === address.id}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDeleteAddress(address.id);
+              }}
+              disabled={isUpdating}
               className="inline-flex items-center gap-1 rounded-full border border-red-100 px-3 py-1 text-xs font-bold text-red-700 transition hover:border-red-300 disabled:opacity-50"
             >
               <Trash2 className="h-3 w-3" />
@@ -1296,25 +1477,17 @@ function AddressForm({
         placeholder="Area / Locality / Landmark (optional)"
         className="sm:col-span-2"
       />
-      <AddressInput
-        id="address-city"
-        label="City"
-        value={addressForm.city}
-        onChange={(value) => onAddressFieldChange('city', value)}
-        error={addressFormErrors.city}
-        required
-      />
-      <AddressInput
-        id="address-state"
-        label="State"
-        value={addressForm.state}
-        onChange={(value) => onAddressFieldChange('state', value)}
-        error={addressFormErrors.state}
-        required
+      <AddressRegionFields
+        state={addressForm.state}
+        city={addressForm.city}
+        onStateChange={(value) => onAddressFieldChange('state', value)}
+        onCityChange={(value) => onAddressFieldChange('city', value)}
+        stateError={addressFormErrors.state}
+        cityError={addressFormErrors.city}
       />
       <AddressInput
         id="address-postal-code"
-        label="Postal code"
+        label="Pin code"
         icon={MapPin}
         inputMode="numeric"
         maxLength={6}
@@ -1323,14 +1496,20 @@ function AddressForm({
         error={addressFormErrors.postal_code}
         required
       />
-      <AddressInput
-        id="address-country"
-        label="Country"
-        value={addressForm.country}
-        onChange={(value) => onAddressFieldChange('country', value)}
-        error={addressFormErrors.country}
-        required
-      />
+      <AddressField label="Country" htmlFor="address-country">
+        <div className="flex h-11 w-full min-w-0 items-center gap-2.5 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-600">
+          <MapPin className="h-[18px] w-[18px] shrink-0 text-gray-400" aria-hidden />
+          <input
+            id="address-country"
+            type="text"
+            value="India"
+            readOnly
+            aria-readonly="true"
+            tabIndex={-1}
+            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm leading-none outline-none ring-0 focus:ring-0"
+          />
+        </div>
+      </AddressField>
       <AddressInput
         id="address-landmark"
         label="Landmark"
@@ -1389,7 +1568,6 @@ function AddressField({ label, error, className = '', children, htmlFor }) {
         <span className="block text-xs font-bold uppercase tracking-wide text-gray-500">{label}</span>
       )}
       <div className="min-w-0">{children}</div>
-      {error ? <p className="text-xs font-semibold text-red-600">{error}</p> : null}
     </div>
   );
 }

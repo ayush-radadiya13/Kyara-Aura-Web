@@ -1,6 +1,7 @@
 'use client';
 
-import { ReceiptText } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, ReceiptText } from 'lucide-react';
 import { formatInr, formatInrDiscount } from '@/lib/cart/format';
 import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
 
@@ -53,6 +54,11 @@ export default function OrderSummary({
   className = '',
 }) {
   const hasSummary = Boolean(summary);
+  const [open, setOpen] = useState(true);
+
+  // The breakdown can be collapsed only once a summary exists; loading and
+  // empty/guidance states stay visible so the user always sees what to do next.
+  const showBody = open || !hasSummary;
 
   return (
     <section
@@ -60,7 +66,12 @@ export default function OrderSummary({
         compact ? 'p-4' : 'p-4 sm:p-5'
       } ${className}`}
     >
-      <div className="flex shrink-0 items-center justify-between gap-3">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={showBody}
+        className="flex w-full shrink-0 items-center justify-between gap-3 text-left"
+      >
         <div className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-950">
             <ReceiptText className="h-4 w-4" />
@@ -69,12 +80,20 @@ export default function OrderSummary({
             {title}
           </h2>
         </div>
-        {loading ? (
-          <LoadingLabel className="text-xs font-bold text-gray-500">Updating...</LoadingLabel>
-        ) : null}
-      </div>
+        <div className="flex items-center gap-2">
+          {loading ? (
+            <LoadingLabel className="text-xs font-bold text-gray-500">Updating...</LoadingLabel>
+          ) : null}
+          {hasSummary ? (
+            <ChevronDown
+              className={`h-5 w-5 shrink-0 text-gray-500 transition-transform ${showBody ? 'rotate-180' : ''}`}
+              aria-hidden="true"
+            />
+          ) : null}
+        </div>
+      </button>
 
-      {loading && !hasSummary ? (
+      {!showBody ? null : loading && !hasSummary ? (
         <LoaderBlock className="mt-4 rounded-2xl border border-gray-100 py-8" />
       ) : !hasSummary && emptyMessage ? (
         <p className="mt-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 p-4 text-sm font-medium leading-6 text-gray-600">

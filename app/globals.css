@@ -471,3 +471,38 @@ body {
     margin-inline: auto;
   }
 }
+
+@keyframes tracking-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tracking-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tracking-overlay {
+  animation: tracking-overlay-in 0.25s ease-out both;
+}
+
+.tracking-panel {
+  animation: tracking-panel-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tracking-overlay,
+  .tracking-panel {
+    animation: none;
+  }
+}

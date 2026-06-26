@@ -1,7 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, ShieldCheck, ShoppingBag, Trash2, XCircle } from 'lucide-react';
+import { Heart, ShieldCheck, Trash2 } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
 import {
@@ -11,7 +12,6 @@ import {
 } from '@/hooks/use-wishlist';
 import { APP_ROUTES, AUTH_PAGE_ROUTES, withRedirect } from '@/lib/routes';
 import { useAuthStore } from '@/store/auth-store';
-import { getApiErrorMessage } from '@/utils/api-error';
 
 export default function WishlistPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -25,14 +25,6 @@ export default function WishlistPage() {
   const items = wishlistQuery.data ?? [];
   const isLoading = !isHydrated || (isAuthenticated && wishlistQuery.isLoading);
   const actionItemId = deleteWishlistItem.variables ?? null;
-  const error =
-    wishlistQuery.isError
-      ? getApiErrorMessage(wishlistQuery.error, 'Unable to load your wishlist.')
-      : deleteWishlistItem.isError
-        ? getApiErrorMessage(deleteWishlistItem.error, 'Unable to remove this item.')
-        : clearWishlist.isError
-          ? getApiErrorMessage(clearWishlist.error, 'Unable to clear your wishlist.')
-          : '';
 
   const handleRemove = async (item) => {
     if (!item?.wishlistItemId && !item?.id) return;
@@ -85,15 +77,8 @@ export default function WishlistPage() {
   }
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
-      <WishlistHero count={items.length} />
-
-      {error ? (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-          <XCircle className="mt-0.5 h-5 w-5 shrink-0" />
-          <span>{error}</span>
-        </div>
-      ) : null}
+    <section className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
+      {items.length ? <WishlistHero count={items.length} /> : null}
 
       {items.length ? (
         <>
@@ -190,19 +175,23 @@ function WishlistHero({ count }) {
 
 function EmptyWishlist() {
   return (
-    <div className="      p-10 text-center ">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#fbfaf7] text-[#4f3128]">
-        <ShoppingBag className="h-8 w-8" />
-      </div>
-      <h2 className="mt-5 text-2xl font-bold text-gray-950">Your wishlist is empty.</h2>
+    <div className="flex flex-col items-center px-4 py-10 text-center sm:px-10">
+      <Image
+        src="/assets/empty-wishlist.png"
+        alt="Your wishlist is empty"
+        width={220}
+        height={220}
+        className="h-auto w-40 max-w-[55vw] sm:w-52"
+      />
+      <h2 className="mt-5 text-xl font-bold text-gray-950 sm:text-2xl">Your wishlist is empty.</h2>
       <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-600">
         Tap the heart on any product to save it here for later.
       </p>
       <Link
         href={APP_ROUTES.PRODUCTS}
-        className="mt-7 inline-flex h-12 items-center justify-center bg-gray-950 px-7 text-sm font-bold text-white transition hover:bg-gray-800"
+        className="mt-7 inline-flex h-11 items-center justify-center rounded-full border border-gray-950 bg-transparent px-8 text-sm font-semibold text-gray-950 transition hover:bg-gray-950 hover:text-white"
       >
-        Explore Products
+        Continue Shopping
       </Link>
     </div>
   );

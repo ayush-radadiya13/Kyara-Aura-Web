@@ -10,6 +10,7 @@ const HIDDEN_FOOTER_ROUTES = new Set([
   '/orders',
   '/cart',
   '/payment-method',
+  '/wishlist',
 ]);
 
 export default function ConditionalFooter() {

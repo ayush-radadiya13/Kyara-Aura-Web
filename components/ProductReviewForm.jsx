@@ -106,10 +106,6 @@ export default function ProductReviewForm({ productId, onSuccess }) {
         className="w-full resize-none border-b border-gray-300 bg-transparent py-3 text-sm outline-none placeholder:text-gray-400"
       />
 
-      {error && (
-        <p className="text-sm text-red-600">{error}</p>
-      )}
-
       {successMessage && (
         <p className="text-sm text-green-700">{successMessage}</p>
       )}

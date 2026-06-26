@@ -2,13 +2,12 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Phone, ShieldCheck, User, UserRound, XCircle } from 'lucide-react';
+import { Mail, Phone, ShieldCheck, User, UserRound } from 'lucide-react';
 import { useProfile } from '@/hooks/auth';
 import AuthSplitLayout from '@/components/auth/AuthSplitLayout';
 import { LoaderBlock } from '@/components/ui/loader';
 import { APP_ROUTES, AUTH_PAGE_ROUTES, withRedirect } from '@/lib/routes';
 import { useAuthStore } from '@/store/auth-store';
-import { getApiErrorMessage } from '@/utils/api-error';
 
 export default function UserProfile() {
   const router = useRouter();
@@ -26,17 +25,6 @@ export default function UserProfile() {
     return (
       <section className="mx-auto w-full max-w-3xl px-4 py-12">
         <LoaderBlock />
-      </section>
-    );
-  }
-
-  if (profileQuery.isError) {
-    return (
-      <section className="mx-auto w-full max-w-3xl px-4 py-12">
-        <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-          <XCircle className="mt-0.5 h-5 w-5 shrink-0" />
-          <span>{getApiErrorMessage(profileQuery.error, 'Unable to load your profile.')}</span>
-        </div>
       </section>
     );
   }

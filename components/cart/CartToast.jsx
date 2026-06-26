@@ -2,6 +2,9 @@ import { CircleCheck, Info, XCircle } from 'lucide-react';
 
 export default function CartToast({ message, type = 'info' }) {
   const isError = type === 'error';
+  if (isError) {
+    return null;
+  }
   const isSuccess = type === 'success';
   const Icon = isError ? XCircle : isSuccess ? CircleCheck : Info;
   const iconClassName = isError

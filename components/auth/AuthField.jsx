@@ -68,7 +68,6 @@ export default function AuthField({
             </label>
           ))}
         </div>
-        {error ? <p className="text-xs text-red-600">{error}</p> : null}
       </div>
     );
   }
@@ -100,7 +99,6 @@ export default function AuthField({
             error && 'bg-red-50 ring-2 ring-red-200 focus-within:ring-red-200',
           )}
         />
-        {error ? <p className="text-xs text-red-600">{error}</p> : null}
       </div>
     );
   }
@@ -150,7 +148,6 @@ export default function AuthField({
           </button>
         ) : null}
       </div>
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
     </div>
   );
 }

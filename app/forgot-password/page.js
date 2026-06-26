@@ -86,18 +86,7 @@ export default function ForgotPasswordPage() {
                       onChange={setPhone}
                       className="h-11 w-full rounded border border-gray-300 text-sm outline-none transition focus-within:border-gray-950"
                     />
-                    {fieldError ? (
-                      <p className="mt-1 text-sm text-red-600" role="alert">
-                        {fieldError}
-                      </p>
-                    ) : null}
                   </div>
-
-                  {error ? (
-                    <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-                      {error}
-                    </p>
-                  ) : null}
 
                   {successMessage ? (
                     <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-800" role="status">

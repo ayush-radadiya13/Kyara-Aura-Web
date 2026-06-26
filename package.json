@@ -21,6 +21,7 @@
     "next": "16.2.6",
     "next-scratchcard": "^0.0.4",
     "react": "19.2.4",
+    "react-country-state-city": "^1.1.13",
     "react-dom": "19.2.4",
     "shadcn": "^4.7.0",
     "sonner": "^2.0.7",

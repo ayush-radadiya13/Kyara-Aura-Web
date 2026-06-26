@@ -94,14 +94,6 @@ export default function CartLoginPanel({ fieldKeys, redirectTo = '/cart' }) {
           />
         ))}
 
-        {formError ? (
-          <p
-            className="rounded bg-red-50 px-3 py-2 text-sm text-red-700"
-            role="alert"
-          >
-            {formError}
-          </p>
-        ) : null}
 
         <button
           type="submit"

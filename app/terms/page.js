@@ -3,22 +3,22 @@ import Header from '@/components/Header';
 export const metadata = {
   title: 'Terms and Conditions | Kayra Aura',
   description:
-    'Review Kayra Aura terms and conditions for purchasing and using Gold Plated Bangles for Women.',
+    'Review Kayra Aura terms and conditions for purchasing and using imitation jewellery.',
 };
 
 const termsSections = [
   {
     title: 'Product Information',
     items: [
-      'Our bangles are gold plated fashion jewellery, not solid gold.',
+      'We sell imitation (fashion) jewellery only, not solid gold, silver, or precious metals.',
       'Product images are for representation purposes only. Actual color, shine, size, or design may vary slightly due to lighting, plating processes, or screen settings.',
-      'Minor variations or imperfections are normal in fashion jewellery and do not indicate defects.',
+      'Minor variations or imperfections are normal in imitation jewellery and do not indicate defects.',
     ],
   },
   {
     title: 'Usage and Care Disclaimer',
     items: [
-      'Gold plating may fade over time depending on usage, storage, and exposure to moisture, perfume, sweat, or chemicals.',
+      'The plating or finish may fade over time depending on usage, storage, and exposure to moisture, perfume, sweat, or chemicals.',
       'Avoid contact with water, cosmetics, perfumes, and cleaning agents.',
       'We are not responsible for damage caused by improper use, storage, or care.',
     ],
@@ -26,7 +26,7 @@ const termsSections = [
   {
     title: 'Pricing and Availability',
     items: [
-      'All bangles are subject to availability.',
+      'All products are subject to availability.',
       'Prices may change without prior notice.',
       'We reserve the right to limit quantities per order or cancel orders due to stock or pricing issues.',
     ],
@@ -51,9 +51,12 @@ const termsSections = [
   {
     title: 'Returns and Exchanges',
     items: [
-      'Returns or exchanges are accepted only as per our Return and Refund Policy.',
-      'For hygiene and safety reasons, worn or damaged bangles are not eligible for return.',
-      'Manufacturing defects must be reported within the specified timeframe with clear photos or videos where requested.',
+      'Returns are accepted only as per our Return and Refund Policy.',
+      'A return can be requested within 3 days of receiving the order, and the product must be unused, in its original condition, and returned with all original packaging and accessories.',
+      'Customers must upload clear images of the product when submitting a return request.',
+      'At the time of delivery, please open and inspect the package in front of the delivery person and report any issue immediately.',
+      'The returned product must include all items originally delivered. If any item is missing or the product is damaged or used, the return or refund may be rejected.',
+      'Refunds are processed only after the returned product passes our quality inspection.',
     ],
   },
   {
@@ -115,9 +118,9 @@ export default function TermsPage() {
               Terms and Conditions
             </h1>
             <p className="mt-5">
-              These Terms and Conditions apply to the purchase and use of Gold Plated Bangles
-              for Women sold on Kayra Aura. By accessing or purchasing from our website, you
-              agree to comply with the following terms.
+              These Terms and Conditions apply to the purchase and use of imitation jewellery
+              sold on Kayra Aura. By accessing or purchasing from our website, you agree to
+              comply with the following terms.
             </p>
           </header>
 
@@ -139,8 +142,8 @@ export default function TermsPage() {
               <h2 className="text-base font-semibold text-gray-900">Contact Us</h2>
               <p className="mt-3">
                 For questions about these terms, please contact us at{' '}
-                <a className="font-medium text-gray-900 underline" href="mailto:support@kayraaura.com">
-                  support@kayraaura.com
+                <a className="font-medium text-gray-900 underline" href="mailto:kayraaura4u@gmail.com">
+                  kayraaura4u@gmail.com
                 </a>
                 .
               </p>

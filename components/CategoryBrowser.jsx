@@ -30,7 +30,7 @@ export default function CategoryBrowser({
           <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-gold">
             Customer Favorites
           </p>
-          <h2 className="font-display text-xl font-light text-gray-950 sm:text-2xl">
+          <h2 className="font-display text-2xl font-light text-gray-950 sm:text-3xl">
             Best Seller
           </h2>
         </div>

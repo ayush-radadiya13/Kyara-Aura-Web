@@ -103,23 +103,27 @@ export default function CartDrawer({ open, onClose, isLoading = false, error = '
         </div>
 
         <div className="flex-1 overflow-y-auto px-4" data-lenis-prevent>
-          {(error || actionError) && (
-            <p className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-base text-red-700">
-              {error || actionError}
-            </p>
-          )}
-
           {isLoading && items.length === 0 ? (
             <LoaderBlock className="py-8" />
           ) : items.length === 0 ? (
-            <div className="py-10 text-center">
-              <p className="text-base text-gray-600">Your bag is empty.</p>
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <Image
+                src="/assets/empty-cart.png"
+                alt="Your bag is empty"
+                width={180}
+                height={180}
+                className="h-auto w-32 max-w-[45vw] sm:w-40"
+              />
+              <h2 className="mt-5 text-xl font-bold text-gray-950 sm:text-2xl">Your bag is empty.</h2>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-600">
+                Browse our collection and add your favorite pieces to your bag.
+              </p>
               <Link
                 href={APP_ROUTES.PRODUCTS}
-                className="mt-3 inline-block text-base font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+                className="mt-5 inline-flex h-11 items-center justify-center rounded-lg border border-gray-950 bg-transparent px-8 text-sm font-semibold text-gray-950 transition hover:bg-gray-950 hover:text-white"
                 onClick={onClose}
               >
-                Continue shopping
+                Continue Shopping
               </Link>
             </div>
           ) : (

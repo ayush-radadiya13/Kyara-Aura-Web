@@ -2,7 +2,6 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import {
   LocateFixed,
@@ -13,9 +12,10 @@ import {
 } from 'lucide-react';
 import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
 import IndianPhoneInput from '@/components/ui/indian-phone-input';
+import OrderTrackingModal from '@/components/order/OrderTrackingModal';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { INDIAN_PHONE_PATTERN, sanitizeIndianPhoneDigits } from '@/lib/phone';
-import { APP_ROUTES, AUTH_PAGE_ROUTES, withRedirect } from '@/lib/routes';
+import { APP_ROUTES } from '@/lib/routes';
 import { cancelOrderApi, downloadOrderInvoiceApi, getOrderDetailApi, getOrdersApi, returnOrderApi, returnOrderPreviewApi } from '@/services/checkout';
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
@@ -81,7 +81,6 @@ function mapReturnApiErrors(apiErrors) {
 }
 
 export default function MyOrders() {
-  const router = useRouter();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isHydrated = useAuthStore((state) => state.isHydrated);
   const [orders, setOrders] = useState([]);
@@ -104,6 +103,8 @@ export default function MyOrders() {
   const [returnPreviewLoading, setReturnPreviewLoading] = useState(false);
   const [returnPreview, setReturnPreview] = useState(null);
   const [returnItemsError, setReturnItemsError] = useState('');
+  const [trackOrder, setTrackOrder] = useState(null);
+  const [trackLoading, setTrackLoading] = useState(false);
 
   async function loadOrderDetail(orderId) {
     setDetailLoading(true);
@@ -120,7 +121,14 @@ export default function MyOrders() {
   }
 
   useEffect(() => {
-    if (!isHydrated || !isAuthenticated) return undefined;
+    if (!isHydrated) return undefined;
+
+    if (!isAuthenticated) {
+      setOrders([]);
+      setSelectedOrder(null);
+      setLoading(false);
+      return undefined;
+    }
 
     let isCurrent = true;
 
@@ -151,11 +159,26 @@ export default function MyOrders() {
     };
   }, [isAuthenticated, isHydrated]);
 
-  useEffect(() => {
-    if (isHydrated && !isAuthenticated) {
-      router.replace(withRedirect(AUTH_PAGE_ROUTES.LOGIN, APP_ROUTES.ORDERS));
+  const handleTrackOrder = async (order) => {
+    if (!order?.id) return;
+
+    setTrackOrder(order);
+    setTrackLoading(true);
+
+    try {
+      const orderDetail = await getOrderDetailApi(order.id);
+      setTrackOrder((current) => (current?.id === order.id ? orderDetail : current));
+    } catch {
+      // Keep the order data we already have if the refresh fails.
+    } finally {
+      setTrackLoading(false);
     }
-  }, [isAuthenticated, isHydrated, router]);
+  };
+
+  const closeTrackModal = () => {
+    setTrackOrder(null);
+    setTrackLoading(false);
+  };
 
   const handleCancelOrder = (orderId) => {
     setCancelOrderId(orderId);
@@ -443,7 +466,7 @@ export default function MyOrders() {
     }
   };
 
-  if (!isHydrated || !isAuthenticated || loading) {
+  if (!isHydrated || (isAuthenticated && loading)) {
     return (
       <section className="mx-auto max-w-6xl px-4 py-12">
         <LoaderBlock />
@@ -457,11 +480,20 @@ export default function MyOrders() {
       {notice ? <Message tone="success" message={notice} /> : null}
 
       {orders.length === 0 ? (
-        <div className="rounded-[2rem] border border-dashed border-gray-300 bg-white p-10 text-center">
-          <PackageCheck className="mx-auto h-12 w-12 text-[#4f3128]" />
-          <p className="mt-4 text-lg font-bold text-gray-950">No orders found.</p>
-          <Link href={APP_ROUTES.PRODUCTS} className="mt-4 inline-flex h-11 items-center justify-center bg-gray-950 px-5 text-sm font-bold text-white">
-            Start Shopping
+        <div className="flex flex-col items-center rounded-[2rem] px-4 py-10 text-center sm:p-10">
+          <Image
+            src="/assets/orders.png"
+            alt="No orders found"
+            width={220}
+            height={220}
+            className="h-auto w-40 max-w-[55vw] sm:w-52"
+          />
+          <h2 className="mt-5 text-xl font-bold text-gray-950 sm:text-2xl">No orders yet.</h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-600">
+            Once you place an order, it will appear here so you can track it anytime.
+          </p>
+          <Link href={APP_ROUTES.PRODUCTS} className="mt-4 inline-flex h-11 items-center justify-center rounded-full border border-gray-950 bg-transparent px-8 text-sm font-semibold text-gray-950 transition hover:bg-gray-950 hover:text-white">
+            Continue Shopping
           </Link>
         </div>
       ) : (
@@ -480,6 +512,7 @@ export default function MyOrders() {
                   loading={actionOrderId === order.id}
                   invoiceLoading={invoiceDownloadOrderId === order.id}
                   onView={() => loadOrderDetail(order.id)}
+                  onTrack={() => handleTrackOrder(order)}
                   onDownloadInvoice={() => handleDownloadInvoice(order)}
                   onCancel={() => handleCancelOrder(order.id)}
                   onReturn={() => handleReturnOrder(order)}
@@ -493,7 +526,7 @@ export default function MyOrders() {
               <LoaderBlock className="min-h-[360px] rounded-[1.25rem] border border-gray-100 py-0" />
             ) : selectedOrder ? (
               <OrderDetailScrollContainer>
-                <OrderDetail order={selectedOrder} />
+                <OrderDetail order={selectedOrder} onTrack={() => handleTrackOrder(selectedOrder)} />
               </OrderDetailScrollContainer>
             ) : (
               <div className="flex min-h-[360px] items-center justify-center rounded-[1.25rem] border border-dashed border-gray-200 text-center">
@@ -546,6 +579,12 @@ export default function MyOrders() {
         onProductImageChange={updateReturnProductImage}
         onClose={closeReturnFlow}
         onSubmit={submitReturnOrder}
+      />
+      <OrderTrackingModal
+        open={Boolean(trackOrder)}
+        loading={trackLoading}
+        order={trackOrder}
+        onClose={closeTrackModal}
       />
     </section>
   );
@@ -1159,7 +1198,7 @@ function formatReturnDisplayStatus(status) {
   return labels[status] ?? formatShipmentStatus(status);
 }
 
-function OrderCard({ order, selected, loading, invoiceLoading, onView, onDownloadInvoice, onCancel, onReturn }) {
+function OrderCard({ order, selected, loading, invoiceLoading, onView, onTrack, onDownloadInvoice, onCancel, onReturn }) {
   const cancelled = isCancelledOrder(order);
   const canCancel = !cancelled && canCancelOrder(order);
   const canReturn = !cancelled && canReturnOrder(order);
@@ -1167,7 +1206,18 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onDownloa
   const returnDisplayStatus = getReturnDisplayStatus(order);
 
   return (
-    <article className={`w-[calc(100vw-2.25rem)] min-w-[calc(100vw-2.25rem)] rounded-[1.25rem] border bg-white p-2.5 shadow-[0_12px_34px_rgba(17,24,39,0.05)] sm:w-auto sm:min-w-0 sm:p-3 ${selected ? 'border-gray-950 ring-2 ring-gray-950/10' : 'border-gray-100'}`}>
+    <article
+      role="button"
+      tabIndex={0}
+      onClick={onView}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onView();
+        }
+      }}
+      className={`w-[calc(100vw-2.25rem)] min-w-[calc(100vw-2.25rem)] cursor-pointer rounded-[1.25rem] border bg-white p-2.5 shadow-[0_12px_34px_rgba(17,24,39,0.05)] transition hover:border-gray-300 sm:w-auto sm:min-w-0 sm:p-3 ${selected ? 'border-gray-950 ring-2 ring-gray-950/10' : 'border-gray-100'}`}
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-wide text-gray-400">Order number</p>
@@ -1185,7 +1235,7 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onDownloa
         </div>
         <p className="shrink-0 text-sm font-bold text-gray-950 sm:text-base">{formatMoney(order.total_amount)}</p>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-2" onClick={(event) => event.stopPropagation()}>
         <button type="button" onClick={onView} className="h-8 rounded-full bg-gray-950 px-3 text-[0.68rem] font-bold text-white transition hover:bg-gray-800 sm:h-9 sm:px-3.5 sm:text-xs">
           View details
         </button>
@@ -1206,24 +1256,13 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onDownloa
           </button>
         ) : null}
         {!cancelled ? (
-          order?.shipment?.courier_tracking_url ? (
-            <a
-              href={order.shipment.courier_tracking_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-8 items-center justify-center rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 sm:h-9 sm:px-3.5 sm:text-xs"
-            >
-              Track Order
-            </a>
-          ) : (
-            <button
-              type="button"
-              disabled
-              className="h-8 cursor-not-allowed rounded-full border border-gray-100 px-3 text-[0.68rem] font-bold text-gray-400 sm:h-9 sm:px-3.5 sm:text-xs"
-            >
-              Track Order
-            </button>
-          )
+          <button
+            type="button"
+            onClick={onTrack}
+            className="inline-flex h-8 items-center justify-center rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 sm:h-9 sm:px-3.5 sm:text-xs"
+          >
+            Track Order
+          </button>
         ) : null}
         {canCancel ? (
           <button type="button" onClick={onCancel} disabled={loading} className="h-8 rounded-full border border-red-100 px-3 text-[0.68rem] font-bold text-red-700 transition hover:border-red-300 disabled:opacity-50 sm:h-9 sm:px-3.5 sm:text-xs">
@@ -1328,7 +1367,7 @@ function OrderDetailScrollContainer({ children }) {
   );
 }
 
-function OrderDetail({ order }) {
+function OrderDetail({ order, onTrack }) {
   const items = getOrderItems(order);
   const orderDate = formatDate(order.order_date ?? order.created_at ?? order.createdAt);
   const estimatedDelivery = formatDate(getEstimatedDeliveryDate(order));
@@ -1355,42 +1394,32 @@ function OrderDetail({ order }) {
 
           {!cancelled ? (
             <div className="flex flex-row gap-2 lg:shrink-0">
-              {shipment?.courier_tracking_url ? (
-                <a
-                  href={shipment.courier_tracking_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-gray-950 px-3.5 text-xs font-bold text-white transition hover:bg-gray-800"
-                >
-                  Track order
-                  <LocateFixed className="h-4 w-4" />
-                </a>
-              ) : (
-                <button
-                  type="button"
-                  disabled
-                  className="inline-flex h-9 cursor-not-allowed items-center justify-center gap-2 rounded-full bg-gray-200 px-3.5 text-xs font-bold text-gray-500"
-                >
-                  Track order
-                  <LocateFixed className="h-4 w-4" />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={onTrack}
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-gray-950 px-3.5 text-xs font-bold text-white transition hover:bg-gray-800"
+              >
+                Track order
+                <LocateFixed className="h-4 w-4" />
+              </button>
             </div>
           ) : null}
         </div>
 
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className={`mt-3 grid gap-3 ${cancelled ? '' : 'sm:grid-cols-2'}`}>
           <div className="rounded-xl bg-white p-2.5 ring-1 ring-gray-100">
             <p className="text-[0.68rem] font-bold uppercase tracking-wide text-gray-400">Order date</p>
             <p className="mt-1 text-sm font-semibold text-gray-800">{orderDate}</p>
           </div>
-          <div className="rounded-xl bg-white p-2.5 ring-1 ring-gray-100">
-            <p className="flex items-center gap-2 text-[0.68rem] font-bold uppercase tracking-wide text-gray-400">
-              <Plane className="h-4 w-4 text-gray-950" />
-              Estimated delivery
-            </p>
-            <p className="mt-1 text-sm font-semibold text-gray-800">{estimatedDelivery}</p>
-          </div>
+          {!cancelled ? (
+            <div className="rounded-xl bg-white p-2.5 ring-1 ring-gray-100">
+              <p className="flex items-center gap-2 text-[0.68rem] font-bold uppercase tracking-wide text-gray-400">
+                <Plane className="h-4 w-4 text-gray-950" />
+                Estimated delivery
+              </p>
+              <p className="mt-1 text-sm font-semibold text-gray-800">{estimatedDelivery}</p>
+            </div>
+          ) : null}
         </div>
       </div>
 

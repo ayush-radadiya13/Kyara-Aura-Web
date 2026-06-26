@@ -31,7 +31,7 @@ export default function Footer() {
 
   return (
     <footer className="bg-[#eee9e1] text-black">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:grid-cols-2 lg:grid-cols-[1.15fr_0.8fr_0.8fr_1.15fr] lg:px-8 lg:py-20">
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-8 sm:grid-cols-2 lg:grid-cols-[1.15fr_0.8fr_0.8fr_1.15fr] lg:px-8 lg:py-8">
         <div>
           <Link href="/" className="relative block h-12 w-40 overflow-hidden rounded-full transition-opacity hover:opacity-80 sm:w-48">
             <Image
@@ -113,6 +113,12 @@ export default function Footer() {
           >
             View Collections
           </Link>
+        </div>
+      </div>
+
+      <div className="border-t border-black/10">
+        <div className="mx-auto max-w-7xl px-6 py-4 text-center text-sm text-black lg:px-8">
+          &copy; {new Date().getFullYear()} Kayra Aura. All Rights Reserved.
         </div>
       </div>
     </footer>

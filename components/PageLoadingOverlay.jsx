@@ -26,7 +26,10 @@ export function PageLoadingOverlay({ className, spinnerClassName }) {
 export function PageLoadingFallback({ className, spinnerClassName }) {
   return (
     <PageLoadingOverlay
-      className={className}
+      className={cn(
+        "z-[300] bg-white backdrop-blur-none",
+        className,
+      )}
       spinnerClassName={spinnerClassName}
     />
   );

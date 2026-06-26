@@ -210,22 +210,27 @@ export default function CartBag({ checkoutSlot = null, itemsSubtotal = null }) {
         </div>
       )}
 
-      {(loadError || actionError) && (
-        <p className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {loadError || actionError}
-        </p>
-      )}
-
       {isLoading && items.length === 0 ? (
         <div className="mt-5 rounded-[1.5rem] border border-gray-200 bg-white py-12 text-center">
           <LoaderBlock className="py-0" />
         </div>
       ) : items.length === 0 ? (
-        <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-16 text-center sm:min-h-[55vh] sm:py-24">
-          <p className="text-base text-gray-600 sm:text-lg">Your cart is empty.</p>
+        <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8 text-center sm:min-h-[55vh] sm:py-12">
+          <Image
+            src="/assets/empty-cart.png"
+            alt="Your cart is empty"
+            width={220}
+            height={220}
+            className="h-auto w-40 max-w-[55vw] sm:w-52"
+            priority
+          />
+          <h2 className="mt-5 text-xl font-bold text-gray-950 sm:text-2xl">Your cart is empty.</h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-600">
+            Browse our collection and add your favorite pieces to your bag.
+          </p>
           <Link
             href={APP_ROUTES.PRODUCTS}
-            className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-gray-950 px-8 text-sm font-semibold text-white transition hover:bg-gray-800"
+            className="mt-6 inline-flex h-11 items-center justify-center rounded-full border border-gray-950 bg-transparent px-8 text-sm font-semibold text-gray-950 transition hover:bg-gray-950 hover:text-white"
           >
             Continue Shopping
           </Link>

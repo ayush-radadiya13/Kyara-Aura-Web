@@ -177,12 +177,6 @@ export default function AuthForm({
               </div>
             ) : null}
 
-            {formError ? (
-              <p className="rounded-none border-none bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-                {formError}
-              </p>
-            ) : null}
-
             <Button
               type="submit"
               variant="default"
