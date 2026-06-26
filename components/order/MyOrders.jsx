@@ -480,7 +480,7 @@ export default function MyOrders() {
       {notice ? <Message tone="success" message={notice} /> : null}
 
       {orders.length === 0 ? (
-        <div className="flex flex-col items-center rounded-[2rem] px-4 py-10 text-center sm:p-10">
+        <div className="flex flex-col items-center bg-white rounded-[2rem] px-4 py-10 text-center sm:p-10">
           <Image
             src="/assets/orders.png"
             alt="No orders found"

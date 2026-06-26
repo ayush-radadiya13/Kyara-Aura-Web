@@ -77,7 +77,7 @@ export default function WishlistPage() {
   }
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
+    <section className="mx-auto max-w-7xl bg-white px-4 py-4 sm:px-6 sm:py-6">
       {items.length ? <WishlistHero count={items.length} /> : null}
 
       {items.length ? (
