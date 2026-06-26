@@ -215,7 +215,7 @@ export default function CartBag({ checkoutSlot = null, itemsSubtotal = null }) {
           <LoaderBlock className="py-0" />
         </div>
       ) : items.length === 0 ? (
-        <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8 text-center sm:min-h-[55vh] sm:py-12">
+        <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-4 text-center sm:min-h-[55vh] sm:py-6">
           <Image
             src="/assets/empty-cart.png"
             alt="Your cart is empty"

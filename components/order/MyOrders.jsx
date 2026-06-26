@@ -474,13 +474,21 @@ export default function MyOrders() {
     );
   }
 
+  const isEmpty = orders.length === 0;
+
   return (
-    <section className="mx-auto flex w-full max-w-7xl flex-col px-3 py-2 sm:px-4 lg:h-[calc(100vh-5rem)] lg:overflow-hidden lg:px-6">
+    <section
+      className={`flex w-full flex-col ${
+        isEmpty
+          ? 'min-h-[calc(100vh-2rem)] justify-center bg-white px-4 py-8'
+          : 'mx-auto max-w-7xl px-3 py-2 sm:px-4 lg:h-[calc(100vh-5rem)] lg:overflow-hidden lg:px-6'
+      }`}
+    >
       {error ? <Message tone="error" message={error} /> : null}
       {notice ? <Message tone="success" message={notice} /> : null}
 
       {orders.length === 0 ? (
-        <div className="flex flex-col items-center bg-white rounded-[2rem] px-4 py-10 text-center sm:p-10">
+        <div className="flex flex-col items-center px-4 py-4 text-center sm:p-4">
           <Image
             src="/assets/orders.png"
             alt="No orders found"

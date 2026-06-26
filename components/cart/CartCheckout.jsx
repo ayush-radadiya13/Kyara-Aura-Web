@@ -55,7 +55,7 @@ export default function CartCheckout() {
 
   if (!hasItems) {
     return (
-      <div className="mx-auto w-full max-w-4xl bg-white px-4 py-4 sm:py-6">
+      <div className="flex min-h-[calc(100vh-2rem)] w-full flex-col justify-center bg-white px-4 py-4 sm:py-6">
         <CartBag />
       </div>
     );
@@ -65,7 +65,7 @@ export default function CartCheckout() {
 
   return (
     <div className="pb-28 lg:pb-6">
-      <div className="mx-auto w-full max-w-7xl  px-4 py-4 sm:py-6">
+      <div className="mx-auto w-full max-w-4xl px-4 py-4 sm:py-6">
         <CartBag checkoutSlot={checkoutSlot} itemsSubtotal={summary.itemsSubtotal} />
       </div>
 

@@ -77,7 +77,13 @@ export default function WishlistPage() {
   }
 
   return (
-    <section className="mx-auto max-w-7xl bg-white px-4 py-4 sm:px-6 sm:py-6">
+    <section
+      className={`bg-white ${
+        items.length
+          ? 'mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6'
+          : 'flex min-h-[calc(100vh-2rem)] w-full flex-col justify-center px-4 py-4 sm:px-6 sm:py-6'
+      }`}
+    >
       {items.length ? <WishlistHero count={items.length} /> : null}
 
       {items.length ? (
@@ -175,7 +181,7 @@ function WishlistHero({ count }) {
 
 function EmptyWishlist() {
   return (
-    <div className="flex flex-col items-center px-4 py-10 text-center sm:px-10">
+    <div className="flex flex-col items-center px-4 py-4 text-center sm:px-4">
       <Image
         src="/assets/empty-wishlist.png"
         alt="Your wishlist is empty"
@@ -191,7 +197,7 @@ function EmptyWishlist() {
         href={APP_ROUTES.PRODUCTS}
         className="mt-7 inline-flex h-11 items-center justify-center rounded-full border border-gray-950 bg-transparent px-8 text-sm font-semibold text-gray-950 transition hover:bg-gray-950 hover:text-white"
       >
-        Continue Shopping
+        Add to Wishlist
       </Link>
     </div>
   );
