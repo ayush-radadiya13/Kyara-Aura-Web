@@ -55,7 +55,7 @@ export default function CartCheckout() {
 
   if (!hasItems) {
     return (
-      <div className="flex min-h-[calc(100vh-2rem)] w-full flex-col justify-center bg-white px-4 py-4 sm:py-6">
+      <div className="fixed inset-0 z-30 flex w-full flex-col items-center justify-center bg-white px-4">
         <CartBag />
       </div>
     );

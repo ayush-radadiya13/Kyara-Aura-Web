@@ -478,10 +478,10 @@ export default function MyOrders() {
 
   return (
     <section
-      className={`flex w-full flex-col ${
+      className={`flex flex-col ${
         isEmpty
-          ? 'min-h-[calc(100vh-2rem)] justify-center bg-white px-4 py-8'
-          : 'mx-auto max-w-7xl px-3 py-2 sm:px-4 lg:h-[calc(100vh-5rem)] lg:overflow-hidden lg:px-6'
+          ? 'fixed inset-0 z-30 w-full items-center justify-center bg-white px-4'
+          : 'mx-auto w-full max-w-7xl px-3 py-2 sm:px-4 lg:h-[calc(100vh-5rem)] lg:overflow-hidden lg:px-6'
       }`}
     >
       {error ? <Message tone="error" message={error} /> : null}

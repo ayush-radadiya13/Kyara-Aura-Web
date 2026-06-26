@@ -10,7 +10,7 @@ export const metadata = noIndexMetadata({
 
 export default function WishlistRoutePage() {
   return (
-    <div className="flex min-h-screen flex-col bg-[#fbfaf7]">
+    <div className="flex min-h-[100dvh] flex-col bg-[#fbfaf7]">
       <Header />
       <main className="flex-1">
         <WishlistPage />

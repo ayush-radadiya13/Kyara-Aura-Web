@@ -61,9 +61,9 @@ export default function OrderTrackingModal({ open, loading, order, onClose }) {
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-4 top-7 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-gray-50 text-gray-500 transition hover:bg-gray-100 hover:text-gray-950 sm:top-4"
+          className="absolute right-3 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 leading-none text-gray-500 transition hover:bg-gray-100 hover:text-gray-950 sm:right-4 sm:top-4 sm:h-9 sm:w-9"
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5 sm:h-4 sm:w-4" strokeWidth={2.25} />
         </button>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-5 sm:px-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

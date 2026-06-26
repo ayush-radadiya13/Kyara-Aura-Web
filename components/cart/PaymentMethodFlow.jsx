@@ -1488,7 +1488,6 @@ function AddressForm({
       <AddressInput
         id="address-postal-code"
         label="Pin code"
-        icon={MapPin}
         inputMode="numeric"
         maxLength={6}
         value={addressForm.postal_code}
@@ -1498,7 +1497,6 @@ function AddressForm({
       />
       <AddressField label="Country" htmlFor="address-country">
         <div className="flex h-11 w-full min-w-0 items-center gap-2.5 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-600">
-          <MapPin className="h-[18px] w-[18px] shrink-0 text-gray-400" aria-hidden />
           <input
             id="address-country"
             type="text"
@@ -1513,7 +1511,6 @@ function AddressForm({
       <AddressInput
         id="address-landmark"
         label="Landmark"
-        icon={MapPin}
         value={addressForm.landmark}
         onChange={(value) => onAddressFieldChange('landmark', value)}
       />

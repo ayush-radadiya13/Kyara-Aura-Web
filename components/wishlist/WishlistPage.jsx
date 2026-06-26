@@ -81,7 +81,7 @@ export default function WishlistPage() {
       className={`bg-white ${
         items.length
           ? 'mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6'
-          : 'flex min-h-[calc(100vh-2rem)] w-full flex-col justify-center px-4 py-4 sm:px-6 sm:py-6'
+          : 'fixed inset-0 z-30 flex w-full flex-col items-center justify-center px-4'
       }`}
     >
       {items.length ? <WishlistHero count={items.length} /> : null}
