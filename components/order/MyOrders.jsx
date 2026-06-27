@@ -1634,8 +1634,14 @@ function OrderDetail({ order, onTrack }) {
         <div className="rounded-[1.1rem] border border-gray-200 p-3">
           <h3 className="text-base font-bold text-gray-950">Payment</h3>
           <div className="mt-3 space-y-1.5 text-sm">
-            <DeliveryField label="Method" value={getPaymentLabel(order)} />
-            <DeliveryField label="Status" value={formatOrderStatus(order.payment_status ?? 'pending')} />
+            <div className="flex items-center justify-between gap-4">
+              <span className="font-semibold text-gray-500">Method</span>
+              <span className="break-words text-right font-semibold text-gray-700">{getPaymentLabel(order)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="font-semibold text-gray-500">Status</span>
+              <span className="break-words text-right font-semibold capitalize text-gray-700">{formatOrderStatus(order.payment_status ?? 'pending')}</span>
+            </div>
           </div>
           <dl className="mt-4 space-y-1.5 text-xs">
             {amounts.itemsSubtotal > 0 ? <Amount label="Items Total" value={amounts.itemsSubtotal} /> : null}
@@ -1709,7 +1715,7 @@ function OrderItemRow({ item }) {
   const attributes = [item.color, item.variant, item.size_text ?? item.product_size?.size_text ?? item.size].filter(Boolean);
 
   return (
-    <article className="grid min-w-0 gap-3 py-2.5 sm:grid-cols-[56px_minmax(0,1fr)_auto] sm:items-center">
+    <article className="grid min-w-0 grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-3 py-2.5">
       <div className="relative h-14 w-14 overflow-hidden rounded-xl border border-gray-100 bg-gray-50">
         {itemImageSrc ? (
           <Image
@@ -1733,7 +1739,7 @@ function OrderItemRow({ item }) {
         </p>
       </div>
 
-      <div className="text-left sm:text-right">
+      <div className="whitespace-nowrap text-right">
         <p className="text-sm font-bold text-gray-950">{formatMoney(getItemTotal(item))}</p>
         <p className="mt-0.5 text-xs font-semibold text-gray-400">Qty: {item.quantity ?? 1}</p>
       </div>

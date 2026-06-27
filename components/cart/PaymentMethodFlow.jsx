@@ -785,40 +785,6 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
         </div>
 
 
-        {pendingPaymentOrderId ? (
-          <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <p className="font-bold">Waiting for payment confirmation</p>
-            <p className="mt-1 font-semibold leading-6">
-              If you paid through a UPI app (Google Pay, PhonePe, Paytm), return here after the payment
-              completes. We will confirm it automatically — or tap the button below to check now.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleManualPendingCheck}
-                disabled={checkingPendingPayment}
-                className="inline-flex h-10 items-center justify-center rounded-full bg-gray-950 px-5 text-xs font-bold text-white transition hover:bg-gray-800 disabled:opacity-50"
-              >
-                {checkingPendingPayment ? (
-                  <LoadingLabel spinnerClassName="border-white border-t-transparent">
-                    Checking...
-                  </LoadingLabel>
-                ) : (
-                  "I've completed payment"
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={dismissPendingPayment}
-                disabled={checkingPendingPayment}
-                className="inline-flex h-10 items-center justify-center rounded-full border border-amber-300 bg-white px-5 text-xs font-bold text-amber-900 transition hover:border-amber-500 disabled:opacity-50"
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-        ) : null}
-
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px] xl:items-start">
           <div className="space-y-4">
             <AddressSection
