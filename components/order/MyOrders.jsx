@@ -7,6 +7,8 @@ import {
   LocateFixed,
   PackageCheck,
   Plane,
+  ScrollText,
+  ShieldCheck,
   X,
   XCircle,
 } from 'lucide-react';
@@ -17,8 +19,10 @@ import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { INDIAN_PHONE_PATTERN, sanitizeIndianPhoneDigits } from '@/lib/phone';
 import { APP_ROUTES } from '@/lib/routes';
 import { cancelOrderApi, downloadOrderInvoiceApi, getOrderDetailApi, getOrdersApi, returnOrderApi, returnOrderPreviewApi } from '@/services/checkout';
+import { clearStoredScratchCoupon, scratchCardApi, writeStoredScratchCoupon } from '@/services/scratch-card';
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
+import { getAuthStorageKey } from '@/utils/auth-response';
 import { formatInr, formatInrDiscount } from '@/lib/cart/format';
 import { normalizeOrderSummary } from '@/lib/cart/order-summary';
 
@@ -29,6 +33,35 @@ const RETURN_TERMS = [
   'The refund will be processed within 3 business days after the returned product is received and approved.',
   'Shipping charges and promotional discounts may not be refundable unless required by applicable consumer protection laws.',
   'Kayra Aura reserves the right to reject returns that do not meet the above conditions.',
+];
+
+const CANCELLATION_POLICY = [
+  'Orders can be cancelled only before they are shipped.',
+  'If your cancellation is approved, your refund will be processed to the original payment method.',
+  'Refunds are usually credited within 5–7 business days. Bank processing times may vary.',
+  'Please select the correct cancellation reason to help us process your request quickly.',
+  'Providing false or incorrect reasons may delay or reject your refund request.',
+  'Once an order has been shipped, it cannot be cancelled.',
+  "If you haven't received your refund after the expected time, please contact your bank first, then reach out to our support team with your Order ID.",
+];
+
+const RETURN_POLICY = [
+  'Returns are accepted only within the eligible return period shown for the product.',
+  'Please upload clear images of the product while submitting your return request.',
+  'The same product shown in the uploaded images must be returned. If a different product, damaged item, or missing accessories are received, the return request may be rejected.',
+  'The refund amount will be based on the product and quantity selected in your return request.',
+  'Returned items will be inspected after they are received. Refunds will be processed only after successful verification.',
+  'Approved refunds are usually credited to the original payment method within 8–10 business days after the return has been approved.',
+  'Products that are used, damaged by the customer, or returned without original packaging may not be eligible for a refund.',
+  'If the return does not meet our return policy, the refund request may be declined.',
+  'For any questions regarding your return or refund, please contact our support team with your Order ID.',
+];
+
+const RETURN_IMAGE_GUIDELINES = [
+  'Upload clear images of the product from all required angles.',
+  'Ensure the product, packaging, and any accessories are clearly visible.',
+  'The product you return must exactly match the product shown in the uploaded images.',
+  'Mismatched, incomplete, or incorrect items will not be eligible for a refund.',
 ];
 
 const EMPTY_RETURN_FORM = { 
@@ -83,6 +116,9 @@ function mapReturnApiErrors(apiErrors) {
 export default function MyOrders() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isHydrated = useAuthStore((state) => state.isHydrated);
+  const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
+  const storageUserKey = getAuthStorageKey(user, token);
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -105,6 +141,7 @@ export default function MyOrders() {
   const [returnItemsError, setReturnItemsError] = useState('');
   const [trackOrder, setTrackOrder] = useState(null);
   const [trackLoading, setTrackLoading] = useState(false);
+  const [policiesOpen, setPoliciesOpen] = useState(false);
 
   async function loadOrderDetail(orderId) {
     setDetailLoading(true);
@@ -195,6 +232,20 @@ export default function MyOrders() {
     setCancelReasonError('');
   };
 
+  const refreshScratchCouponAfterCancellation = async () => {
+    // Always clear the consumed coupon first so checkout never resends the old code,
+    // even if fetching the replacement fails.
+    clearStoredScratchCoupon(storageUserKey);
+
+    try {
+      const freshCoupon = await scratchCardApi();
+      writeStoredScratchCoupon(freshCoupon?.coupon_code ? freshCoupon : null, storageUserKey);
+    } catch {
+      // A fresh coupon may not be available (e.g. campaign inactive). Clearing the old
+      // code is the important part; checkout will request a coupon-free summary.
+    }
+  };
+
   const submitCancelOrder = async () => {
     const reason = cancelReason.trim();
     if (!reason) {
@@ -212,6 +263,12 @@ export default function MyOrders() {
 
     try {
       await cancelOrderApi(orderId, { reason });
+
+      // Cancelling consumes the coupon that was attached to this order, and the backend
+      // issues a fresh one at this point. Drop the now-stale code so the next checkout
+      // summary stops sending it, then pull the new coupon for the upcoming checkout.
+      await refreshScratchCouponAfterCancellation();
+
       const orderList = await getOrdersApi();
       setOrders(Array.isArray(orderList) ? orderList : []);
       if (selectedOrder?.id === orderId) await loadOrderDetail(orderId);
@@ -508,7 +565,17 @@ export default function MyOrders() {
         <div className="grid min-w-0 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)] lg:items-stretch lg:overflow-hidden">
           <aside className="min-w-0 space-y-2 lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden">
             <div className="shrink-0 rounded-[1.25rem]  p-3 ">
-              <h2 className="text-2xl font-bold text-gray-950">My Orders</h2>
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="text-2xl font-bold text-gray-950">My Orders</h2>
+                <button
+                  type="button"
+                  onClick={() => setPoliciesOpen(true)}
+                  className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 text-xs font-bold text-gray-700 transition hover:border-gray-950 hover:text-gray-950"
+                >
+                  <ScrollText className="h-4 w-4" aria-hidden="true" />
+                  Policies
+                </button>
+              </div>
               <p className="mt-0.5 text-xs text-gray-500">Select an order to preview details.</p>
             </div>
             <div className="-mx-3 flex min-w-0 gap-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:block lg:min-h-0 lg:flex-1 lg:space-y-2 lg:overflow-y-auto lg:pb-0 lg:pr-2" data-lenis-prevent>
@@ -594,7 +661,108 @@ export default function MyOrders() {
         order={trackOrder}
         onClose={closeTrackModal}
       />
+      <PoliciesDialog open={policiesOpen} onClose={() => setPoliciesOpen(false)} />
     </section>
+  );
+}
+
+function PolicySection({ icon, title, items }) {
+  return (
+    <section className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 sm:p-5">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+          {icon}
+        </span>
+        <h3 className="text-base font-bold text-gray-950 sm:text-lg">{title}</h3>
+      </div>
+      <ul className="mt-3.5 space-y-2.5 text-sm leading-6 text-gray-700">
+        {items.map((item) => (
+          <li key={item} className="flex gap-2.5">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" aria-hidden="true" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function PoliciesDialog({ open, onClose }) {
+  useScrollLock(open);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:p-5"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="policies-title"
+    >
+      <button type="button" className="absolute inset-0" aria-label="Close policies dialog" onClick={onClose} />
+
+      <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[1.5rem] border border-gray-100 bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-4 py-4 sm:px-6">
+          <div>
+            <h2 id="policies-title" className="text-lg font-bold text-gray-950 sm:text-xl">
+              Policies
+            </h2>
+            <p className="mt-0.5 text-xs text-gray-500 sm:text-sm">
+              Cancellation, return &amp; refund information
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-50 text-gray-500 transition hover:text-gray-950"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6" data-lenis-prevent>
+          <PolicySection
+            icon={<XCircle className="h-5 w-5" />}
+            title="Cancellation & Refund Policy"
+            items={CANCELLATION_POLICY}
+          />
+          <PolicySection
+            icon={<PackageCheck className="h-5 w-5" />}
+            title="Return & Refund Policy"
+            items={RETURN_POLICY}
+          />
+          <PolicySection
+            icon={<ShieldCheck className="h-5 w-5" />}
+            title="📷 Return Image Guidelines"
+            items={RETURN_IMAGE_GUIDELINES}
+          />
+        </div>
+
+        <div className="border-t border-gray-100 px-4 py-3.5 sm:px-6">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-11 w-full items-center justify-center rounded-full bg-gray-950 px-4 text-sm font-bold text-white transition hover:bg-gray-800"
+          >
+            Got it
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

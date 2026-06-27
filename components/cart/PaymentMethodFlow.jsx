@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { Drawer } from '@base-ui/react/drawer';
 import {
   BadgeCheck,
-  CircleCheck,
   CreditCard,
   Edit3,
   Gem,
@@ -23,7 +22,6 @@ import {
   User,
   Wallet,
   X,
-  XCircle,
 } from 'lucide-react';
 import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
 import IndianPhoneInput from '@/components/ui/indian-phone-input';
@@ -57,6 +55,7 @@ import { getApiErrorMessage } from '@/utils/api-error';
 import { getAuthStorageKey } from '@/utils/auth-response';
 import { sanitizePincode, validateAddressForm } from '@/lib/address-validation';
 import { sanitizeIndianPhoneDigits } from '@/lib/phone';
+import { apiToast } from '@/lib/api-toast';
 import { cn } from '@/lib/utils';
 
 const PAYMENT_OPTIONS = [
@@ -258,7 +257,6 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const [codOtpError, setCodOtpError] = useState('');
   const [error, setError] = useState('');
   const [paymentNotice, setPaymentNotice] = useState('');
-  const [toast, setToast] = useState(null);
   const [pendingPaymentOrderId, setPendingPaymentOrderId] = useState('');
   const [checkingPendingPayment, setCheckingPendingPayment] = useState(false);
 
@@ -274,15 +272,12 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const couponCode = scratchCoupon?.coupon_code ?? '';
   const canPlaceOrder = Boolean(selectedAddressId && hasSummary && payableTotal > 0 && !placingOrder && !summaryLoading);
 
-  useEffect(() => {
-    if (!toast) return undefined;
-
-    const timer = window.setTimeout(() => setToast(null), 3500);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
-
   const showToast = (message, type = 'success') => {
-    setToast({ message, type });
+    if (type === 'error') {
+      apiToast.error(message);
+      return;
+    }
+    apiToast.success(message);
   };
 
   // Fallback recovery: a UPI app cannot be forced to return the user to the browser, so when
@@ -312,15 +307,14 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
         }
 
         if (!silent) {
-          setToast({
-            message: 'Payment is still being confirmed. Finish it in your UPI app, then check again.',
-            type: 'error',
-          });
+          apiToast.error(
+            'Payment is still being confirmed. Finish it in your UPI app, then check again.',
+          );
         }
         return false;
       } catch {
         if (!silent) {
-          setToast({ message: 'Unable to check payment status right now. Please try again.', type: 'error' });
+          apiToast.error('Unable to check payment status right now. Please try again.');
         }
         return false;
       }
@@ -937,8 +931,6 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
         onClose={closeCodOtpDialog}
         onSubmit={handleSubmitCodOtp}
       />
-
-      {toast && toast.type !== 'error' ? <Toast message={toast.message} type={toast.type} /> : null}
     </div>
   );
 }
@@ -1285,7 +1277,11 @@ function AddressDrawer({
               </Drawer.Close>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 py-5" data-lenis-prevent>
+            <div
+              className="flex-1 overflow-y-auto overscroll-contain px-5 py-5"
+              data-lenis-prevent
+              data-base-ui-swipe-ignore
+            >
               {addresses.length > 0 ? (
                 <div className="mb-5">
                   <div className="mb-3 flex items-center justify-between gap-3">
@@ -1738,15 +1734,3 @@ function CheckoutAction({ total, selectedMethod, disabled, loading, onClick, cla
   );
 }
 
-function Toast({ message, type }) {
-  const isError = type === 'error';
-
-  return (
-    <div className="fixed right-4 top-20 z-[70] max-w-sm rounded-xl border border-gray-200 bg-white p-4 text-sm font-semibold text-gray-900">
-      <span className="flex items-start gap-3">
-        {isError ? <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" /> : <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-gray-950" />}
-        <span>{message}</span>
-      </span>
-    </div>
-  );
-}

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { LoadingLabel } from '@/components/ui/loader';
 import { useForgotPassword } from '@/hooks/auth';
 import { APP_ROUTES } from '@/lib/routes';
+import { apiToast } from '@/lib/api-toast';
 import { cn } from '@/lib/utils';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { forgotPasswordSchema } from '@/validations/auth-validation';
@@ -16,16 +17,12 @@ import { forgotPasswordSchema } from '@/validations/auth-validation';
 export default function ForgotPasswordPage() {
   const forgotPasswordMutation = useForgotPassword();
   const [phone, setPhone] = useState('');
-  const [error, setError] = useState('');
   const [fieldError, setFieldError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setFieldError('');
-    setSuccessMessage('');
 
     const parsed = forgotPasswordSchema.safeParse({ phone: phone.trim() });
     if (!parsed.success) {
@@ -36,12 +33,12 @@ export default function ForgotPasswordPage() {
     setIsSubmitting(true);
     try {
       const response = await forgotPasswordMutation.mutateAsync(parsed.data);
-      setSuccessMessage(
+      apiToast.success(
         response?.message ||
           'If an account exists for this number, you will receive an OTP shortly.',
       );
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Unable to send reset OTP.'));
+      apiToast.error(getApiErrorMessage(err, 'Unable to send reset OTP.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -87,12 +84,6 @@ export default function ForgotPasswordPage() {
                       className="h-11 w-full rounded border border-gray-300 text-sm outline-none transition focus-within:border-gray-950"
                     />
                   </div>
-
-                  {successMessage ? (
-                    <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-800" role="status">
-                      {successMessage}
-                    </p>
-                  ) : null}
 
                   <Button
                     type="submit"

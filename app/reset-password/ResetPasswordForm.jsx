@@ -2,14 +2,17 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { LoadingLabel } from '@/components/ui/loader';
 import { useResetPassword } from '@/hooks/auth';
 import { APP_ROUTES, AUTH_PAGE_ROUTES } from '@/lib/routes';
+import { apiToast } from '@/lib/api-toast';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { resetPasswordSchema } from '@/validations/auth-validation';
 
 export default function ResetPasswordForm({ token = '', email = '' }) {
+  const router = useRouter();
   const resetPasswordMutation = useResetPassword();
   const [values, setValues] = useState({
     token,
@@ -18,8 +21,6 @@ export default function ResetPasswordForm({ token = '', email = '' }) {
     password_confirmation: '',
   });
   const [errors, setErrors] = useState({});
-  const [formError, setFormError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
 
   const setFieldValue = (key, value) => {
     setValues((current) => ({ ...current, [key]: value }));
@@ -33,8 +34,6 @@ export default function ResetPasswordForm({ token = '', email = '' }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setFormError('');
-    setSuccessMessage('');
 
     const payload = {
       token: values.token.trim(),
@@ -55,9 +54,15 @@ export default function ResetPasswordForm({ token = '', email = '' }) {
 
     try {
       const response = await resetPasswordMutation.mutateAsync(parsed.data);
-      setSuccessMessage(response?.message || 'Your password has been reset. You can now log in.');
+
+      const successMessage =
+        response?.message || 'Your password has been reset successfully.';
+
+      // Redirect first so navigation can never be blocked by a toast failure.
+      router.replace(APP_ROUTES.HOME);
+      apiToast.success(successMessage);
     } catch (error) {
-      setFormError(getApiErrorMessage(error, 'Unable to reset password.'));
+      apiToast.error(getApiErrorMessage(error, 'Unable to reset password.'));
     }
   };
 
@@ -100,12 +105,6 @@ export default function ResetPasswordForm({ token = '', email = '' }) {
           error={errors.password_confirmation}
           onChange={(value) => setFieldValue('password_confirmation', value)}
         />
-
-        {successMessage ? (
-          <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-800" role="status">
-            {successMessage}
-          </p>
-        ) : null}
 
         <Button
           type="submit"

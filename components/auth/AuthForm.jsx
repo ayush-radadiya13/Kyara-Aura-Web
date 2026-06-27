@@ -12,6 +12,7 @@ import { useAuthSession } from '@/hooks/auth/use-auth-session';
 import { buildAuthPayload } from '@/lib/auth/fields';
 import { APP_ROUTES, AUTH_PAGE_ROUTES, withRedirect } from '@/lib/routes';
 import { cn } from '@/lib/utils';
+import { apiToast } from '@/lib/api-toast';
 import { getApiErrorMessage } from '@/utils/api-error';
 import {
   buildAuthFormSchema,
@@ -57,7 +58,6 @@ export default function AuthForm({
   );
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState(/** @type {Record<string, string>} */ ({}));
-  const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const setFieldValue = (key, value) => {
@@ -72,7 +72,6 @@ export default function AuthForm({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setFormError('');
 
     const trimmed = Object.fromEntries(
       Object.entries(values).map(([key, value]) => [key, value.trim()]),
@@ -97,9 +96,20 @@ export default function AuthForm({
           : await registerMutation.mutateAsync(payload);
 
       await applyAuthResponse(response);
+
+      const successMessage =
+        response?.message ||
+        (formType === 'login'
+          ? 'Logged in successfully.'
+          : 'Account created successfully.');
+
+      // Redirect first so navigation can never be blocked by a toast failure.
+      // The Toaster lives in the root layout, so the toast still renders after
+      // the client-side navigation completes.
       router.replace(redirectTo);
+      apiToast.success(successMessage);
     } catch (err) {
-      setFormError(
+      apiToast.error(
         getApiErrorMessage(
           err,
           formType === 'login'
