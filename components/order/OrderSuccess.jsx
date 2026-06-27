@@ -7,10 +7,15 @@ import { LoaderBlock } from '@/components/ui/loader';
 import { APP_ROUTES } from '@/lib/routes';
 import { getOrderDetailApi } from '@/services/checkout';
 import { submitCustomerReviewApi } from '@/services/customer-reviews';
+import { clearStoredScratchCoupon } from '@/services/scratch-card';
+import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
+import { getAuthStorageKey } from '@/utils/auth-response';
 import { formatInr } from '@/lib/cart/format';
 
 const FAILED_PAYMENT_STATUSES = new Set(['failed', 'failure', 'cancelled', 'canceled', 'declined']);
+const PAID_PAYMENT_STATUSES = new Set(['paid', 'captured', 'completed', 'success', 'successful', 'confirmed']);
+const CONFIRMED_ORDER_STATUSES = new Set(['confirmed', 'processing', 'shipped', 'delivered', 'completed']);
 
 function getPaymentStatus(order) {
   return String(order?.payment_status ?? '').trim().toLowerCase();
@@ -18,6 +23,14 @@ function getPaymentStatus(order) {
 
 function isPaymentFailed(order) {
   return FAILED_PAYMENT_STATUSES.has(getPaymentStatus(order));
+}
+
+function isOrderConfirmed(order) {
+  if (!order) return false;
+  if (PAID_PAYMENT_STATUSES.has(getPaymentStatus(order))) return true;
+
+  const orderStatus = String(order?.status ?? '').trim().toLowerCase();
+  return CONFIRMED_ORDER_STATUSES.has(orderStatus);
 }
 
 function getOrderProductIds(order) {
@@ -38,6 +51,18 @@ export default function OrderSuccess({ orderId }) {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
+
+  // Every successful order (COD, online callback, and pending-payment recovery) lands here.
+  // Clearing the consumed scratch coupon at this single chokepoint guarantees it can never
+  // leak into the next checkout, even when the online callback's own clear never ran (e.g.
+  // the order was confirmed by a Razorpay webhook instead of the redirect callback). A failed
+  // payment intentionally keeps the coupon so the user can still use it when they retry.
+  useEffect(() => {
+    if (!isOrderConfirmed(order)) return;
+    clearStoredScratchCoupon(getAuthStorageKey(user, token));
+  }, [order, user, token]);
 
   useEffect(() => {
     let isCurrent = true;
