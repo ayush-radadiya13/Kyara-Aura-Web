@@ -27,12 +27,15 @@ import { formatInr, formatInrDiscount } from '@/lib/cart/format';
 import { normalizeOrderSummary } from '@/lib/cart/order-summary';
 
 const RETURN_TERMS = [
-  'The product must be returned within the allowed return period.',
-  'The product must be unused and in its original condition.',
-  'Return approval is subject to verification.',
-  'The refund will be processed within 3 business days after the returned product is received and approved.',
-  'Shipping charges and promotional discounts may not be refundable unless required by applicable consumer protection laws.',
-  'Kayra Aura reserves the right to reject returns that do not meet the above conditions.',
+ 'Returns are accepted only within the eligible return period shown for the product.',
+  'Please upload clear images of the product while submitting your return request.',
+  'The same product shown in the uploaded images must be returned. If a different product, damaged item, or missing accessories are received, the return request may be rejected.',
+  'The refund amount will be based on the product and quantity selected in your return request.',
+  'Returned items will be inspected after they are received. Refunds will be processed only after successful verification.',
+  'Approved refunds are usually credited to the original payment method within 8–10 business days after the return has been approved.',
+  'Products that are used, damaged by the customer, or returned without original packaging may not be eligible for a refund.',
+  'If the return does not meet our return policy, the refund request may be declined.',
+  'For any questions regarding your return or refund, please contact our support team with your Order ID.',
 ];
 
 const CANCELLATION_POLICY = [
@@ -1345,6 +1348,26 @@ function canReturnOrder(order) {
   return String(order?.status ?? '').toLowerCase() === 'delivered';
 }
 
+function isDeliveredOrder(order) {
+  const status = String(order?.status ?? '').toLowerCase();
+  const shipmentStatus = String(order?.shipment?.shipment_status ?? '').toLowerCase();
+  const rawStatus = String(order?.shipment?.raw_status ?? '').toLowerCase();
+
+  return ['delivered'].includes(status) || ['delivered'].includes(shipmentStatus) || ['delivered'].includes(rawStatus);
+}
+
+function canPayRefund(order) {
+  if (typeof order?.can_pay_refund === 'boolean') {
+    return order.can_pay_refund;
+  }
+
+  if (typeof order?.canPayRefund === 'boolean') {
+    return order.canPayRefund;
+  }
+
+  return false;
+}
+
 function getReturnDisplayStatus(order) {
   const returnStatus = String(order?.shipment?.return?.status ?? '').toLowerCase();
   const orderStatus = String(order?.status ?? '').toLowerCase();
@@ -1378,8 +1401,10 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onTrack, 
   const cancelled = isCancelledOrder(order);
   const canCancel = !cancelled && canCancelOrder(order);
   const canReturn = !cancelled && canReturnOrder(order);
+  const showRefundIndicator = canPayRefund(order);
   const shipmentStatus = order?.shipment?.shipment_status;
   const returnDisplayStatus = getReturnDisplayStatus(order);
+  const delivered = isDeliveredOrder(order);
 
   return (
     <article
@@ -1435,7 +1460,8 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onTrack, 
           <button
             type="button"
             onClick={onTrack}
-            className="inline-flex h-8 items-center justify-center rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 sm:h-9 sm:px-3.5 sm:text-xs"
+            disabled={delivered}
+            className="inline-flex h-8 items-center justify-center rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 disabled:cursor-not-allowed disabled:opacity-50 sm:h-9 sm:px-3.5 sm:text-xs"
           >
             Track Order
           </button>
@@ -1450,6 +1476,12 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onTrack, 
               'Cancel order'
             )}
           </button>
+        ) : null}
+        {showRefundIndicator ? (
+          <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 text-[0.68rem] font-bold text-emerald-700 sm:h-9 sm:px-3.5 sm:text-xs">
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+            Refund
+          </span>
         ) : null}
         {canReturn ? (
           <button type="button" onClick={onReturn} disabled={loading} className="h-8 rounded-full border border-amber-100 px-3 text-[0.68rem] font-bold text-amber-700 transition hover:border-amber-300 disabled:opacity-50 sm:h-9 sm:px-3.5 sm:text-xs">
@@ -1551,6 +1583,7 @@ function OrderDetail({ order, onTrack }) {
   const shipment = order?.shipment;
   const returnDisplayStatus = getReturnDisplayStatus(order);
   const cancelled = isCancelledOrder(order);
+  const delivered = isDeliveredOrder(order);
   const amounts = normalizeOrderSummary(order);
 
   return (
@@ -1573,7 +1606,8 @@ function OrderDetail({ order, onTrack }) {
               <button
                 type="button"
                 onClick={onTrack}
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-gray-950 px-3.5 text-xs font-bold text-white transition hover:bg-gray-800"
+                disabled={delivered}
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-gray-950 px-3.5 text-xs font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Track order
                 <LocateFixed className="h-4 w-4" />
@@ -1593,7 +1627,7 @@ function OrderDetail({ order, onTrack }) {
                 <Plane className="h-4 w-4 text-gray-950" />
                 Estimated delivery
               </p>
-              <p className="mt-1 text-sm font-semibold text-gray-800">{estimatedDelivery}</p>
+              <p className="mt-1 text-sm font-semibold text-gray-800">{delivered ? 'Delivered' : estimatedDelivery}</p>
             </div>
           ) : null}
         </div>
