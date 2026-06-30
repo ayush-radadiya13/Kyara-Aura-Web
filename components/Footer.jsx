@@ -44,7 +44,7 @@ export default function Footer() {
             />
           </Link>
           {footerDescription && (
-            <p className="mt-8 text-md leading-6 text-black">{footerDescription}</p>
+            <p className="mt-4 text-md leading-6 text-black">{footerDescription}</p>
           )}
           <div className={`${footerDescription ? 'mt-5' : 'mt-8'} space-y-3 text-md leading-5 text-black`}>
              {address && (

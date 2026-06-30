@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authService } from "@/services/auth-service";
+import { useCartStore } from "@/lib/cart/store";
 import { useAuthStore } from "@/store/auth-store";
 
 /**
@@ -18,8 +19,10 @@ export function useLogout(options = {}) {
     ...rest,
     onSettled: async (data, error, variables, context) => {
       logoutStore();
+      useCartStore.getState().clearCart();
       await queryClient.invalidateQueries({ queryKey: ["auth"] });
       await queryClient.removeQueries({ queryKey: ["auth", "profile"] });
+      queryClient.removeQueries({ queryKey: ["cart"] });
       await userOnSettled?.(data, error, variables, context);
     },
   });
