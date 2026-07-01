@@ -1,6 +1,7 @@
 import AuthForm from '@/components/auth/AuthForm';
 import AuthSplitLayout from '@/components/auth/AuthSplitLayout';
 import { getAuthFieldKeys } from '@/lib/auth/get-auth-field-keys';
+import { AUTH_PAGE_ROUTES } from '@/lib/routes';
 import { noIndexMetadata } from '@/lib/seo';
 
 export const metadata = noIndexMetadata({
@@ -11,10 +12,19 @@ export const metadata = noIndexMetadata({
 
 export default async function LoginPage({ searchParams }) {
   const params = await searchParams;
-  const redirectTo =
+  const from =
     typeof params?.from === 'string' && params.from.startsWith('/')
       ? params.from
       : '/';
+
+  const authPaths = new Set([
+    AUTH_PAGE_ROUTES.LOGIN,
+    AUTH_PAGE_ROUTES.REGISTER,
+    AUTH_PAGE_ROUTES.FORGOT_PASSWORD,
+    AUTH_PAGE_ROUTES.RESET_PASSWORD,
+  ]);
+
+  const redirectTo = authPaths.has(from) ? '/' : from;
 
   const fieldKeys = await getAuthFieldKeys('login');
 

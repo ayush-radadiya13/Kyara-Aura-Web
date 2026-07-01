@@ -75,9 +75,11 @@ export default function AuthField({
   const placeholder =
     fieldKey === 'password' && formType === 'register'
       ? 'Min. 8 characters'
+      : fieldKey === 'email' && formType === 'login'
+      ? 'Enter Email or Mobile Number'
       : meta.placeholder;
 
-  const inputType = isPassword && showPassword ? 'text' : meta.type;
+  const inputType = isPassword && showPassword ? 'text' : fieldKey === 'email' && formType === 'login' ? 'text' : meta.type;
 
   if (fieldKey === 'phone') {
     return (
@@ -103,10 +105,14 @@ export default function AuthField({
     );
   }
 
+  const inputLabel = fieldKey === 'email' && formType === 'login'
+    ? 'Email or Mobile Number'
+    : meta.label;
+
   return (
     <div className="space-y-1.5">
       <label htmlFor={fieldKey} className="block text-sm font-medium text-gray-800">
-        {meta.label}
+        {inputLabel}
       </label>
       <div className="relative">
         {Icon ? (

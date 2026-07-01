@@ -4,19 +4,15 @@
  * @returns {string}
  */
 export function getApiErrorMessage(error, fallback = "Something went wrong") {
-  const axiosError = /** @type {{ response?: { data?: { error?: { message?: string }; message?: string } }; message?: string }} */ (
+  const axiosError = /** @type {{ response?: { data?: { error?: { message?: string; details?: unknown; errors?: unknown }; message?: string; details?: unknown; errors?: unknown }; errors?: unknown }; message?: string }} */ (
     error
   );
   const status = axiosError?.response?.status;
   const data = axiosError?.response?.data;
-  const validationErrors = data?.errors;
 
-  if (status === 422 && validationErrors && typeof validationErrors === "object") {
-    const firstMessage = Object.values(validationErrors)
-      .flat()
-      .find(Boolean);
-
-    if (firstMessage) return String(firstMessage);
+  const detailMessage = getFirstErrorMessage(data);
+  if (detailMessage) {
+    return detailMessage;
   }
 
   return (
@@ -26,6 +22,43 @@ export function getApiErrorMessage(error, fallback = "Something went wrong") {
     axiosError?.message ||
     fallback
   );
+}
+
+function getFirstErrorMessage(data) {
+  const candidates = [
+    data?.error?.details,
+    data?.details,
+    data?.error?.errors,
+    data?.errors,
+  ];
+
+  for (const candidate of candidates) {
+    const flattened = flattenErrorMessages(candidate);
+    if (flattened.length > 0) {
+      return flattened[0];
+    }
+  }
+
+  return "";
+}
+
+function flattenErrorMessages(value) {
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => flattenErrorMessages(item)).filter(Boolean);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.values(value)
+      .flatMap((item) => flattenErrorMessages(item))
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
+  }
+
+  return [];
 }
 
 function getStatusFallback(status) {

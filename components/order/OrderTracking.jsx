@@ -44,7 +44,59 @@ const TRACKING_STEPS = [
   { key: 'delivered', label: 'Delivered', Icon: Home },
 ];
 
+const RETURN_TRACKING_STEPS = [
+  { key: 'return_requested', label: 'Return Requested', Icon: Clock },
+  { key: 'return_processing', label: 'Return Processing', Icon: Package },
+  { key: 'returned', label: 'Returned', Icon: Home },
+];
+
 const STEP_KEYS = TRACKING_STEPS.map((step) => step.key);
+const RETURN_STEP_KEYS = RETURN_TRACKING_STEPS.map((step) => step.key);
+
+function normalizeStatusValue(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '_');
+}
+
+function resolveReturnDisplayStatus(order) {
+  const returnStatus = normalizeStatusValue(order?.shipment?.return?.status);
+  const orderStatus = normalizeStatusValue(order?.status);
+
+  if (['returned', 'return_completed', 'return_complete'].includes(orderStatus) || ['returned', 'return_completed', 'return_complete'].includes(returnStatus)) {
+    return 'returned';
+  }
+
+  if (['return_processing', 'processing'].includes(returnStatus)) {
+    return 'return_processing';
+  }
+
+  if (['return_requested', 'requested'].includes(returnStatus) || orderStatus === 'return_requested') {
+    return 'return_requested';
+  }
+
+  return null;
+}
+
+function resolveReturnTrackingStatus(order) {
+  const returnStatus = normalizeStatusValue(order?.shipment?.return?.status);
+  const orderStatus = normalizeStatusValue(order?.status);
+
+  if (['returned', 'return_completed', 'return_complete'].includes(orderStatus) || ['returned', 'return_completed', 'return_complete'].includes(returnStatus)) {
+    return 'returned';
+  }
+
+  if (['return_processing', 'processing'].includes(returnStatus)) {
+    return 'return_processing';
+  }
+
+  if (['return_requested', 'requested'].includes(returnStatus) || orderStatus === 'return_requested') {
+    return 'return_requested';
+  }
+
+  return null;
+}
 
 function resolveTrackingStatus(order) {
   const orderStatus = String(order?.status ?? '').trim().toLowerCase();
@@ -89,14 +141,49 @@ function formatLastUpdated(value) {
   }).format(date);
 }
 
+function formatDateValue(value) {
+  if (!value) return null;
+
+  const normalized = typeof value === 'string' ? value.trim().replace(' ', 'T') : value;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
+}
+
+function resolveReturnDeliveredDate(order) {
+  const returnData = order?.shipment?.return ?? {};
+  const dateValue = returnData.date ?? returnData.return_date ?? returnData.returned_at ?? returnData.updated_at ?? returnData.created_at ?? order?.shipment?.updated_at ?? order?.updated_at;
+  if (!dateValue) return null;
+
+  const baseDate = new Date(typeof dateValue === 'string' ? dateValue.trim().replace(' ', 'T') : dateValue);
+  if (Number.isNaN(baseDate.getTime())) return null;
+
+  const deliveredDate = new Date(baseDate);
+  deliveredDate.setDate(deliveredDate.getDate() + 4);
+
+  return formatDateValue(deliveredDate);
+}
+
 export default function OrderTracking({ order, embedded = false }) {
   const status = resolveTrackingStatus(order);
+  const returnDisplayStatus = resolveReturnDisplayStatus(order);
+  const returnTrackingStatus = resolveReturnTrackingStatus(order);
+  const isReturnTracking = ['return_requested', 'return_processing', 'returned'].includes(returnDisplayStatus);
   const cancelled = status === 'cancelled';
 
   const shipment = order?.shipment ?? {};
 
   const currentStatusLabel =
-    formatStatusLabel(shipment.raw_status ?? shipment.shipment_status ?? status) || 'Pending';
+    formatStatusLabel(
+      shipment.raw_status ?? shipment.shipment_status ?? shipment?.return?.status ?? returnDisplayStatus ?? status,
+    ) || 'Pending';
+  const timelineStatus = isReturnTracking ? returnTrackingStatus : status;
+  const returnDeliveredDate = isReturnTracking && returnDisplayStatus === 'returned' ? resolveReturnDeliveredDate(order) : null;
   const lastUpdated = formatLastUpdated(
     shipment.updated_at ?? shipment.last_update ?? shipment.last_scan_at ?? order?.updated_at,
   );
@@ -109,15 +196,19 @@ export default function OrderTracking({ order, embedded = false }) {
   return (
     <Wrapper className={wrapperClassName}>
       <header className={embedded ? 'pr-10' : ''}>
-        <h2 className="text-lg font-semibold tracking-tight text-gray-950">Track Order</h2>
-        <p className="mt-1 text-sm text-gray-500">Follow your shipment status.</p>
+        <h2 className="text-lg font-semibold tracking-tight text-gray-950">
+          {isReturnTracking ? 'Return Tracking' : 'Track Order'}
+        </h2>
+        <p className="mt-1 text-sm text-gray-500">
+          {isReturnTracking ? 'Follow your return request status.' : 'Follow your shipment status.'}
+        </p>
       </header>
 
       {cancelled ? (
         <CancelledState />
       ) : (
         <>
-          <TrackingTimeline status={status} />
+          <TrackingTimeline status={timelineStatus} isReturnTracking={isReturnTracking} />
 
           <ShipmentInfo
             courier={shipment.provider ?? shipment.courier ?? '—'}
@@ -125,20 +216,31 @@ export default function OrderTracking({ order, embedded = false }) {
             currentStatus={currentStatusLabel}
             lastUpdated={lastUpdated ?? '—'}
           />
+
+          {isReturnTracking && returnDisplayStatus === 'returned' ? (
+            <div className="mt-6 border-t border-gray-100 pt-6">
+              <div className="flex flex-col gap-0.5">
+                <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Return Delivered Date</dt>
+                <dd className="text-sm font-semibold text-gray-900">{returnDeliveredDate ?? '—'}</dd>
+              </div>
+            </div>
+          ) : null}
         </>
       )}
     </Wrapper>
   );
 }
 
-function TrackingTimeline({ status }) {
-  const isDelivered = status === 'delivered';
-  const currentIndex = Math.max(0, STEP_KEYS.indexOf(status));
-  const lastIndex = TRACKING_STEPS.length - 1;
+function TrackingTimeline({ status, isReturnTracking = false }) {
+  const steps = isReturnTracking ? RETURN_TRACKING_STEPS : TRACKING_STEPS;
+  const stepKeys = isReturnTracking ? RETURN_STEP_KEYS : STEP_KEYS;
+  const isDelivered = status === 'delivered' || status === 'returned';
+  const currentIndex = Math.max(0, stepKeys.indexOf(status));
+  const lastIndex = steps.length - 1;
 
   return (
     <ol className="mt-6">
-      {TRACKING_STEPS.map((step, index) => {
+      {steps.map((step, index) => {
         const completed = isDelivered || index < currentIndex;
         const current = !isDelivered && index === currentIndex;
         const connectorActive = index < currentIndex || (isDelivered && index < lastIndex);

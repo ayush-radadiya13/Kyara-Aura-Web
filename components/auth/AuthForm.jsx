@@ -1,19 +1,22 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { LoadingLabel } from '@/components/ui/loader';
 import AuthField from '@/components/auth/AuthField';
 import AuthFormPendingOverlay from '@/components/auth/AuthFormPendingOverlay';
-import { useLogin, useRegister } from '@/hooks/auth';
+import { useLogin, useRegister, useVerifyOtp } from '@/hooks/auth';
 import { useAuthSession } from '@/hooks/auth/use-auth-session';
+import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { buildAuthPayload } from '@/lib/auth/fields';
 import { APP_ROUTES, AUTH_PAGE_ROUTES, withRedirect } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { apiToast } from '@/lib/api-toast';
 import { getApiErrorMessage } from '@/utils/api-error';
+import { sendOtpApi } from '@/services/auth/send-otp';
 import {
   buildAuthFormSchema,
   validateAuthForm,
@@ -47,10 +50,11 @@ export default function AuthForm({
   const { applyAuthResponse } = useAuthSession();
   const loginMutation = useLogin();
   const registerMutation = useRegister();
+  const verifyOtpMutation = useVerifyOtp();
 
   const formSchema = useMemo(
-    () => buildAuthFormSchema(fieldKeys),
-    [fieldKeys],
+    () => buildAuthFormSchema(fieldKeys, formType),
+    [fieldKeys, formType],
   );
 
   const [values, setValues] = useState(() =>
@@ -59,6 +63,10 @@ export default function AuthForm({
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState(/** @type {Record<string, string>} */ ({}));
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [otpVerified, setOtpVerified] = useState(false);
 
   const setFieldValue = (key, value) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -70,12 +78,117 @@ export default function AuthForm({
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const closeOtpModal = () => {
+    setIsOtpModalOpen(false);
+    setOtpError('');
+    if (!otpVerified) {
+      setOtpCode('');
+    }
+  };
 
-    const trimmed = Object.fromEntries(
+  const getTrimmedValues = () =>
+    Object.fromEntries(
       Object.entries(values).map(([key, value]) => [key, value.trim()]),
     );
+
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault();
+
+    const trimmed = getTrimmedValues();
+    const validation = validateAuthForm(formSchema, trimmed);
+    if (!validation.success) {
+      setErrors(validation.errors);
+      return;
+    }
+
+    if (!otpVerified) {
+      setIsSubmitting(true);
+      setOtpError('');
+      try {
+        await sendOtpApi(buildAuthPayload(trimmed, fieldKeys));
+        setOtpCode('');
+        setOtpVerified(false);
+        setIsOtpModalOpen(true);
+        apiToast.success('OTP sent successfully. Please verify to continue.');
+      } catch (err) {
+        apiToast.error(getApiErrorMessage(err, 'Unable to send OTP. Please try again.'));
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    const normalizedOtp = otpCode.trim();
+    if (!/^\d{6}$/.test(normalizedOtp)) {
+      setOtpError('Please enter the 6-digit OTP.');
+      return;
+    }
+
+    const payload = {
+      ...buildAuthPayload(trimmed, fieldKeys),
+      otp: normalizedOtp,
+    };
+
+    setIsSubmitting(true);
+    setOtpError('');
+    try {
+      const response = await registerMutation.mutateAsync(payload);
+      await applyAuthResponse(response);
+      router.replace(redirectTo);
+      apiToast.success(response?.message || 'Account created successfully.');
+    } catch (err) {
+      apiToast.error(getApiErrorMessage(err, 'Unable to create account. Please try again.'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    const normalizedOtp = otpCode.trim();
+    if (!/^\d{6}$/.test(normalizedOtp)) {
+      setOtpError('Please enter the 6-digit OTP.');
+      return;
+    }
+
+    setOtpError('');
+    setIsSubmitting(true);
+    try {
+      await verifyOtpMutation.mutateAsync({
+        payload: {
+          purpose: 'register',
+          phone: values.phone?.trim() || '',
+          otp: normalizedOtp,
+        },
+      });
+
+      const payload = {
+        ...buildAuthPayload(getTrimmedValues(), fieldKeys),
+        otp: normalizedOtp,
+      };
+
+      const response = await registerMutation.mutateAsync(payload);
+      await applyAuthResponse(response);
+      setOtpVerified(true);
+      setOtpCode(normalizedOtp);
+      setIsOtpModalOpen(false);
+      router.replace(redirectTo);
+      apiToast.success(response?.message || 'Account created successfully.');
+    } catch (err) {
+      setOtpError(getApiErrorMessage(err, 'Unable to verify OTP and create account. Please try again.'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    if (formType === 'register') {
+      await handleRegisterSubmit(e);
+      return;
+    }
+
+    e.preventDefault();
+
+    const trimmed = getTrimmedValues();
 
     const validation = validateAuthForm(formSchema, trimmed);
     if (!validation.success) {
@@ -85,38 +198,20 @@ export default function AuthForm({
 
     const payload = {
       ...buildAuthPayload(trimmed, fieldKeys),
-      ...(formType === 'login' && rememberMe ? { remember: true } : {}),
+      ...(rememberMe ? { remember: true } : {}),
     };
 
     setIsSubmitting(true);
     try {
-      const response =
-        formType === 'login'
-          ? await loginMutation.mutateAsync(payload)
-          : await registerMutation.mutateAsync(payload);
-
+      const response = await loginMutation.mutateAsync(payload);
       await applyAuthResponse(response);
 
-      const successMessage =
-        response?.message ||
-        (formType === 'login'
-          ? 'Logged in successfully.'
-          : 'Account created successfully.');
+      const successMessage = response?.message || 'Logged in successfully.';
 
-      // Redirect first so navigation can never be blocked by a toast failure.
-      // The Toaster lives in the root layout, so the toast still renders after
-      // the client-side navigation completes.
       router.replace(redirectTo);
       apiToast.success(successMessage);
     } catch (err) {
-      apiToast.error(
-        getApiErrorMessage(
-          err,
-          formType === 'login'
-            ? 'Unable to login. Please try again.'
-            : 'Unable to create account. Please try again.',
-        ),
-      );
+      apiToast.error(getApiErrorMessage(err, 'Unable to login. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -126,6 +221,8 @@ export default function AuthForm({
     formType === 'login' &&
     fieldKeys.includes('email') &&
     fieldKeys.includes('password');
+
+  const submitButtonLabel = formType === 'register' ? 'Continue' : submitLabel;
 
   return (
     <div className="w-full max-w-md">
@@ -141,7 +238,7 @@ export default function AuthForm({
       <div className="relative">
         <AuthFormPendingOverlay
           visible={isSubmitting}
-          label={formType === 'login' ? 'Signing in' : 'Creating account'}
+          label={formType === 'login' ? 'Signing in' : otpVerified ? 'Creating account' : 'Sending OTP'}
         />
 
         <form
@@ -178,7 +275,7 @@ export default function AuthForm({
                 </label>
                 <Link
                   href={AUTH_PAGE_ROUTES.FORGOT_PASSWORD}
-                  className="font-medium !text-[#0C1126] hover:text-primary/80"
+                  className="font-medium text-[#0C1126]! hover:text-primary/80"
                   tabIndex={isSubmitting ? -1 : undefined}
                   aria-disabled={isSubmitting}
                 >
@@ -193,17 +290,11 @@ export default function AuthForm({
               disabled={isSubmitting}
               className={cn(
                 'h-12 w-full rounded-none text-base font-semibold',
-                '!bg-[#C99B4D] text-primary-foreground hover:!bg-[#C99B4D]/90',
+                'bg-[#C99B4D]! text-primary-foreground hover:bg-[#C99B4D]/90!',
                 isSubmitting && 'disabled:opacity-100',
               )}
             >
-              {isSubmitting ? (
-                <LoadingLabel spinnerClassName="border-white border-t-transparent">
-                  Please wait...
-                </LoadingLabel>
-              ) : (
-                submitLabel
-              )}
+              {isSubmitting ? 'Please wait...' : submitButtonLabel}
             </Button>
 
             <div className="space-y-3 text-center text-sm">
@@ -233,7 +324,28 @@ export default function AuthForm({
         </form>
       </div>
 
-
+      {isOtpModalOpen
+        ? createPortal(
+            <OtpVerificationModal
+              open={isOtpModalOpen}
+              phone={values.phone?.trim() || ''}
+              otp={otpCode}
+              error={otpError}
+              loading={isSubmitting}
+              otpVerified={otpVerified}
+              onOtpChange={(nextValue) => {
+                const digits = nextValue.replace(/\D/g, '').slice(0, 6);
+                setOtpCode(digits);
+                if (otpError) {
+                  setOtpError('');
+                }
+              }}
+              onClose={closeOtpModal}
+              onSubmit={handleVerifyOtp}
+            />,
+            document.body,
+          )
+        : null}
 
       {footerHref && footerText && footerLinkText ? (
         <p className="mt-8 text-center text-sm text-gray-600">
@@ -244,5 +356,109 @@ export default function AuthForm({
         </p>
       ) : null}
     </div>
+  );
+}
+
+function OtpVerificationModal({
+  open,
+  phone,
+  otp,
+  error,
+  loading,
+  otpVerified,
+  onOtpChange,
+  onClose,
+  onSubmit,
+}) {
+  useScrollLock(open);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [open, onClose]);
+
+  if (!open || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-80 flex items-center justify-center bg-black/50 px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="register-otp-title"
+    >
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" data-lenis-prevent>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 id="register-otp-title" className="text-xl font-semibold text-gray-900">
+              Verify OTP
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              {phone ? (
+                <>Enter the 6-digit OTP sent to {phone} and complete your registration.</>
+              ) : (
+                'Enter the 6-digit OTP sent to complete your registration.'
+              )}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="text-sm font-medium text-gray-500 transition hover:text-gray-800 disabled:opacity-50"
+            aria-label="Close verification dialog"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="mt-6 space-y-4">
+          <div>
+            <label htmlFor="register-otp" className="mb-1 block text-sm font-medium text-gray-700">
+              OTP
+            </label>
+            <input
+              id="register-otp"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={otp}
+              onChange={(event) => onOtpChange(event.target.value)}
+              disabled={loading}
+              autoFocus
+              className="h-11 w-full rounded border border-gray-300 px-3 text-sm outline-none transition focus:border-gray-950 disabled:opacity-60"
+              placeholder="Enter 6-digit OTP"
+            />
+          </div>
+
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={loading}
+            className="h-12 w-full rounded-none bg-[#C99B4D]! text-base font-semibold text-primary-foreground transition hover:bg-[#C99B4D]/90! disabled:opacity-60"
+          >
+            {loading ? (
+              <LoadingLabel spinnerClassName="border-white border-t-transparent">
+                Creating account...
+              </LoadingLabel>
+            ) : (
+              'Register'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }

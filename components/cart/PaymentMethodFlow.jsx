@@ -53,6 +53,7 @@ import AddressRegionFields from '@/components/cart/AddressRegionFields';
 import OrderSummary from '@/components/cart/OrderSummary';
 import { normalizeOrderSummary, withOrderSummaryItemCount } from '@/lib/cart/order-summary';
 import { useAuthStore } from '@/store/auth-store';
+import { useVerifyOtp } from '@/hooks/auth';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { getAuthStorageKey } from '@/utils/auth-response';
 import { sanitizePincode, validateAddressForm } from '@/lib/address-validation';
@@ -256,6 +257,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const [codOtpDialogOpen, setCodOtpDialogOpen] = useState(false);
   const [codOtp, setCodOtp] = useState('');
   const [codOtpError, setCodOtpError] = useState('');
+  const verifyOtpMutation = useVerifyOtp();
   const [error, setError] = useState('');
   const [paymentNotice, setPaymentNotice] = useState('');
   const [toast, setToast] = useState(null);
@@ -744,6 +746,14 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
     setCodOtpError('');
 
     try {
+      await verifyOtpMutation.mutateAsync({
+        payload: {
+          purpose: 'cod_order',
+          address_id: Number(selectedAddressId),
+          otp: normalizedOtp,
+        },
+        useAuth: true,
+      });
       await completeOrder(getOrderPayload({ cod_otp: normalizedOtp }), 'cod');
       setCodOtpDialogOpen(false);
     } catch (orderError) {

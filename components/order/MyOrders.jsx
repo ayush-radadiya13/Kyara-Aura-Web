@@ -1368,19 +1368,26 @@ function canPayRefund(order) {
   return false;
 }
 
-function getReturnDisplayStatus(order) {
-  const returnStatus = String(order?.shipment?.return?.status ?? '').toLowerCase();
-  const orderStatus = String(order?.status ?? '').toLowerCase();
+function normalizeStatusValue(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '_');
+}
 
-  if (orderStatus === 'returned' || returnStatus === 'delivered') {
+function getReturnDisplayStatus(order) {
+  const returnStatus = normalizeStatusValue(order?.shipment?.return?.status);
+  const orderStatus = normalizeStatusValue(order?.status);
+
+  if (['returned', 'return_completed', 'return_complete'].includes(orderStatus) || ['returned', 'return_completed', 'return_complete'].includes(returnStatus)) {
     return 'returned';
   }
 
-  if (['picked_up', 'in_transit', 'out_for_delivery'].includes(returnStatus)) {
+  if (['return_processing', 'processing'].includes(returnStatus)) {
     return 'return_processing';
   }
 
-  if (orderStatus === 'return_requested') {
+  if (['return_requested', 'requested'].includes(returnStatus) || orderStatus === 'return_requested') {
     return 'return_requested';
   }
 
@@ -1405,6 +1412,8 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onTrack, 
   const shipmentStatus = order?.shipment?.shipment_status;
   const returnDisplayStatus = getReturnDisplayStatus(order);
   const delivered = isDeliveredOrder(order);
+  const isReturnTracking = ['return_requested', 'return_processing', 'returned'].includes(returnDisplayStatus);
+  const shouldShowTrackingButton = !cancelled && (!delivered || returnDisplayStatus !== null);
 
   return (
     <article
@@ -1456,14 +1465,13 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onTrack, 
             )}
           </button>
         ) : null}
-        {!cancelled ? (
+        {shouldShowTrackingButton ? (
           <button
             type="button"
             onClick={onTrack}
-            disabled={delivered}
-            className="inline-flex h-8 items-center justify-center rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 disabled:cursor-not-allowed disabled:opacity-50 sm:h-9 sm:px-3.5 sm:text-xs"
+            className="inline-flex h-8 items-center justify-center rounded-full border border-gray-200 px-3 text-[0.68rem] font-bold text-gray-700 transition hover:border-gray-950 sm:h-9 sm:px-3.5 sm:text-xs"
           >
-            Track Order
+            {isReturnTracking ? 'Return Tracking' : 'Track Order'}
           </button>
         ) : null}
         {canCancel ? (
@@ -1584,6 +1592,8 @@ function OrderDetail({ order, onTrack }) {
   const returnDisplayStatus = getReturnDisplayStatus(order);
   const cancelled = isCancelledOrder(order);
   const delivered = isDeliveredOrder(order);
+  const isReturnTracking = ['return_requested', 'return_processing', 'returned'].includes(returnDisplayStatus);
+  const shouldShowTrackingButton = !cancelled && (!delivered || returnDisplayStatus !== null);
   const amounts = normalizeOrderSummary(order);
 
   return (
@@ -1601,15 +1611,14 @@ function OrderDetail({ order, onTrack }) {
             </div>
           </div>
 
-          {!cancelled ? (
+          {shouldShowTrackingButton ? (
             <div className="flex flex-row gap-2 lg:shrink-0">
               <button
                 type="button"
                 onClick={onTrack}
-                disabled={delivered}
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-gray-950 px-3.5 text-xs font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-gray-950 px-3.5 text-xs font-bold text-white transition hover:bg-gray-800"
               >
-                Track order
+                {isReturnTracking ? 'Return Tracking' : 'Track order'}
                 <LocateFixed className="h-4 w-4" />
               </button>
             </div>
