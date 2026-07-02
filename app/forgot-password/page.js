@@ -266,7 +266,7 @@ export default function ForgotPasswordPage() {
 
                   <Button
                     type="submit"
-                    className="h-12 w-full rounded-none bg-[#C99B4D]! text-base font-semibold text-primary-foreground hover:bg-[#C99B4D]/90!"
+                    className="h-12 w-full rounded-none bg-[#C99B4D] text-base font-semibold text-primary-foreground hover:bg-[#C99B4D]/90"
                   >
                     Verify OTP
                   </Button>

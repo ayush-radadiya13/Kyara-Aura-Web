@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Menu, X, Search, User, ShoppingBag, Heart } from 'lucide-react';
+import { Menu, X, Search, User, ShoppingBag, Heart, ChevronDown } from 'lucide-react';
 import { useLogout } from '@/hooks/auth';
 import { useProductNameSearch } from '@/hooks/use-products';
 import { useWishlist } from '@/hooks/use-wishlist';
@@ -18,8 +18,8 @@ import PromotionalBanner from '@/components/PromotionalBanner';
 import { usePromotionalMessages } from '@/hooks/use-promotional-messages';
 const NAV_ITEMS = [
   { label: 'Home', href: APP_ROUTES.HOME },
-  { label: 'Shop', href: APP_ROUTES.PRODUCTS },
   { label: 'Categories', href: APP_ROUTES.CATEGORIES },
+  { label: 'Shop', href: APP_ROUTES.PRODUCTS },
   { label: 'Collections', href: APP_ROUTES.COLLECTIONS },
   { label: 'Orders', href: APP_ROUTES.ORDERS },
 ];
@@ -48,6 +48,7 @@ export default function Header({ variant = 'default' }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountMenuVisible, setAccountMenuVisible] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -154,6 +155,7 @@ export default function Header({ variant = 'default' }) {
     logoutMutation.mutate();
     setAccountOpen(false);
     setMobileMenuOpen(false);
+    setMobileAccountOpen(false);
   };
 
   const openSearch = () => {
@@ -309,6 +311,7 @@ export default function Header({ variant = 'default' }) {
             onClick={() => {
               setAccountOpen(false);
               setMobileMenuOpen(false);
+              setMobileAccountOpen(false);
             }}
           >
             My Profile
@@ -503,7 +506,10 @@ export default function Header({ variant = 'default' }) {
           {/* Mobile Menu Toggle */}
           <button
             type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={() => {
+              setMobileMenuOpen(!mobileMenuOpen);
+              setMobileAccountOpen(false);
+            }}
             className={`${searchOpen ? 'hidden' : ''} ${iconClassName}`}
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
@@ -526,30 +532,38 @@ export default function Header({ variant = 'default' }) {
                 {item.label}
               </Link>
             ))}
-            <div className="flex items-center justify-between border-t border-white/30 pt-3 dark:border-white/10">
-              {MOBILE_ICON_ITEMS.map(({ label, href, Icon }) => (
+            <div className="space-y-2 border-t border-white/30 pt-2 dark:border-white/10">
+              {MOBILE_ICON_ITEMS.map(({ label, href }) => (
                 <Link
                   key={href}
                   href={href}
-                  className="flex items-center gap-2 rounded-full px-3 py-2 font-medium text-gray-700 transition-colors hover:bg-white/55 hover:text-gold dark:text-gray-700 dark:hover:bg-white/55 dark:hover:text-gold"
+                  className="block rounded-full px-3 py-2 font-medium text-gray-700 transition-colors hover:bg-white/55 hover:text-gold dark:text-gray-700 dark:hover:bg-white/55 dark:hover:text-gold"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <Icon className="h-4 w-4" />
                   {label}
                 </Link>
               ))}
-            </div>
-            <div className="border-t border-white/30 pt-3 dark:border-white/10">
-              <div className="mb-2 flex items-center gap-2 px-3 font-medium text-gray-700 dark:text-gray-700">
-                <User className="h-4 w-4" />
+
+              <button
+                type="button"
+                onClick={() => setMobileAccountOpen((prev) => !prev)}
+                className="flex w-full items-center justify-between rounded-full px-3 py-2 font-medium text-gray-700 transition-colors hover:bg-white/55 hover:text-gold dark:text-gray-700 dark:hover:bg-white/55 dark:hover:text-gold"
+                aria-expanded={mobileAccountOpen}
+              >
                 Account
-              </div>
-              <div className="space-y-2 pl-6">
-                {renderAccountActions(
-                  'block rounded-full px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-white/55 hover:text-gold dark:text-gray-600 dark:hover:bg-white/55 dark:hover:text-gold',
-                  'block w-full rounded-full px-3 py-2 text-left text-sm text-gray-600 transition-colors hover:bg-white/55 hover:text-gold disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-600 dark:hover:bg-white/55 dark:hover:text-gold',
-                )}
-              </div>
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 transition-transform duration-200 ${mobileAccountOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {mobileAccountOpen && (
+                <div className="space-y-2 pl-6">
+                  {renderAccountActions(
+                    'block rounded-full px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-white/55 hover:text-gold dark:text-gray-600 dark:hover:bg-white/55 dark:hover:text-gold',
+                    'block w-full rounded-full px-3 py-2 text-left text-sm text-gray-600 transition-colors hover:bg-white/55 hover:text-gold disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-600 dark:hover:bg-white/55 dark:hover:text-gold',
+                  )}
+                </div>
+              )}
             </div>
           </nav>
         </div>

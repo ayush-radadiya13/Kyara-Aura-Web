@@ -1379,12 +1379,20 @@ function getReturnDisplayStatus(order) {
   const returnStatus = normalizeStatusValue(order?.shipment?.return?.status);
   const orderStatus = normalizeStatusValue(order?.status);
 
-  if (['returned', 'return_completed', 'return_complete'].includes(orderStatus) || ['returned', 'return_completed', 'return_complete'].includes(returnStatus)) {
-    return 'returned';
+  if (['returned', 'return_completed', 'return_complete'].includes(orderStatus) || ['returned', 'return_completed', 'return_complete', 'delivered'].includes(returnStatus)) {
+    return 'delivered';
   }
 
-  if (['return_processing', 'processing'].includes(returnStatus)) {
-    return 'return_processing';
+  if (returnStatus === 'out_for_delivery') {
+    return 'out_for_delivery';
+  }
+
+  if (returnStatus === 'in_transit') {
+    return 'in_transit';
+  }
+
+  if (returnStatus === 'picked_up') {
+    return 'picked_up';
   }
 
   if (['return_requested', 'requested'].includes(returnStatus) || orderStatus === 'return_requested') {
@@ -1397,11 +1405,33 @@ function getReturnDisplayStatus(order) {
 function formatReturnDisplayStatus(status) {
   const labels = {
     return_requested: 'Return Requested',
-    return_processing: 'Return Processing',
-    returned: 'Returned',
+    picked_up: 'Package Picked Up',
+    in_transit: 'Return In Transit',
+    out_for_delivery: 'Arriving at Warehouse',
+    delivered: 'Return Completed',
   };
 
   return labels[status] ?? formatShipmentStatus(status);
+}
+
+function getReturnStatusTone(status) {
+  const normalized = normalizeStatusValue(status);
+
+  if (['delivered', 'returned'].includes(normalized)) {
+    return 'bg-emerald-50 text-emerald-700 ring-emerald-100';
+  }
+
+  if (['return_requested', 'picked_up', 'in_transit', 'out_for_delivery'].includes(normalized)) {
+    return 'bg-amber-50 text-amber-700 ring-amber-100';
+  }
+
+  return 'bg-gray-100 text-gray-700 ring-gray-200';
+}
+
+function getOrderStatusMode(order) {
+  if (getReturnDisplayStatus(order) !== null) return 'returned';
+  if (isDeliveredOrder(order)) return 'delivered';
+  return 'default';
 }
 
 function OrderCard({ order, selected, loading, invoiceLoading, onView, onTrack, onDownloadInvoice, onCancel, onReturn }) {
@@ -1412,7 +1442,8 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onTrack, 
   const shipmentStatus = order?.shipment?.shipment_status;
   const returnDisplayStatus = getReturnDisplayStatus(order);
   const delivered = isDeliveredOrder(order);
-  const isReturnTracking = ['return_requested', 'return_processing', 'returned'].includes(returnDisplayStatus);
+  const isReturnTracking = returnDisplayStatus !== null;
+  const statusMode = getOrderStatusMode(order);
   const shouldShowTrackingButton = !cancelled && (!delivered || returnDisplayStatus !== null);
 
   return (
@@ -1433,9 +1464,14 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onTrack, 
           <p className="text-xs font-bold uppercase tracking-wide text-gray-400">Order number</p>
           <h2 className="mt-0.5 break-words text-[0.82rem] font-bold text-gray-950 sm:text-sm">{getOrderNumber(order)}</h2>
           <div className="mt-1.5 space-y-1 text-[0.65rem] font-semibold text-gray-500 sm:text-[0.68rem]">
-            <StatusLine label="Order Status" value={formatOrderStatus(order.status ?? 'pending')} />
+            {statusMode === 'default' ? (
+              <StatusLine label="Order Status" value={formatOrderStatus(order.status ?? 'pending')} />
+            ) : null}
+            {statusMode === 'delivered' ? (
+              <StatusLine label="Delivery Status" value={formatOrderStatus(order.status ?? 'pending')} />
+            ) : null}
             <StatusLine label="Payment status" value={order.payment_status ?? 'pending'} />
-            {shipmentStatus ? (
+            {shipmentStatus && statusMode !== 'returned' ? (
               <StatusLine label="Shipment" value={formatShipmentStatus(shipmentStatus)} />
             ) : null}
             {returnDisplayStatus ? (
@@ -1587,12 +1623,14 @@ function OrderDetail({ order, onTrack }) {
   const items = getOrderItems(order);
   const orderDate = formatDate(order.order_date ?? order.created_at ?? order.createdAt);
   const estimatedDelivery = formatDate(getEstimatedDeliveryDate(order));
+  const returnDate = formatDate(getReturnRequestedDate(order));
   const deliveryDetails = getDeliveryDetails(order);
   const shipment = order?.shipment;
   const returnDisplayStatus = getReturnDisplayStatus(order);
   const cancelled = isCancelledOrder(order);
   const delivered = isDeliveredOrder(order);
-  const isReturnTracking = ['return_requested', 'return_processing', 'returned'].includes(returnDisplayStatus);
+  const isReturnTracking = returnDisplayStatus !== null;
+  const statusMode = getOrderStatusMode(order);
   const shouldShowTrackingButton = !cancelled && (!delivered || returnDisplayStatus !== null);
   const amounts = normalizeOrderSummary(order);
 
@@ -1606,8 +1644,20 @@ function OrderDetail({ order, onTrack }) {
               {getOrderNumber(order)}
             </h2>
             <div className="mt-2 flex flex-wrap gap-2">
-              <StatusBadge label="Order Status" value={formatOrderStatus(order.status ?? 'pending')} />
+              {isReturnTracking ? (
+                <span className={`inline-flex max-w-full rounded-full px-2.5 py-1 text-[0.68rem] font-bold ring-1 ${getReturnStatusTone(returnDisplayStatus)}`}>
+                  <span className="opacity-70">Return Status: </span>
+                  <span className="ml-1 min-w-0 break-words capitalize">{formatReturnDisplayStatus(returnDisplayStatus)}</span>
+                </span>
+              ) : statusMode === 'delivered' ? (
+                <StatusBadge label="Delivery Status" value={formatOrderStatus(order.status ?? 'pending')} />
+              ) : (
+                <StatusBadge label="Order Status" value={formatOrderStatus(order.status ?? 'pending')} />
+              )}
               <StatusBadge label="Payment status" value={order.payment_status ?? 'pending'} />
+              {statusMode === 'delivered' && shipment?.shipment_status ? (
+                <StatusBadge label="Shipment Status" value={formatShipmentStatus(shipment.shipment_status, shipment.raw_status)} />
+              ) : null}
             </div>
           </div>
 
@@ -1625,12 +1675,14 @@ function OrderDetail({ order, onTrack }) {
           ) : null}
         </div>
 
-        <div className={`mt-3 grid gap-3 ${cancelled ? '' : 'sm:grid-cols-2'}`}>
+        <div className={`mt-3 grid gap-3 ${cancelled || isReturnTracking ? '' : 'sm:grid-cols-2'}`}>
           <div className="rounded-xl bg-white p-2.5 ring-1 ring-gray-100">
-            <p className="text-[0.68rem] font-bold uppercase tracking-wide text-gray-400">Order date</p>
-            <p className="mt-1 text-sm font-semibold text-gray-800">{orderDate}</p>
+            <p className="text-[0.68rem] font-bold uppercase tracking-wide text-gray-400">
+              {isReturnTracking ? 'Return date' : 'Order date'}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-gray-800">{isReturnTracking ? returnDate : orderDate}</p>
           </div>
-          {!cancelled ? (
+          {!cancelled && !isReturnTracking ? (
             <div className="rounded-xl bg-white p-2.5 ring-1 ring-gray-100">
               <p className="flex items-center gap-2 text-[0.68rem] font-bold uppercase tracking-wide text-gray-400">
                 <Plane className="h-4 w-4 text-gray-950" />
@@ -1652,11 +1704,11 @@ function OrderDetail({ order, onTrack }) {
         )}
       </div>
 
-      {shipment?.shipment_status || shipment?.waybill || shipment?.provider || returnDisplayStatus ? (
+      {(shipment?.shipment_status && statusMode === 'default') || shipment?.waybill || shipment?.provider ? (
         <div className="rounded-[1.1rem] border border-gray-200 p-3">
           <h3 className="text-base font-bold text-gray-950">Shipment</h3>
           <div className="mt-3 space-y-1.5 text-sm">
-            {shipment?.shipment_status ? (
+            {shipment?.shipment_status && statusMode === 'default' ? (
               <DeliveryField
                 label="Status"
                 value={formatShipmentStatus(shipment.shipment_status, shipment.raw_status)}
@@ -1666,14 +1718,11 @@ function OrderDetail({ order, onTrack }) {
             {shipment?.provider ? (
               <DeliveryField label="Courier" value={shipment.provider} />
             ) : null}
-            {returnDisplayStatus ? (
-              <DeliveryField label="Return" value={formatReturnDisplayStatus(returnDisplayStatus)} />
-            ) : null}
           </div>
         </div>
       ) : null}
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className={`grid gap-3 ${isReturnTracking ? '' : 'md:grid-cols-2'}`}>
         <div className="rounded-[1.1rem] border border-gray-200 p-3">
           <h3 className="text-base font-bold text-gray-950">Payment</h3>
           <div className="mt-3 space-y-1.5 text-sm">
@@ -1712,17 +1761,19 @@ function OrderDetail({ order, onTrack }) {
           </dl>
         </div>
 
-        <div className="rounded-[1.1rem] border border-gray-200 p-3">
-          <h3 className="text-base font-bold text-gray-950">Delivery</h3>
-          <div className="mt-3">
-            <div className="space-y-1.5 text-sm leading-5">
-              <DeliveryField label="Name" value={deliveryDetails.name} />
-              <DeliveryField label="Email" value={deliveryDetails.email} />
-              <DeliveryField label="Phone" value={deliveryDetails.phone} />
-              <DeliveryField label="Address" value={deliveryDetails.address} />
+        {!isReturnTracking ? (
+          <div className="rounded-[1.1rem] border border-gray-200 p-3">
+            <h3 className="text-base font-bold text-gray-950">Delivery</h3>
+            <div className="mt-3">
+              <div className="space-y-1.5 text-sm leading-5">
+                <DeliveryField label="Name" value={deliveryDetails.name} />
+                <DeliveryField label="Email" value={deliveryDetails.email} />
+                <DeliveryField label="Phone" value={deliveryDetails.phone} />
+                <DeliveryField label="Address" value={deliveryDetails.address} />
+              </div>
             </div>
           </div>
-        </div>
+        ) : null}
       </div>
     </div>
   );
@@ -2013,6 +2064,11 @@ function getEstimatedDeliveryDate(order) {
   const estimated = new Date(created);
   estimated.setDate(estimated.getDate() + 4);
   return estimated;
+}
+
+function getReturnRequestedDate(order) {
+  const returnData = order?.shipment?.return ?? {};
+  return returnData.requested_at ?? returnData.date ?? returnData.return_date ?? returnData.created_at ?? null;
 }
 
 function formatDate(value) {

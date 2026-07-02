@@ -2,37 +2,45 @@
 
 import { Bike, Clock, Home, Package, PackageCheck, Truck, XCircle } from 'lucide-react';
 
-const DELHIVERY_STATUS_MAP = {
+const STATUS_TO_STEP = {
+  // Pending
+  pending: 'pending',
+  not_created: 'pending',
+  created: 'pending',
+
   // Processing
-  Manifested: 'processing',
-  Pending: 'processing',
-  'Pickup Pending': 'processing',
-  'Not Picked': 'processing',
-  Scheduled: 'processing',
-  Booked: 'processing',
+  processing: 'processing',
+  confirmed: 'processing',
+  manifested: 'processing',
+  pickup_scheduled: 'processing',
+  pickup_pending: 'processing',
+  not_picked: 'processing',
+  scheduled: 'processing',
+  booked: 'processing',
 
   // Picked Up
-  'Picked Up': 'picked_up',
-  'Pickup Complete': 'picked_up',
+  picked_up: 'picked_up',
+  pickup_complete: 'picked_up',
 
   // In Transit
-  'In Transit': 'in_transit',
-  Bagged: 'in_transit',
-  Dispatched: 'in_transit',
-  'Received at Hub': 'in_transit',
-  'Shipment Received at Facility': 'in_transit',
-  'Reached Destination Hub': 'in_transit',
-  'Arrived at Destination Hub': 'in_transit',
+  shipped: 'in_transit',
+  in_transit: 'in_transit',
+  bagged: 'in_transit',
+  dispatched: 'in_transit',
+  received_at_hub: 'in_transit',
+  shipment_received_at_facility: 'in_transit',
+  reached_destination_hub: 'in_transit',
+  arrived_at_destination_hub: 'in_transit',
 
   // Out for Delivery
-  'Out for Delivery': 'out_for_delivery',
+  out_for_delivery: 'out_for_delivery',
 
   // Delivered
-  Delivered: 'delivered',
+  delivered: 'delivered',
 
   // Cancelled
-  Cancelled: 'cancelled',
-  'Shipment Cancelled': 'cancelled',
+  cancelled: 'cancelled',
+  shipment_cancelled: 'cancelled',
 };
 
 const TRACKING_STEPS = [
@@ -46,8 +54,10 @@ const TRACKING_STEPS = [
 
 const RETURN_TRACKING_STEPS = [
   { key: 'return_requested', label: 'Return Requested', Icon: Clock },
-  { key: 'return_processing', label: 'Return Processing', Icon: Package },
-  { key: 'returned', label: 'Returned', Icon: Home },
+  { key: 'picked_up', label: 'Package Picked Up', Icon: PackageCheck },
+  { key: 'in_transit', label: 'Return In Transit', Icon: Truck },
+  { key: 'out_for_delivery', label: 'Arriving at Warehouse', Icon: Bike },
+  { key: 'delivered', label: 'Return Completed', Icon: Home },
 ];
 
 const STEP_KEYS = TRACKING_STEPS.map((step) => step.key);
@@ -64,12 +74,20 @@ function resolveReturnDisplayStatus(order) {
   const returnStatus = normalizeStatusValue(order?.shipment?.return?.status);
   const orderStatus = normalizeStatusValue(order?.status);
 
-  if (['returned', 'return_completed', 'return_complete'].includes(orderStatus) || ['returned', 'return_completed', 'return_complete'].includes(returnStatus)) {
-    return 'returned';
+  if (['returned', 'return_completed', 'return_complete'].includes(orderStatus) || ['returned', 'return_completed', 'return_complete', 'delivered'].includes(returnStatus)) {
+    return 'delivered';
   }
 
-  if (['return_processing', 'processing'].includes(returnStatus)) {
-    return 'return_processing';
+  if (returnStatus === 'out_for_delivery') {
+    return 'out_for_delivery';
+  }
+
+  if (returnStatus === 'in_transit') {
+    return 'in_transit';
+  }
+
+  if (returnStatus === 'picked_up') {
+    return 'picked_up';
   }
 
   if (['return_requested', 'requested'].includes(returnStatus) || orderStatus === 'return_requested') {
@@ -83,12 +101,20 @@ function resolveReturnTrackingStatus(order) {
   const returnStatus = normalizeStatusValue(order?.shipment?.return?.status);
   const orderStatus = normalizeStatusValue(order?.status);
 
-  if (['returned', 'return_completed', 'return_complete'].includes(orderStatus) || ['returned', 'return_completed', 'return_complete'].includes(returnStatus)) {
-    return 'returned';
+  if (['returned', 'return_completed', 'return_complete'].includes(orderStatus) || ['returned', 'return_completed', 'return_complete', 'delivered'].includes(returnStatus)) {
+    return 'delivered';
   }
 
-  if (['return_processing', 'processing'].includes(returnStatus)) {
-    return 'return_processing';
+  if (returnStatus === 'out_for_delivery') {
+    return 'out_for_delivery';
+  }
+
+  if (returnStatus === 'in_transit') {
+    return 'in_transit';
+  }
+
+  if (returnStatus === 'picked_up') {
+    return 'picked_up';
   }
 
   if (['return_requested', 'requested'].includes(returnStatus) || orderStatus === 'return_requested') {
@@ -99,23 +125,18 @@ function resolveReturnTrackingStatus(order) {
 }
 
 function resolveTrackingStatus(order) {
-  const orderStatus = String(order?.status ?? '').trim().toLowerCase();
-  if (orderStatus === 'cancelled' || orderStatus === 'canceled') {
+  const shipment = order?.shipment ?? {};
+  const rawStatus = shipment.raw_status ?? shipment.status_text ?? shipment.status ?? shipment.shipment_status;
+  const orderStatus = order?.status;
+
+  const mappedStep =
+    STATUS_TO_STEP[normalizeStatusValue(rawStatus)] ?? STATUS_TO_STEP[normalizeStatusValue(orderStatus)];
+
+  if (normalizeStatusValue(orderStatus) === 'cancelled' || mappedStep === 'cancelled') {
     return 'cancelled';
   }
 
-  const shipment = order?.shipment ?? {};
-
-  const rawStatus = shipment.raw_status ?? shipment.status_text ?? shipment.status;
-  if (rawStatus && DELHIVERY_STATUS_MAP[String(rawStatus).trim()]) {
-    return DELHIVERY_STATUS_MAP[String(rawStatus).trim()];
-  }
-
-  const normalized = String(shipment.shipment_status ?? '').trim().toLowerCase();
-  if (normalized === 'cancelled' || normalized === 'canceled') return 'cancelled';
-  if (STEP_KEYS.includes(normalized)) return normalized;
-
-  return 'pending';
+  return mappedStep ?? 'pending';
 }
 
 function formatStatusLabel(status) {
@@ -157,10 +178,10 @@ function formatDateValue(value) {
 
 function resolveReturnDeliveredDate(order) {
   const returnData = order?.shipment?.return ?? {};
-  const dateValue = returnData.date ?? returnData.return_date ?? returnData.returned_at ?? returnData.updated_at ?? returnData.created_at ?? order?.shipment?.updated_at ?? order?.updated_at;
-  if (!dateValue) return null;
+  const requestedAt = returnData.requested_at ?? returnData.date ?? returnData.return_date ?? returnData.created_at;
+  if (!requestedAt) return null;
 
-  const baseDate = new Date(typeof dateValue === 'string' ? dateValue.trim().replace(' ', 'T') : dateValue);
+  const baseDate = new Date(typeof requestedAt === 'string' ? requestedAt.trim().replace(' ', 'T') : requestedAt);
   if (Number.isNaN(baseDate.getTime())) return null;
 
   const deliveredDate = new Date(baseDate);
@@ -173,7 +194,7 @@ export default function OrderTracking({ order, embedded = false }) {
   const status = resolveTrackingStatus(order);
   const returnDisplayStatus = resolveReturnDisplayStatus(order);
   const returnTrackingStatus = resolveReturnTrackingStatus(order);
-  const isReturnTracking = ['return_requested', 'return_processing', 'returned'].includes(returnDisplayStatus);
+  const isReturnTracking = returnDisplayStatus !== null;
   const cancelled = status === 'cancelled';
 
   const shipment = order?.shipment ?? {};
@@ -183,7 +204,11 @@ export default function OrderTracking({ order, embedded = false }) {
       shipment.raw_status ?? shipment.shipment_status ?? shipment?.return?.status ?? returnDisplayStatus ?? status,
     ) || 'Pending';
   const timelineStatus = isReturnTracking ? returnTrackingStatus : status;
-  const returnDeliveredDate = isReturnTracking && returnDisplayStatus === 'returned' ? resolveReturnDeliveredDate(order) : null;
+  const returnDeliveredValue = isReturnTracking
+    ? returnDisplayStatus === 'delivered'
+      ? 'Delivered'
+      : resolveReturnDeliveredDate(order) ?? '—'
+    : null;
   const lastUpdated = formatLastUpdated(
     shipment.updated_at ?? shipment.last_update ?? shipment.last_scan_at ?? order?.updated_at,
   );
@@ -215,13 +240,14 @@ export default function OrderTracking({ order, embedded = false }) {
             trackingNumber={shipment.waybill ?? shipment.tracking_number ?? '—'}
             currentStatus={currentStatusLabel}
             lastUpdated={lastUpdated ?? '—'}
+            showCurrentStatus={!isReturnTracking}
           />
 
-          {isReturnTracking && returnDisplayStatus === 'returned' ? (
+          {isReturnTracking ? (
             <div className="mt-6 border-t border-gray-100 pt-6">
               <div className="flex flex-col gap-0.5">
-                <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Return Delivered Date</dt>
-                <dd className="text-sm font-semibold text-gray-900">{returnDeliveredDate ?? '—'}</dd>
+                <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Return Delivered</dt>
+                <dd className="text-sm font-semibold text-gray-900">{returnDeliveredValue}</dd>
               </div>
             </div>
           ) : null}
@@ -307,12 +333,12 @@ function StepCircle({ Icon, completed, current }) {
   );
 }
 
-function ShipmentInfo({ courier, trackingNumber, currentStatus, lastUpdated }) {
+function ShipmentInfo({ courier, trackingNumber, currentStatus, lastUpdated, showCurrentStatus = true }) {
   return (
     <dl className="mt-6 grid grid-cols-1 gap-x-6 gap-y-4 border-t border-gray-100 pt-6 sm:grid-cols-2">
       <InfoRow label="Courier Partner" value={courier} />
       <InfoRow label="Tracking Number" value={trackingNumber} />
-      <InfoRow label="Current Status" value={currentStatus} />
+      {showCurrentStatus ? <InfoRow label="Current Status" value={currentStatus} /> : null}
       <InfoRow label="Last Updated" value={lastUpdated} />
     </dl>
   );

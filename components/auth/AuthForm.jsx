@@ -446,7 +446,7 @@ function OtpVerificationModal({
             type="button"
             onClick={onSubmit}
             disabled={loading}
-            className="h-12 w-full rounded-none bg-[#C99B4D]! text-base font-semibold text-primary-foreground transition hover:bg-[#C99B4D]/90! disabled:opacity-60"
+            className="h-12 w-full rounded-none bg-[#C99B4D] text-base font-semibold text-primary-foreground transition hover:bg-[#C99B4D]/90 disabled:opacity-60"
           >
             {loading ? (
               <LoadingLabel spinnerClassName="border-white border-t-transparent">

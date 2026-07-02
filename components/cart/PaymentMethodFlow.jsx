@@ -1004,7 +1004,7 @@ function CodOtpDialog({ open, phone, otp, error, loading, onOtpChange, onClose, 
             type="button"
             onClick={onSubmit}
             disabled={loading}
-            className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-gray-950 px-4 text-sm font-bold text-white transition hover:bg-gray-800 disabled:opacity-50"
+            className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-[#C99B4D] px-4 text-sm font-bold text-primary-foreground transition hover:bg-[#C99B4D]/90 disabled:opacity-50"
           >
             {loading ? (
               <LoadingLabel spinnerClassName="border-white border-t-transparent">

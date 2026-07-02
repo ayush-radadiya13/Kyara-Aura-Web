@@ -226,20 +226,22 @@ export default function UserProfile() {
             </form>
           ) : null}
 
-          <dl className="divide-y divide-gray-100 border-t border-gray-100">
-            {fields.map(({ label, value, Icon }) => (
-              <div key={label} className="grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-3 py-4">
-                <dt className="flex h-6 items-center text-gray-400">
-                  <Icon className="h-5 w-5" aria-hidden="true" />
-                  <span className="sr-only">{label}</span>
-                </dt>
-                <dd className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-wide text-gray-400">{label}</p>
-                  <p className="mt-0.5 wrap-break-word text-sm font-semibold text-gray-800">{value || '-'}</p>
-                </dd>
-              </div>
-            ))}
-          </dl>
+          {!isEditing ? (
+            <dl className="divide-y divide-gray-100 border-t border-gray-100">
+              {fields.map(({ label, value, Icon }) => (
+                <div key={label} className="grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-3 py-4">
+                  <dt className="flex h-6 items-center text-gray-400">
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                    <span className="sr-only">{label}</span>
+                  </dt>
+                  <dd className="min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-wide text-gray-400">{label}</p>
+                    <p className="mt-0.5 wrap-break-word text-sm font-semibold text-gray-800">{value || '-'}</p>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
         </div>
       </AuthSplitLayout>
 
@@ -326,7 +328,12 @@ function OtpVerificationModal({ open, phone, currentPhone, otp, error, loading, 
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-          <Button type="button" onClick={onSubmit} disabled={loading} className="h-12 w-full rounded-none">
+          <Button
+            type="button"
+            onClick={onSubmit}
+            disabled={loading}
+            className="h-12 w-full rounded-none bg-[#C99B4D] text-primary-foreground hover:bg-[#C99B4D]/90"
+          >
             {loading ? 'Verifying...' : 'Submit'}
           </Button>
         </div>
