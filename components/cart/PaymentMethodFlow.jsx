@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { Drawer } from '@base-ui/react/drawer';
 import {
   BadgeCheck,
-  CircleCheck,
   CreditCard,
   Edit3,
   Gem,
@@ -23,8 +22,8 @@ import {
   User,
   Wallet,
   X,
-  XCircle,
 } from 'lucide-react';
+import { apiToast } from '@/lib/api-toast';
 import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
 import IndianPhoneInput from '@/components/ui/indian-phone-input';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
@@ -260,7 +259,6 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const verifyOtpMutation = useVerifyOtp();
   const [error, setError] = useState('');
   const [paymentNotice, setPaymentNotice] = useState('');
-  const [toast, setToast] = useState(null);
   const [pendingPaymentOrderId, setPendingPaymentOrderId] = useState('');
   const [checkingPendingPayment, setCheckingPendingPayment] = useState(false);
 
@@ -275,17 +273,6 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const payableTotal = hasSummary ? getSummaryTotal(summary) : 0;
   const couponCode = scratchCoupon?.coupon_code ?? '';
   const canPlaceOrder = Boolean(selectedAddressId && hasSummary && payableTotal > 0 && !placingOrder && !summaryLoading);
-
-  useEffect(() => {
-    if (!toast) return undefined;
-
-    const timer = window.setTimeout(() => setToast(null), 3500);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
-
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-  };
 
   // Fallback recovery: a UPI app cannot be forced to return the user to the browser, so when
   // they come back to this page we re-check the in-flight order. If the backend already marked
@@ -314,15 +301,12 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
         }
 
         if (!silent) {
-          setToast({
-            message: 'Payment is still being confirmed. Finish it in your UPI app, then check again.',
-            type: 'error',
-          });
+          apiToast.error('Payment is still being confirmed. Finish it in your UPI app, then check again.');
         }
         return false;
       } catch {
         if (!silent) {
-          setToast({ message: 'Unable to check payment status right now. Please try again.', type: 'error' });
+          apiToast.error('Unable to check payment status right now. Please try again.');
         }
         return false;
       }
@@ -496,7 +480,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
       setAddressFormErrors({});
       setEditingAddressId(null);
       setShowAddressForm(false);
-      showToast(editingAddressId ? 'Address updated successfully.' : 'Address saved successfully.');
+      apiToast.success(editingAddressId ? 'Address updated successfully.' : 'Address saved successfully.');
     } catch (addressError) {
       setError(getApiErrorMessage(addressError, 'Unable to save delivery address.'));
     } finally {
@@ -584,7 +568,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
     try {
       await deleteAddressApi(addressId);
       await refreshAddresses(String(selectedAddressId) === String(addressId) ? null : selectedAddressId);
-      showToast('Address deleted successfully.');
+      apiToast.success('Address deleted successfully.');
     } catch (addressError) {
       setError(getApiErrorMessage(addressError, 'Unable to delete address.'));
     } finally {
@@ -694,10 +678,10 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
 
     try {
       if (selectedMethod === 'cod') {
-        await sendCodOrderOtpApi({ address_id: Number(selectedAddressId) });
+        const response = await sendCodOrderOtpApi({ address_id: Number(selectedAddressId) });
         setCodOtp('');
         setCodOtpDialogOpen(true);
-        showToast('OTP sent for Cash on Delivery.');
+        apiToast.success(response?.message || 'OTP sent for Cash on Delivery.');
         return;
       }
 
@@ -736,7 +720,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const handleSubmitCodOtp = async () => {
     const normalizedOtp = codOtp.trim();
     if (!/^\d{6}$/.test(normalizedOtp)) {
-      setCodOtpError('Please enter the 6-digit OTP.');
+      apiToast.error('Please enter the 6-digit OTP.');
       return;
     }
 
@@ -757,7 +741,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
       await completeOrder(getOrderPayload({ cod_otp: normalizedOtp }), 'cod');
       setCodOtpDialogOpen(false);
     } catch (orderError) {
-      setCodOtpError(getApiErrorMessage(orderError, 'Unable to verify OTP and place your order.'));
+      apiToast.error(getApiErrorMessage(orderError, 'Unable to verify OTP and place your order.'));
     } finally {
       setPlacingOrder(false);
     }
@@ -912,8 +896,6 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
         onClose={closeCodOtpDialog}
         onSubmit={handleSubmitCodOtp}
       />
-
-      {toast && toast.type !== 'error' ? <Toast message={toast.message} type={toast.type} /> : null}
     </div>
   );
 }
@@ -1710,19 +1692,6 @@ function CheckoutAction({ total, selectedMethod, disabled, loading, onClick, cla
           'Place Order'
         )}
       </button>
-    </div>
-  );
-}
-
-function Toast({ message, type }) {
-  const isError = type === 'error';
-
-  return (
-    <div className="fixed right-4 top-20 z-[70] max-w-sm rounded-xl border border-gray-200 bg-white p-4 text-sm font-semibold text-gray-900">
-      <span className="flex items-start gap-3">
-        {isError ? <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" /> : <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-gray-950" />}
-        <span>{message}</span>
-      </span>
     </div>
   );
 }
