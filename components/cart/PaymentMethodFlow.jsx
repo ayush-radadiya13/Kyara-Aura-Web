@@ -991,6 +991,7 @@ function CodOtpDialog({ open, phone, otp, error, loading, onOtpChange, onClose, 
           className="mt-2 h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-center text-xl font-extrabold tracking-[0.45em] text-gray-950 outline-none transition placeholder:tracking-normal focus:border-gray-950 disabled:opacity-60"
           placeholder="000000"
         />
+        {error ? <p className="mt-2 text-xs font-semibold text-red-600">{error}</p> : null}
         <div className="mt-5 flex gap-2">
           <button
             type="button"
