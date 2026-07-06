@@ -68,6 +68,8 @@ export default function ProductCard({
   const wishlistLabel = wishlistActive ? 'Remove from wishlist' : 'Add to wishlist';
   const quickAddSize = getQuickAddSize(product);
   const isInCart = hasCartItemWithProductSize(cartItems, quickAddSize?.id);
+  const sizes = Array.isArray(product?.sizes) ? product.sizes : [];
+  const isOutOfStock = sizes.length > 0 && sizes.every((size) => Number(size.quantity) === 0);
 
   const goToCart = () => {
     router.push(APP_ROUTES.CART);
@@ -76,6 +78,8 @@ export default function ProductCard({
   const handleQuickAddToBag = async (event) => {
     event.preventDefault();
     event.stopPropagation();
+
+    if (isOutOfStock) return;
 
     if (!requireAuth()) return;
 
@@ -153,22 +157,26 @@ export default function ProductCard({
   const wishlistButtonClassName =
     'flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-800 shadow-md ring-1 ring-black/5 transition hover:bg-gray-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-60';
 
-  const renderBagButton = (className) => (
-    <button
-      type="button"
-      onClick={handleQuickAddToBag}
-      disabled={cartLoading}
-      aria-label={isInCart ? 'Go to cart' : 'Add to bag'}
-      title={isInCart ? 'Go to cart' : 'Add to bag'}
-      className={className}
-    >
-      {cartLoading ? (
-        <Loader size="sm" className="h-4 w-4 border-gray-900 border-t-transparent" />
-      ) : (
-        <ShoppingBag className="h-4 w-4" strokeWidth={1.8} />
-      )}
-    </button>
-  );
+  const renderBagButton = (className) => {
+    if (isOutOfStock) return null;
+
+    return (
+      <button
+        type="button"
+        onClick={handleQuickAddToBag}
+        disabled={cartLoading}
+        aria-label={isInCart ? 'Go to cart' : 'Add to bag'}
+        title={isInCart ? 'Go to cart' : 'Add to bag'}
+        className={className}
+      >
+        {cartLoading ? (
+          <Loader size="sm" className="h-4 w-4 border-gray-900 border-t-transparent" />
+        ) : (
+          <ShoppingBag className="h-4 w-4" strokeWidth={1.8} />
+        )}
+      </button>
+    );
+  };
 
   if (variant === 'editorial' || variant === 'catalog') {
     const isCatalog = variant === 'catalog';
@@ -202,22 +210,24 @@ export default function ProductCard({
             'absolute bottom-2 right-2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-900 shadow-md transition hover:bg-gray-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-60 sm:hidden',
           )}
 
-          <button
-            type="button"
-            onClick={handleQuickAddToBag}
-            disabled={cartLoading}
-            className={`${isCatalog ? 'inset-x-5 bottom-5 bg-white py-1 text-gray-950 shadow-sm' : 'inset-x-0 bottom-0 bg-gray-950 py-2 text-white'} absolute z-20 hidden translate-y-full text-sm font-semibold uppercase transition duration-300 group-hover:translate-y-0 sm:block`}
-          >
-            {cartLoading ? (
-              <LoadingLabel spinnerClassName={isCatalog ? 'border-gray-950 border-t-transparent' : 'border-white border-t-transparent'}>
-                Adding...
-              </LoadingLabel>
-            ) : isInCart ? (
-              'Go to Cart'
-            ) : (
-              'Add to Cart'
-            )}
-          </button>
+          {!isOutOfStock && (
+            <button
+              type="button"
+              onClick={handleQuickAddToBag}
+              disabled={cartLoading}
+              className={`${isCatalog ? 'inset-x-5 bottom-5 bg-white py-1 text-gray-950 shadow-sm' : 'inset-x-0 bottom-0 bg-gray-950 py-2 text-white'} absolute z-20 hidden translate-y-full text-sm font-semibold uppercase transition duration-300 group-hover:translate-y-0 sm:block`}
+            >
+              {cartLoading ? (
+                <LoadingLabel spinnerClassName={isCatalog ? 'border-gray-950 border-t-transparent' : 'border-white border-t-transparent'}>
+                  Adding...
+                </LoadingLabel>
+              ) : isInCart ? (
+                'Go to Cart'
+              ) : (
+                'Add to Cart'
+              )}
+            </button>
+          )}
         </div>
 
         <div className={isCatalog ? 'pt-2' : 'pt-2.5'}>
@@ -237,6 +247,9 @@ export default function ProductCard({
               </span>
             )}
           </div>
+          {isOutOfStock && (
+            <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-red-600">Out of Stock</p>
+          )}
         </div>
       </div>
       <CartDrawer
@@ -300,26 +313,32 @@ export default function ProductCard({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={handleQuickAddToBag}
-          disabled={cartLoading}
-          className="btn-gold mt-2 hidden w-full items-center justify-center gap-1.5 py-1.5 text-xs font-medium transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 sm:mt-3 sm:flex sm:gap-2 sm:py-2 sm:text-sm"
-        >
-          {cartLoading ? (
-            <LoadingLabel spinnerClassName="border-white border-t-transparent">Adding...</LoadingLabel>
-          ) : isInCart ? (
-            <>
-              <ShoppingBag className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span>Go to Cart</span>
-            </>
-          ) : (
-            <>
-              <ShoppingBag className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span>Add to Bag</span>
-            </>
-          )}
-        </button>
+        {isOutOfStock ? (
+          <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-red-600 sm:mt-3 sm:text-sm">
+            Out of Stock
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={handleQuickAddToBag}
+            disabled={cartLoading}
+            className="btn-gold mt-2 hidden w-full items-center justify-center gap-1.5 py-1.5 text-xs font-medium transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 sm:mt-3 sm:flex sm:gap-2 sm:py-2 sm:text-sm"
+          >
+            {cartLoading ? (
+              <LoadingLabel spinnerClassName="border-white border-t-transparent">Adding...</LoadingLabel>
+            ) : isInCart ? (
+              <>
+                <ShoppingBag className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Go to Cart</span>
+              </>
+            ) : (
+              <>
+                <ShoppingBag className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Add to Bag</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
     <CartDrawer

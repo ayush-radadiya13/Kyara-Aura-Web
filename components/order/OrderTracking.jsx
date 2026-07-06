@@ -86,7 +86,7 @@ function resolveReturnDisplayStatus(order) {
     return 'in_transit';
   }
 
-  if (returnStatus === 'picked_up') {
+  if (['picked_up', 'pickup_pending'].includes(returnStatus)) {
     return 'picked_up';
   }
 
@@ -113,7 +113,7 @@ function resolveReturnTrackingStatus(order) {
     return 'in_transit';
   }
 
-  if (returnStatus === 'picked_up') {
+  if (['picked_up', 'pickup_pending'].includes(returnStatus)) {
     return 'picked_up';
   }
 
@@ -139,13 +139,6 @@ function resolveTrackingStatus(order) {
   return mappedStep ?? 'pending';
 }
 
-function formatStatusLabel(status) {
-  return String(status ?? '')
-    .trim()
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
 function formatLastUpdated(value) {
   if (!value) return null;
 
@@ -162,32 +155,37 @@ function formatLastUpdated(value) {
   }).format(date);
 }
 
-function formatDateValue(value) {
+function formatEstimatedDeliveryDate(value) {
   if (!value) return null;
 
   const normalized = typeof value === 'string' ? value.trim().replace(' ', 'T') : value;
   const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) return null;
 
-  return new Intl.DateTimeFormat('en-IN', {
+  return new Intl.DateTimeFormat('en-GB', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   }).format(date);
 }
 
-function resolveReturnDeliveredDate(order) {
-  const returnData = order?.shipment?.return ?? {};
-  const requestedAt = returnData.requested_at ?? returnData.date ?? returnData.return_date ?? returnData.created_at;
-  if (!requestedAt) return null;
+function formatReturnStatusLabel(order, returnDisplayStatus) {
+  const labels = {
+    return_requested: 'Return Requested',
+    picked_up: 'Package Picked Up',
+    in_transit: 'Return In Transit',
+    out_for_delivery: 'Arriving at Warehouse',
+    delivered: 'Return Completed',
+  };
 
-  const baseDate = new Date(typeof requestedAt === 'string' ? requestedAt.trim().replace(' ', 'T') : requestedAt);
-  if (Number.isNaN(baseDate.getTime())) return null;
+  if (returnDisplayStatus && labels[returnDisplayStatus]) {
+    return labels[returnDisplayStatus];
+  }
 
-  const deliveredDate = new Date(baseDate);
-  deliveredDate.setDate(deliveredDate.getDate() + 4);
-
-  return formatDateValue(deliveredDate);
+  return String(order?.status ?? '')
+    .trim()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase()) || '—';
 }
 
 export default function OrderTracking({ order, embedded = false }) {
@@ -199,16 +197,17 @@ export default function OrderTracking({ order, embedded = false }) {
 
   const shipment = order?.shipment ?? {};
 
-  const currentStatusLabel =
-    formatStatusLabel(
-      shipment.raw_status ?? shipment.shipment_status ?? shipment?.return?.status ?? returnDisplayStatus ?? status,
-    ) || 'Pending';
-  const timelineStatus = isReturnTracking ? returnTrackingStatus : status;
-  const returnDeliveredValue = isReturnTracking
-    ? returnDisplayStatus === 'delivered'
-      ? 'Delivered'
-      : resolveReturnDeliveredDate(order) ?? '—'
+  const estimatedDelivery = !isReturnTracking
+    ? formatEstimatedDeliveryDate(shipment.estimated_delivery_at)
     : null;
+  const returnData = shipment.return;
+  const estimatedReturn = isReturnTracking && returnData != null
+    ? formatEstimatedDeliveryDate(returnData.estimated_return_at)
+    : null;
+  const returnStatus = isReturnTracking && returnData == null
+    ? formatReturnStatusLabel(order, returnDisplayStatus)
+    : null;
+  const timelineStatus = isReturnTracking ? returnTrackingStatus : status;
   const lastUpdated = formatLastUpdated(
     shipment.updated_at ?? shipment.last_update ?? shipment.last_scan_at ?? order?.updated_at,
   );
@@ -238,19 +237,11 @@ export default function OrderTracking({ order, embedded = false }) {
           <ShipmentInfo
             courier={shipment.provider ?? shipment.courier ?? '—'}
             trackingNumber={shipment.waybill ?? shipment.tracking_number ?? '—'}
-            currentStatus={currentStatusLabel}
+            estimatedDelivery={estimatedDelivery}
+            estimatedReturn={estimatedReturn}
+            returnStatus={returnStatus}
             lastUpdated={lastUpdated ?? '—'}
-            showCurrentStatus={!isReturnTracking}
           />
-
-          {isReturnTracking ? (
-            <div className="mt-6 border-t border-gray-100 pt-6">
-              <div className="flex flex-col gap-0.5">
-                <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">Return Delivered</dt>
-                <dd className="text-sm font-semibold text-gray-900">{returnDeliveredValue}</dd>
-              </div>
-            </div>
-          ) : null}
         </>
       )}
     </Wrapper>
@@ -333,12 +324,14 @@ function StepCircle({ Icon, completed, current }) {
   );
 }
 
-function ShipmentInfo({ courier, trackingNumber, currentStatus, lastUpdated, showCurrentStatus = true }) {
+function ShipmentInfo({ courier, trackingNumber, estimatedDelivery, estimatedReturn, returnStatus, lastUpdated }) {
   return (
     <dl className="mt-6 grid grid-cols-1 gap-x-6 gap-y-4 border-t border-gray-100 pt-6 sm:grid-cols-2">
       <InfoRow label="Courier Partner" value={courier} />
       <InfoRow label="Tracking Number" value={trackingNumber} />
-      {showCurrentStatus ? <InfoRow label="Current Status" value={currentStatus} /> : null}
+      {estimatedDelivery ? <InfoRow label="Estimated Delivery" value={estimatedDelivery} /> : null}
+      {estimatedReturn ? <InfoRow label="Estimated Return Date" value={estimatedReturn} /> : null}
+      {returnStatus ? <InfoRow label="Return Status" value={returnStatus} /> : null}
       <InfoRow label="Last Updated" value={lastUpdated} />
     </dl>
   );

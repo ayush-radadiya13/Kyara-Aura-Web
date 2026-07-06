@@ -59,6 +59,34 @@ export default function ShippingPolicyPage() {
             </div>
 
             <div>
+              <h2 className="text-base font-semibold text-gray-900">Cash on Delivery (COD)</h2>
+              <p className="mt-3">
+                Cash on Delivery (COD) is available for eligible orders. A{' '}
+                <strong className="font-semibold text-gray-900">₹50 COD handling charge</strong> is
+                applied by our delivery partner, <strong className="font-semibold text-gray-900">Delhivery</strong>,
+                on all COD orders. This charge is collected to cover the additional handling and
+                processing required for Cash on Delivery shipments.
+              </p>
+              <p className="mt-3">
+                Customers can choose <strong className="font-semibold text-gray-900">Online Payment</strong> at
+                checkout to avoid the additional COD charge.
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">Online Payment</h2>
+              <p className="mt-3">
+                Customers who choose <strong className="font-semibold text-gray-900">Online Payment</strong> at
+                checkout are eligible for an instant discount, where applicable. The discount amount
+                will be displayed during checkout before the order is placed.
+              </p>
+              <p className="mt-3">
+                We recommend using Online Payment for a faster, more secure checkout experience and to
+                enjoy available payment offers.
+              </p>
+            </div>
+
+            <div>
               <h2 className="text-base font-semibold text-gray-900">Order Inspection</h2>
               <p className="mt-3">
                 Before shipping, every product is carefully checked for quality, damage, and

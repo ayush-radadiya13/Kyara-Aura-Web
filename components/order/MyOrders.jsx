@@ -19,7 +19,7 @@ import { useScrollLock } from '@/hooks/use-scroll-lock';
 import { INDIAN_PHONE_PATTERN, sanitizeIndianPhoneDigits } from '@/lib/phone';
 import { APP_ROUTES } from '@/lib/routes';
 import { cancelOrderApi, downloadOrderInvoiceApi, getOrderDetailApi, getOrdersApi, returnOrderApi, returnOrderPreviewApi } from '@/services/checkout';
-import { clearStoredScratchCoupon, scratchCardApi, writeStoredScratchCoupon } from '@/services/scratch-card';
+import { clearStoredScratchCoupon, scratchCardApi } from '@/services/scratch-card';
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { getAuthStorageKey } from '@/utils/auth-response';
@@ -241,8 +241,7 @@ export default function MyOrders() {
     clearStoredScratchCoupon(storageUserKey);
 
     try {
-      const freshCoupon = await scratchCardApi();
-      writeStoredScratchCoupon(freshCoupon?.coupon_code ? freshCoupon : null, storageUserKey);
+      await scratchCardApi();
     } catch {
       // A fresh coupon may not be available (e.g. campaign inactive). Clearing the old
       // code is the important part; checkout will request a coupon-free summary.
@@ -1391,7 +1390,7 @@ function getReturnDisplayStatus(order) {
     return 'in_transit';
   }
 
-  if (returnStatus === 'picked_up') {
+  if (['picked_up', 'pickup_pending'].includes(returnStatus)) {
     return 'picked_up';
   }
 
@@ -1421,7 +1420,7 @@ function getReturnStatusTone(status) {
     return 'bg-emerald-50 text-emerald-700 ring-emerald-100';
   }
 
-  if (['return_requested', 'picked_up', 'in_transit', 'out_for_delivery'].includes(normalized)) {
+  if (['return_requested', 'picked_up', 'pickup_pending', 'in_transit', 'out_for_delivery'].includes(normalized)) {
     return 'bg-amber-50 text-amber-700 ring-amber-100';
   }
 
@@ -1622,7 +1621,7 @@ function OrderDetailScrollContainer({ children }) {
 function OrderDetail({ order, onTrack }) {
   const items = getOrderItems(order);
   const orderDate = formatDate(order.order_date ?? order.created_at ?? order.createdAt);
-  const estimatedDelivery = formatDate(getEstimatedDeliveryDate(order));
+  const estimatedDelivery = formatEstimatedDeliveryDate(order?.shipment?.estimated_delivery_at);
   const returnDate = formatDate(getReturnRequestedDate(order));
   const deliveryDetails = getDeliveryDetails(order);
   const shipment = order?.shipment;
@@ -1632,6 +1631,7 @@ function OrderDetail({ order, onTrack }) {
   const isReturnTracking = returnDisplayStatus !== null;
   const statusMode = getOrderStatusMode(order);
   const shouldShowTrackingButton = !cancelled && (!delivered || returnDisplayStatus !== null);
+  const showEstimatedDelivery = !cancelled && !isReturnTracking && (delivered || Boolean(estimatedDelivery));
   const amounts = normalizeOrderSummary(order);
 
   return (
@@ -1675,14 +1675,14 @@ function OrderDetail({ order, onTrack }) {
           ) : null}
         </div>
 
-        <div className={`mt-3 grid gap-3 ${cancelled || isReturnTracking ? '' : 'sm:grid-cols-2'}`}>
+        <div className={`mt-3 grid gap-3 ${showEstimatedDelivery ? 'sm:grid-cols-2' : ''}`}>
           <div className="rounded-xl bg-white p-2.5 ring-1 ring-gray-100">
             <p className="text-[0.68rem] font-bold uppercase tracking-wide text-gray-400">
               {isReturnTracking ? 'Return date' : 'Order date'}
             </p>
             <p className="mt-1 text-sm font-semibold text-gray-800">{isReturnTracking ? returnDate : orderDate}</p>
           </div>
-          {!cancelled && !isReturnTracking ? (
+          {showEstimatedDelivery ? (
             <div className="rounded-xl bg-white p-2.5 ring-1 ring-gray-100">
               <p className="flex items-center gap-2 text-[0.68rem] font-bold uppercase tracking-wide text-gray-400">
                 <Plane className="h-4 w-4 text-gray-950" />
@@ -2053,17 +2053,15 @@ function parseDateValue(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function getEstimatedDeliveryDate(order) {
-  const explicit =
-    order?.estimated_delivery_date ?? order?.estimated_delivery ?? order?.delivery_date ?? order?.expected_delivery_date;
-  if (explicit) return explicit;
+function formatEstimatedDeliveryDate(value) {
+  const date = parseDateValue(value);
+  if (!date) return null;
 
-  const created = parseDateValue(order?.created_at ?? order?.createdAt ?? order?.order_date);
-  if (!created) return null;
-
-  const estimated = new Date(created);
-  estimated.setDate(estimated.getDate() + 4);
-  return estimated;
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
 }
 
 function getReturnRequestedDate(order) {

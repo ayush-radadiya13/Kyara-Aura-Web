@@ -39,7 +39,6 @@ function SummaryDivider() {
  *   title?: string,
  *   compact?: boolean,
  *   showOnlinePaymentDiscount?: boolean,
- *   showCodCharge?: boolean,
  *   className?: string,
  * }} props
  */
@@ -50,7 +49,6 @@ export default function OrderSummary({
   title = 'Order Summary',
   compact = false,
   showOnlinePaymentDiscount = false,
-  showCodCharge = false,
   className = '',
 }) {
   const hasSummary = Boolean(summary);

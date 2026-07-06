@@ -5,11 +5,10 @@ import { CompatibleScratchCard } from '@/components/cart/CompatibleScratchCard';
 import { Drawer } from '@base-ui/react/drawer';
 import { Gift, Percent, Sparkles, TicketPercent, X } from 'lucide-react';
 import {
-  clearLegacyScratchCouponStorage,
+  clearStoredScratchCoupon,
   getScratchCardStatusApi,
-  getStoredScratchCoupon,
+  normalizeScratchCoupon,
   scratchCardApi,
-  writeStoredScratchCoupon,
 } from '@/services/scratch-card';
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
@@ -43,7 +42,7 @@ function ScratchCardHint({ hasCoupon, discountPercent }) {
   );
 }
 
-export { clearStoredScratchCoupon, getStoredScratchCoupon } from '@/services/scratch-card';
+export { clearStoredScratchCoupon } from '@/services/scratch-card';
 
 function useSquareCardSize(enabled) {
   const containerRef = useRef(null);
@@ -376,20 +375,20 @@ export default function ScratchCardOffer({ initialCoupon = null, onCouponChange,
   useEffect(() => {
     if (!isHydrated) return;
 
-    clearLegacyScratchCouponStorage();
+    clearStoredScratchCoupon(storageUserKey);
 
     if (!storageUserKey) {
       setCoupon(null);
       onCouponChange?.(null);
-      return;
     }
-
-    const storedCoupon = getStoredScratchCoupon(storageUserKey);
-    setCoupon(storedCoupon);
-    onCouponChange?.(storedCoupon);
   }, [isHydrated, storageUserKey, onCouponChange]);
 
   useEffect(() => {
+    if (!isHydrated || !token) {
+      if (isHydrated && !token) setLoadingStatus(false);
+      return undefined;
+    }
+
     let isCurrent = true;
 
     async function loadStatus() {
@@ -402,15 +401,20 @@ export default function ScratchCardOffer({ initialCoupon = null, onCouponChange,
           setStatus(scratchStatus);
           if (!scratchStatus?.is_active) {
             setCoupon(null);
-            if (storageUserKey) writeStoredScratchCoupon(null, storageUserKey);
             onCouponChange?.(null);
+            return;
+          }
+
+          const existingCoupon = normalizeScratchCoupon(scratchStatus);
+          if (existingCoupon) {
+            setCoupon(existingCoupon);
+            onCouponChange?.(existingCoupon);
           }
         }
       } catch {
         if (isCurrent) {
           setStatus({ is_active: false });
           setCoupon(null);
-          if (storageUserKey) writeStoredScratchCoupon(null, storageUserKey);
           onCouponChange?.(null);
         }
       } finally {
@@ -423,11 +427,10 @@ export default function ScratchCardOffer({ initialCoupon = null, onCouponChange,
     return () => {
       isCurrent = false;
     };
-  }, [onCouponChange, storageUserKey]);
+  }, [isHydrated, onCouponChange, token]);
 
   const updateCoupon = (nextCoupon) => {
     setCoupon(nextCoupon);
-    if (storageUserKey) writeStoredScratchCoupon(nextCoupon, storageUserKey);
     onCouponChange?.(nextCoupon);
   };
 
@@ -439,7 +442,7 @@ export default function ScratchCardOffer({ initialCoupon = null, onCouponChange,
 
     try {
       const generatedCoupon = await scratchCardApi();
-      updateCoupon(generatedCoupon);
+      updateCoupon(normalizeScratchCoupon(generatedCoupon) ?? generatedCoupon);
       fireCelebrationConfetti({ originY: isDesktop ? 0.72 : 0.82 });
     } catch (scratchError) {
       setError(getApiErrorMessage(scratchError, 'Unable to generate scratch card coupon.'));

@@ -50,7 +50,11 @@ import {
 import ScratchCardOffer, { clearStoredScratchCoupon } from '@/components/cart/ScratchCardOffer';
 import AddressRegionFields from '@/components/cart/AddressRegionFields';
 import OrderSummary from '@/components/cart/OrderSummary';
-import { normalizeOrderSummary, withOrderSummaryItemCount } from '@/lib/cart/order-summary';
+import {
+  normalizeOrderSummary,
+  withCodIncludedInShipping,
+  withOrderSummaryItemCount,
+} from '@/lib/cart/order-summary';
 import { useAuthStore } from '@/store/auth-store';
 import { useVerifyOtp } from '@/hooks/auth';
 import { getApiErrorMessage } from '@/utils/api-error';
@@ -63,21 +67,20 @@ const PAYMENT_OPTIONS = [
   {
     id: 'online',
     title: 'Pay Online',
-    description: 'Cards, UPI, wallet, and net banking with Razorpay.',
+    description: 'Pay online via Razorpay and enjoy secure payments with exclusive prepaid discounts.',
     badge: 'Razorpay secured',
     Icon: CreditCard,
   },
   {
     id: 'cod',
     title: 'Cash on Delivery',
-    description: 'Convenient Cash on Delivery available for your order',
+    description: 'Cash on Delivery (COD) is available. A ₹50 fee is charged by our delhivery partner.',
     badge: 'Pay later',
     Icon: Wallet,
   },
 ];
 
 const PAYMENT_METHOD_ICONS = [
-  { src: '/payment-icon/upi.svg', alt: 'UPI' },
   { src: '/payment-icon/visa.svg', alt: 'Visa' },
   { src: '/payment-icon/mastercard.svg', alt: 'Mastercard' },
   { src: '/payment-icon/rupay.svg', alt: 'RuPay' },
@@ -245,6 +248,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const [summary, setSummary] = useState(null);
   const [notes, setNotes] = useState('');
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [showNewAddressFields, setShowNewAddressFields] = useState(false);
   const [addressForm, setAddressForm] = useState(EMPTY_ADDRESS_FORM);
   const [addressFormErrors, setAddressFormErrors] = useState({});
   const [editingAddressId, setEditingAddressId] = useState(null);
@@ -377,6 +381,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
         if (defaultAddress) {
           setSelectedAddressId(String(defaultAddress.id));
         } else {
+          setShowNewAddressFields(true);
           setShowAddressForm(true);
         }
       } catch (checkoutError) {
@@ -479,6 +484,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
       setAddressForm(EMPTY_ADDRESS_FORM);
       setAddressFormErrors({});
       setEditingAddressId(null);
+      setShowNewAddressFields(false);
       setShowAddressForm(false);
       apiToast.success(editingAddressId ? 'Address updated successfully.' : 'Address saved successfully.');
     } catch (addressError) {
@@ -506,6 +512,15 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
       address_type: address.address_type ?? 'home',
       is_default: Boolean(address.is_default),
     });
+    setShowNewAddressFields(true);
+    setShowAddressForm(true);
+  };
+
+  const openAddressDrawer = () => {
+    setEditingAddressId(null);
+    setAddressForm(EMPTY_ADDRESS_FORM);
+    setAddressFormErrors({});
+    setShowNewAddressFields(false);
     setShowAddressForm(true);
   };
 
@@ -513,6 +528,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
     setEditingAddressId(null);
     setAddressForm(EMPTY_ADDRESS_FORM);
     setAddressFormErrors({});
+    setShowNewAddressFields(true);
     setShowAddressForm(true);
   };
 
@@ -520,6 +536,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
     setEditingAddressId(null);
     setAddressForm(EMPTY_ADDRESS_FORM);
     setAddressFormErrors({});
+    setShowNewAddressFields(false);
     setShowAddressForm(false);
   };
 
@@ -779,7 +796,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
     <div className="min-h-screen bg-white pb-24">
       <div className="mx-auto w-full max-w-7xl px-4 py-2 sm:py-4">
         <div className="mb-5">
-          <h1 className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-950 sm:text-2xl">
             Payment Method
           </h1>
         </div>
@@ -797,8 +814,10 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
               savingAddress={savingAddress}
               addressActionId={addressActionId}
               onSelectAddress={setSelectedAddressId}
+              onOpenAddressDrawer={openAddressDrawer}
               onOpenNewAddress={openNewAddressDrawer}
               onCloseDrawer={closeAddressDrawer}
+              showNewAddressFields={showNewAddressFields}
               onAddressFieldChange={setAddressField}
               onAddressSubmit={handleAddressSubmit}
               onEditAddress={startAddressEdit}
@@ -828,12 +847,14 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
             <OrderSummary
               summary={
                 summary
-                  ? withOrderSummaryItemCount(normalizeOrderSummary(summary), visibleCount)
+                  ? withCodIncludedInShipping(
+                      withOrderSummaryItemCount(normalizeOrderSummary(summary), visibleCount),
+                      selectedMethod === 'cod',
+                    )
                   : null
               }
               loading={summaryLoading}
               showOnlinePaymentDiscount={selectedMethod === 'online'}
-              showCodCharge={selectedMethod === 'cod'}
               emptyMessage="Select a delivery address to load your order summary with subtotal, tax, shipping, and discounts."
             />
 
@@ -1115,12 +1136,14 @@ function AddressSection({
   selectedAddressId,
   selectedAddress,
   showAddressForm,
+  showNewAddressFields,
   addressForm,
   addressFormErrors,
   editingAddressId,
   savingAddress,
   addressActionId,
   onSelectAddress,
+  onOpenAddressDrawer,
   onOpenNewAddress,
   onCloseDrawer,
   onAddressFieldChange,
@@ -1137,7 +1160,7 @@ function AddressSection({
         </div>
         <button
           type="button"
-          onClick={onOpenNewAddress}
+          onClick={selectedAddress ? onOpenAddressDrawer : onOpenNewAddress}
           className="inline-flex h-9 items-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-bold text-gray-950 transition hover:border-gray-950"
         >
           {selectedAddress ? 'Change' : 'Add Address'}
@@ -1188,6 +1211,7 @@ function AddressSection({
         open={showAddressForm}
         addresses={addresses}
         selectedAddressId={selectedAddressId}
+        showNewAddressFields={showNewAddressFields}
         addressForm={addressForm}
         addressFormErrors={addressFormErrors}
         editingAddressId={editingAddressId}
@@ -1212,6 +1236,7 @@ function AddressDrawer({
   open,
   addresses,
   selectedAddressId,
+  showNewAddressFields,
   addressForm,
   addressFormErrors,
   editingAddressId,
@@ -1226,6 +1251,7 @@ function AddressDrawer({
   onDeleteAddress,
   onSetDefaultAddress,
 }) {
+  const shouldShowAddressForm = addresses.length === 0 || showNewAddressFields;
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange} swipeDirection="right">
       <Drawer.Portal>
@@ -1270,14 +1296,16 @@ function AddressDrawer({
                 </div>
               ) : null}
 
-              <AddressForm
-                addressForm={addressForm}
-                addressFormErrors={addressFormErrors}
-                editingAddressId={editingAddressId}
-                savingAddress={savingAddress}
-                onAddressFieldChange={onAddressFieldChange}
-                onAddressSubmit={onAddressSubmit}
-              />
+              {shouldShowAddressForm ? (
+                <AddressForm
+                  addressForm={addressForm}
+                  addressFormErrors={addressFormErrors}
+                  editingAddressId={editingAddressId}
+                  savingAddress={savingAddress}
+                  onAddressFieldChange={onAddressFieldChange}
+                  onAddressSubmit={onAddressSubmit}
+                />
+              ) : null}
             </div>
           </Drawer.Popup>
         </Drawer.Viewport>

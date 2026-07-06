@@ -170,7 +170,7 @@ export default function CartBag({ checkoutSlot = null, itemsSubtotal = null }) {
       {!isEmpty ? (
         <h1
           id="cart-bag-heading"
-          className="flex items-baseline justify-between gap-4 text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl"
+          className="flex items-baseline justify-between gap-4 text-2xl font-bold tracking-tight text-gray-950 sm:text-2xl"
         >
           <span>Your cart</span>
           {itemsSubtotal != null ? (
@@ -242,6 +242,7 @@ export default function CartBag({ checkoutSlot = null, itemsSubtotal = null }) {
               const lineTotal = item.subtotal ?? item.price * item.quantity;
               const disabled = updatingItemId === item.id || isClearing;
               const imageSrc = item.image || CART_IMAGE_FALLBACK;
+              const productHref = item.slug ? `/products/${item.slug}` : null;
 
               return (
                 <li
@@ -258,27 +259,57 @@ export default function CartBag({ checkoutSlot = null, itemsSubtotal = null }) {
                     className="h-4 w-4 accent-gray-950"
                   />
 
-                  <div className="relative h-24 w-[72px] shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 sm:h-28 sm:w-[92px]">
-                    <Image
-                      src={imageSrc}
-                      alt={item.title}
-                      fill
-                      className="object-contain object-center"
-                      sizes="(max-width: 640px) 72px, 92px"
-                    />
-                  </div>
+                  {productHref ? (
+                    <Link
+                      href={productHref}
+                      className="relative h-24 w-[72px] shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 transition hover:border-gray-300 sm:h-28 sm:w-[92px]"
+                      aria-label={`View ${item.title}`}
+                    >
+                      <Image
+                        src={imageSrc}
+                        alt={item.title}
+                        fill
+                        className="object-contain object-center"
+                        sizes="(max-width: 640px) 72px, 92px"
+                      />
+                    </Link>
+                  ) : (
+                    <div className="relative h-24 w-[72px] shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 sm:h-28 sm:w-[92px]">
+                      <Image
+                        src={imageSrc}
+                        alt={item.title}
+                        fill
+                        className="object-contain object-center"
+                        sizes="(max-width: 640px) 72px, 92px"
+                      />
+                    </div>
+                  )}
 
                   <div className="min-w-0">
                     <div className="flex items-start gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-extrabold leading-snug text-gray-950 sm:text-base">
-                          {item.title}
-                        </p>
-                        <p className="mt-1 text-xs font-semibold leading-5 text-gray-700">
-                          Size: {item.sizeLabel || item.size || 'Default'}
-                          <br />
-                      
-                        </p>
+                        {productHref ? (
+                          <Link
+                            href={productHref}
+                            className="group block min-w-0"
+                          >
+                            <p className="truncate text-sm font-extrabold leading-snug text-gray-950 transition group-hover:underline sm:text-base">
+                              {item.title}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold leading-5 text-gray-700">
+                              Size: {item.sizeLabel || item.size || 'Default'}
+                            </p>
+                          </Link>
+                        ) : (
+                          <>
+                            <p className="truncate text-sm font-extrabold leading-snug text-gray-950 sm:text-base">
+                              {item.title}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold leading-5 text-gray-700">
+                              Size: {item.sizeLabel || item.size || 'Default'}
+                            </p>
+                          </>
+                        )}
                       </div>
 
                       <button
