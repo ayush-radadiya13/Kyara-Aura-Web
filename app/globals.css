@@ -229,6 +229,16 @@ body {
   animation-delay: var(--home-delay, 0ms);
 }
 
+.about-reveal {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+}
+
+.about-reveal.is-visible {
+  animation: home-fade-lift 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--about-delay, 0ms);
+}
+
 .home-scale-in {
   animation: home-soft-scale 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: var(--home-delay, 0ms);
@@ -264,6 +274,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .home-reveal,
+  .about-reveal,
   .home-scale-in,
   .home-scroll-stable,
   .home-drift,

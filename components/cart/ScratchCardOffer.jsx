@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { CompatibleScratchCard } from '@/components/cart/CompatibleScratchCard';
 import { Drawer } from '@base-ui/react/drawer';
 import { Gift, Percent, Sparkles, TicketPercent, X } from 'lucide-react';
@@ -214,48 +214,41 @@ function ScratchCardInteractive({
     <div className="pt-2.5">
       <ScratchCardHint hasCoupon={hasCoupon} discountPercent={discountPercent} />
 
-      {hasCoupon ? (
-        <div className="mx-auto w-full" style={{ maxWidth: CARD_MAX_WIDTH }}>
-          <div
-            className="relative aspect-square w-full overflow-hidden rounded-2xl shadow-[0_14px_32px_rgba(26,26,26,0.28)] ring-1 ring-[#D4AF37]/25"
-            style={{ backgroundColor: SCRATCH_FOIL_COLOR }}
-          >
-            <ScratchWonFace
-              discountPercent={discountPercent}
-              couponCode={coupon?.coupon_code}
-            />
-          </div>
-        </div>
-      ) : (
-        <div ref={containerRef} className="mx-auto w-full" style={{ maxWidth: CARD_MAX_WIDTH }}>
-          <div className="relative aspect-square w-full">
-            {cardSize > 0 ? (
-              <div
-                className="absolute inset-0 overflow-hidden rounded-2xl shadow-[0_14px_32px_rgba(26,26,26,0.28)] ring-1 ring-[#D4AF37]/25 [touch-action:none]"
-                style={{ backgroundColor: SCRATCH_FOIL_COLOR }}
+      <div ref={containerRef} className="mx-auto w-full" style={{ maxWidth: CARD_MAX_WIDTH }}>
+        <div className="relative aspect-square w-full">
+          {cardSize > 0 ? (
+            <div
+              className="absolute inset-0 overflow-hidden rounded-2xl shadow-[0_14px_32px_rgba(26,26,26,0.28)] ring-1 ring-[#D4AF37]/25 [touch-action:none]"
+              style={{ backgroundColor: SCRATCH_FOIL_COLOR }}
+            >
+              <CompatibleScratchCard
+                key={scratchCardKey}
+                width={cardSize}
+                height={cardSize}
+                image={scratchSurfaceImage}
+                finishPercent={45}
+                brushSize={Math.max(16, Math.round(cardSize * 0.1))}
+                revealed={hasCoupon}
+                onComplete={onScratchComplete}
               >
-                <CompatibleScratchCard
-                  key={scratchCardKey}
-                  width={cardSize}
-                  height={cardSize}
-                  image={scratchSurfaceImage}
-                  finishPercent={45}
-                  brushSize={Math.max(16, Math.round(cardSize * 0.1))}
-                  onComplete={onScratchComplete}
-                >
+                {hasCoupon ? (
+                  <ScratchWonFace
+                    discountPercent={discountPercent}
+                    couponCode={coupon?.coupon_code}
+                  />
+                ) : (
                   <ScratchRewardFace size={cardSize} scratching={scratching} />
-                </CompatibleScratchCard>
-              </div>
-            ) : (
-              <div
-                className="h-full w-full animate-pulse rounded-2xl ring-1 ring-[#D4AF37]/25 shadow-[0_14px_32px_rgba(26,26,26,0.28)]"
-                style={{ backgroundColor: SCRATCH_FOIL_COLOR }}
-              />
-            )}
-          </div>
+                )}
+              </CompatibleScratchCard>
+            </div>
+          ) : (
+            <div
+              className="h-full w-full animate-pulse rounded-2xl ring-1 ring-[#D4AF37]/25 shadow-[0_14px_32px_rgba(26,26,26,0.28)]"
+              style={{ backgroundColor: SCRATCH_FOIL_COLOR }}
+            />
+          )}
         </div>
-      )}
-
+      </div>
     </div>
   );
 }
@@ -362,10 +355,23 @@ export default function ScratchCardOffer({ initialCoupon = null, onCouponChange,
   const [scratchCardKey, setScratchCardKey] = useState(0);
   const [error, setError] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const initialCouponRef = useRef(initialCoupon);
+
+  useEffect(() => {
+    initialCouponRef.current = initialCoupon;
+  }, [initialCoupon]);
+
+  const applyCoupon = useCallback(
+    (nextCoupon) => {
+      setCoupon(nextCoupon);
+      onCouponChange?.(nextCoupon);
+    },
+    [onCouponChange],
+  );
 
   const hasCoupon = Boolean(coupon?.coupon_code);
-  const cardEnabled = !loadingStatus && status?.is_active && (!hasCoupon || drawerOpen || isDesktop);
-  const { containerRef, cardSize } = useSquareCardSize(cardEnabled && (isDesktop || drawerOpen));
+  const cardEnabled = !loadingStatus && status?.is_active && (isDesktop || drawerOpen);
+  const { containerRef, cardSize } = useSquareCardSize(cardEnabled);
 
   const scratchSurfaceImage = useMemo(() => {
     if (cardSize <= 0 || typeof document === 'undefined') return '';
@@ -374,18 +380,23 @@ export default function ScratchCardOffer({ initialCoupon = null, onCouponChange,
 
   useEffect(() => {
     if (!isHydrated) return;
-
     clearStoredScratchCoupon(storageUserKey);
+  }, [isHydrated, storageUserKey]);
 
-    if (!storageUserKey) {
-      setCoupon(null);
-      onCouponChange?.(null);
-    }
-  }, [isHydrated, storageUserKey, onCouponChange]);
+  useEffect(() => {
+    const summaryCoupon = normalizeScratchCoupon(initialCoupon);
+    if (!summaryCoupon?.coupon_code) return;
+    if (coupon?.coupon_code === summaryCoupon.coupon_code) return;
+
+    applyCoupon(summaryCoupon);
+  }, [applyCoupon, coupon?.coupon_code, initialCoupon]);
 
   useEffect(() => {
     if (!isHydrated || !token) {
-      if (isHydrated && !token) setLoadingStatus(false);
+      if (isHydrated && !token) {
+        setLoadingStatus(false);
+        applyCoupon(null);
+      }
       return undefined;
     }
 
@@ -397,25 +408,22 @@ export default function ScratchCardOffer({ initialCoupon = null, onCouponChange,
 
       try {
         const scratchStatus = await getScratchCardStatusApi();
-        if (isCurrent) {
-          setStatus(scratchStatus);
-          if (!scratchStatus?.is_active) {
-            setCoupon(null);
-            onCouponChange?.(null);
-            return;
-          }
+        if (!isCurrent) return;
 
-          const existingCoupon = normalizeScratchCoupon(scratchStatus);
-          if (existingCoupon) {
-            setCoupon(existingCoupon);
-            onCouponChange?.(existingCoupon);
-          }
+        setStatus(scratchStatus);
+
+        if (!scratchStatus?.is_active) {
+          applyCoupon(normalizeScratchCoupon(initialCouponRef.current));
+          return;
         }
+
+        const existingCoupon =
+          normalizeScratchCoupon(scratchStatus) ?? normalizeScratchCoupon(initialCouponRef.current);
+        applyCoupon(existingCoupon);
       } catch {
         if (isCurrent) {
           setStatus({ is_active: false });
-          setCoupon(null);
-          onCouponChange?.(null);
+          applyCoupon(normalizeScratchCoupon(initialCouponRef.current));
         }
       } finally {
         if (isCurrent) setLoadingStatus(false);
@@ -427,12 +435,9 @@ export default function ScratchCardOffer({ initialCoupon = null, onCouponChange,
     return () => {
       isCurrent = false;
     };
-  }, [isHydrated, onCouponChange, token]);
+  }, [applyCoupon, isHydrated, token]);
 
-  const updateCoupon = (nextCoupon) => {
-    setCoupon(nextCoupon);
-    onCouponChange?.(nextCoupon);
-  };
+  const updateCoupon = applyCoupon;
 
   const handleScratchComplete = async () => {
     if (scratching || coupon?.coupon_code) return;

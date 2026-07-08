@@ -215,7 +215,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   const handleShareProduct = () => {
     void sharePage({
       title: product.name,
-      text: product.description,
+      text: product.name,
     });
   };
 

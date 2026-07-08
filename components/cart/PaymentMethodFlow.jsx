@@ -48,6 +48,7 @@ import {
   setPendingPayment,
 } from '@/lib/payment/pending-payment';
 import ScratchCardOffer, { clearStoredScratchCoupon } from '@/components/cart/ScratchCardOffer';
+import { normalizeScratchCoupon } from '@/services/scratch-card';
 import AddressRegionFields from '@/components/cart/AddressRegionFields';
 import OrderSummary from '@/components/cart/OrderSummary';
 import {
@@ -419,7 +420,13 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
       try {
         const payload = buildCheckoutPayload({ checkoutIntent, selectedAddressId, selectedMethod, couponCode });
         const checkoutSummary = await getCheckoutSummaryApi(payload);
-        if (isCurrent) setSummary(checkoutSummary);
+        if (isCurrent) {
+          setSummary(checkoutSummary);
+          const summaryCoupon = normalizeScratchCoupon(checkoutSummary);
+          if (summaryCoupon) {
+            setScratchCoupon(summaryCoupon);
+          }
+        }
       } catch (summaryError) {
         if (isCurrent) {
           setSummary(null);

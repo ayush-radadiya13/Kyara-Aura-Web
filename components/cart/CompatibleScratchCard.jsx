@@ -71,12 +71,13 @@ export function CompatibleScratchCard({
   finishPercent = 60,
   onComplete = () => {},
   brushSize = 30,
+  revealed = false,
   children,
 }) {
   const canvasRef = useRef(null);
   const isDrawingRef = useRef(false);
   const lastPositionRef = useRef({ x: 0, y: 0 });
-  const autoRevealedRef = useRef(false);
+  const autoRevealedRef = useRef(revealed);
 
   const checkReveal = useCallback(
     (ctx) => {
@@ -102,7 +103,7 @@ export function CompatibleScratchCard({
 
   const draw = useCallback(
     (event) => {
-      if (autoRevealedRef.current || !isDrawingRef.current || !canvasRef.current) return;
+      if (revealed || autoRevealedRef.current || !isDrawingRef.current || !canvasRef.current) return;
 
       event.preventDefault();
 
@@ -122,24 +123,20 @@ export function CompatibleScratchCard({
       lastPositionRef.current = newPosition;
       checkReveal(ctx);
     },
-    [brushSize, checkReveal],
+    [brushSize, checkReveal, revealed],
   );
 
   const startDrawing = useCallback((event) => {
-    if (!canvasRef.current) return;
+    if (revealed || !canvasRef.current) return;
 
     event.preventDefault();
     isDrawingRef.current = true;
     lastPositionRef.current = getPointerPosition(canvasRef.current, event);
-  }, []);
+  }, [revealed]);
 
   const stopDrawing = useCallback(() => {
     isDrawingRef.current = false;
   }, []);
-
-  useEffect(() => {
-    autoRevealedRef.current = false;
-  }, [image, width, height]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -151,7 +148,15 @@ export function CompatibleScratchCard({
     const ctx = canvas.getContext('2d');
     if (!ctx) return undefined;
 
-    const cleanupImage = loadScratchSurface(ctx, image, width, height, () => {});
+    let cleanupImage;
+
+    if (revealed) {
+      ctx.clearRect(0, 0, width, height);
+      autoRevealedRef.current = true;
+    } else {
+      autoRevealedRef.current = false;
+      cleanupImage = loadScratchSurface(ctx, image, width, height, () => {});
+    }
 
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
@@ -171,7 +176,7 @@ export function CompatibleScratchCard({
       canvas.removeEventListener('touchmove', draw);
       canvas.removeEventListener('touchend', stopDrawing);
     };
-  }, [draw, image, height, startDrawing, stopDrawing, width]);
+  }, [draw, image, height, revealed, startDrawing, stopDrawing, width]);
 
   return (
     <div className="relative" style={{ width, height }}>
