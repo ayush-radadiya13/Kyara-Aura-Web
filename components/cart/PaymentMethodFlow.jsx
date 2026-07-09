@@ -2,12 +2,13 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Drawer } from '@base-ui/react/drawer';
 import {
   BadgeCheck,
+  ChevronDown,
   CreditCard,
   Edit3,
   Gem,
@@ -64,6 +65,12 @@ import { sanitizePincode, validateAddressForm } from '@/lib/address-validation';
 import { sanitizeIndianPhoneDigits } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 
+const ADDRESS_TYPE_OPTIONS = [
+  { value: 'home', label: 'Home' },
+  { value: 'work', label: 'Work' },
+  { value: 'other', label: 'Other' },
+];
+
 const PAYMENT_OPTIONS = [
   {
     id: 'online',
@@ -75,7 +82,7 @@ const PAYMENT_OPTIONS = [
   {
     id: 'cod',
     title: 'Cash on Delivery',
-    description: 'Cash on Delivery (COD) is available. A ₹50 fee is charged by our delhivery partner.',
+    description: 'Cash on Delivery (COD) is available. A ₹40 fee is charged by our delhivery partner.',
     badge: 'Pay later',
     Icon: Wallet,
   },
@@ -1276,7 +1283,7 @@ function AddressDrawer({
               </Drawer.Close>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 py-5" data-lenis-prevent>
+            <div className="flex-1 overflow-y-auto px-5 pt-5 pb-32 sm:pb-20" data-lenis-prevent>
               {addresses.length > 0 ? (
                 <div className="mb-5">
                   <div className="mb-3 flex items-center justify-between gap-3">
@@ -1507,19 +1514,14 @@ function AddressForm({
         value={addressForm.landmark}
         onChange={(value) => onAddressFieldChange('landmark', value)}
       />
-      <AddressField label="Address type" className="min-w-0">
-        <select
+      <AddressField label="Address type" htmlFor="address-type" className="min-w-0">
+        <AddressTypeSelect
           id="address-type"
           value={addressForm.address_type}
-          onChange={(event) => onAddressFieldChange('address_type', event.target.value)}
-          className="h-11 w-full min-w-0 rounded-2xl border border-gray-200 bg-white px-3 text-sm outline-none transition focus:border-gray-950"
-        >
-          <option value="home">Home</option>
-          <option value="work">Work</option>
-          <option value="other">Other</option>
-        </select>
+          onChange={(value) => onAddressFieldChange('address_type', value)}
+        />
       </AddressField>
-      <label className="flex min-w-0 items-center gap-2 self-end text-sm font-semibold text-gray-700">
+      <label className="mt-3 flex min-w-0 items-center gap-2 self-end text-sm font-semibold text-gray-700">
         <input
           type="checkbox"
           checked={addressForm.is_default}
@@ -1531,7 +1533,7 @@ function AddressForm({
       <button
         type="submit"
         disabled={savingAddress}
-        className="h-12 rounded-full bg-gray-950 px-5 text-sm font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2"
+        className="mt-2 h-12 rounded-full bg-gray-950 px-5 text-sm font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-2"
       >
         {savingAddress ? (
           <LoadingLabel spinnerClassName="border-white border-t-transparent">
@@ -1544,6 +1546,144 @@ function AddressForm({
         )}
       </button>
     </form>
+  );
+}
+
+const ADDRESS_TYPE_MENU_HEIGHT = ADDRESS_TYPE_OPTIONS.length * 44 + 8;
+
+function AddressTypeSelect({ id, value, onChange }) {
+  const triggerRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [menuStyle, setMenuStyle] = useState(null);
+
+  const selectedLabel =
+    ADDRESS_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? 'Home';
+
+  const closeMenu = useCallback(() => {
+    setOpen(false);
+    setMenuStyle(null);
+  }, []);
+
+  const updateMenuPosition = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUpward = spaceBelow < ADDRESS_TYPE_MENU_HEIGHT && rect.top > ADDRESS_TYPE_MENU_HEIGHT;
+
+    setMenuStyle({
+      top: openUpward ? rect.top - ADDRESS_TYPE_MENU_HEIGHT - 6 : rect.bottom + 6,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, []);
+
+  const openMenu = () => {
+    updateMenuPosition();
+    setOpen(true);
+    requestAnimationFrame(() => {
+      triggerRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  };
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handleReposition = () => updateMenuPosition();
+
+    window.addEventListener('resize', handleReposition);
+    window.addEventListener('scroll', handleReposition, true);
+
+    return () => {
+      window.removeEventListener('resize', handleReposition);
+      window.removeEventListener('scroll', handleReposition, true);
+    };
+  }, [open, updateMenuPosition]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (triggerRef.current?.contains(event.target)) return;
+      closeMenu();
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') closeMenu();
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [open, closeMenu]);
+
+  const menu =
+    open && menuStyle && typeof document !== 'undefined'
+      ? createPortal(
+          <ul
+            id={`${id}-listbox`}
+            role="listbox"
+            style={{
+              position: 'fixed',
+              top: menuStyle.top,
+              left: menuStyle.left,
+              width: menuStyle.width,
+              zIndex: 80,
+            }}
+            className="overflow-hidden rounded-2xl border border-gray-200 bg-white py-1 shadow-lg"
+          >
+            {ADDRESS_TYPE_OPTIONS.map((option) => {
+              const isSelected = option.value === value;
+
+              return (
+                <li
+                  key={option.value}
+                  role="option"
+                  aria-selected={isSelected}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    onChange(option.value);
+                    closeMenu();
+                  }}
+                  className={cn(
+                    'cursor-pointer px-3.5 py-2.5 text-sm text-gray-900 transition hover:bg-gray-100',
+                    isSelected && 'font-semibold',
+                  )}
+                >
+                  {option.label}
+                </li>
+              );
+            })}
+          </ul>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        id={id}
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={`${id}-listbox`}
+        onClick={() => (open ? closeMenu() : openMenu())}
+        className="flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-2xl border border-gray-200 bg-white px-3 text-left text-sm text-gray-900 outline-none transition focus:border-gray-950"
+      >
+        <span className="min-w-0 truncate">{selectedLabel}</span>
+        <ChevronDown
+          className={cn('h-4 w-4 shrink-0 text-gray-400 transition-transform', open && 'rotate-180')}
+          aria-hidden
+        />
+      </button>
+      {menu}
+    </>
   );
 }
 
