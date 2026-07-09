@@ -1474,7 +1474,9 @@ function AddressForm({
         label="Address line 2"
         value={addressForm.address_line_2}
         onChange={(value) => onAddressFieldChange('address_line_2', value)}
-        placeholder="Area / Locality / Landmark (optional)"
+        placeholder="Area / Locality"
+        error={addressFormErrors.address_line_2}
+        required
         className="sm:col-span-2"
       />
       <AddressRegionFields
@@ -1495,7 +1497,7 @@ function AddressForm({
         error={addressFormErrors.postal_code}
         required
       />
-      <AddressField label="Country" htmlFor="address-country">
+      <AddressField label="Country" htmlFor="address-country" required>
         <div className="flex h-11 w-full min-w-0 items-center gap-2.5 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-600">
           <input
             id="address-country"
@@ -1513,8 +1515,10 @@ function AddressForm({
         label="Landmark"
         value={addressForm.landmark}
         onChange={(value) => onAddressFieldChange('landmark', value)}
+        error={addressFormErrors.landmark}
+        required
       />
-      <AddressField label="Address type" htmlFor="address-type" className="min-w-0">
+      <AddressField label="Address type" htmlFor="address-type" className="min-w-0" required>
         <AddressTypeSelect
           id="address-type"
           value={addressForm.address_type}
@@ -1687,15 +1691,23 @@ function AddressTypeSelect({ id, value, onChange }) {
   );
 }
 
-function AddressField({ label, error, className = '', children, htmlFor }) {
+function AddressField({ label, error, required = false, className = '', children, htmlFor }) {
+  const labelClassName = 'block text-xs font-bold uppercase tracking-wide text-gray-500';
+  const labelContent = (
+    <>
+      {label}
+      {required ? <span className="text-red-500"> *</span> : null}
+    </>
+  );
+
   return (
     <div className={cn('min-w-0 space-y-1', className)}>
       {htmlFor ? (
-        <label htmlFor={htmlFor} className="block text-xs font-bold uppercase tracking-wide text-gray-500">
-          {label}
+        <label htmlFor={htmlFor} className={labelClassName}>
+          {labelContent}
         </label>
       ) : (
-        <span className="block text-xs font-bold uppercase tracking-wide text-gray-500">{label}</span>
+        <span className={labelClassName}>{labelContent}</span>
       )}
       <div className="min-w-0">{children}</div>
     </div>
@@ -1713,7 +1725,7 @@ function AddressTextarea({
   className = '',
 }) {
   return (
-    <AddressField label={label} error={error} htmlFor={id} className={className}>
+    <AddressField label={label} error={error} htmlFor={id} required={required} className={className}>
       <textarea
         id={id}
         value={value}
@@ -1751,7 +1763,7 @@ function AddressInput({
 
   if (inputKind === 'phone') {
     return (
-      <AddressField label={label} error={error} htmlFor={id} className={className}>
+      <AddressField label={label} error={error} htmlFor={id} required={required} className={className}>
         <IndianPhoneInput
           id={id}
           value={value}
@@ -1764,7 +1776,7 @@ function AddressInput({
   }
 
   return (
-    <AddressField label={label} error={error} htmlFor={id} className={className}>
+    <AddressField label={label} error={error} htmlFor={id} required={required} className={className}>
       <div className={cn(fieldClassName, !Icon && 'px-3.5')}>
         {Icon ? (
           <Icon
