@@ -39,9 +39,11 @@ function getCategoryKeys(product) {
     product.category?.id,
     product.category?._id,
     product.category?.slug,
+    product.category,
   ]
     .filter((value) => value !== undefined && value !== null && value !== "")
-    .map((value) => String(value));
+    .map((value) => String(typeof value === "object" ? value.id ?? value._id ?? value.slug ?? "" : value))
+    .filter(Boolean);
 }
 
 function getProductPrices(product) {

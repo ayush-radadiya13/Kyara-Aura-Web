@@ -22,7 +22,10 @@ export default function SmoothScrollProvider({ children }) {
 
   const options = useMemo(
     () => ({
-      anchors: true,
+      anchors: {
+        offset: -104,
+        duration: 1.1,
+      },
       autoResize: true,
       autoRaf: true,
       lerp: prefersReducedMotion ? 1 : 0.12,
@@ -32,6 +35,7 @@ export default function SmoothScrollProvider({ children }) {
           "[data-lenis-prevent], [data-lenis-prevent-wheel], [data-lenis-prevent-touch], textarea, select, [contenteditable='true']",
         ) !== null,
       smoothWheel: !prefersReducedMotion,
+      stopInertiaOnNavigate: true,
       syncTouch: false,
       touchMultiplier: 1,
       wheelMultiplier: 1,

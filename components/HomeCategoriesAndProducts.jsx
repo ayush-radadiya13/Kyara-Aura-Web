@@ -6,7 +6,7 @@ import CategoryGrid from "@/components/CategoryGrid";
 import ProductList from "@/components/ProductList";
 import { resolveCategoryId } from "@/lib/category-seo";
 
-const HEADER_SCROLL_OFFSET = -96;
+const HEADER_OFFSET_PX = 104;
 
 export default function HomeCategoriesAndProducts({
   initialCategories,
@@ -17,22 +17,26 @@ export default function HomeCategoriesAndProducts({
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedCategoryName, setSelectedCategoryName] = useState("");
 
-  const scrollToProducts = () => {
+  const scrollToProductsSection = () => {
     const target = productsSectionRef.current;
     if (!target) return;
 
-    // Wait a frame so filtered products can mount before measuring scroll target.
-    requestAnimationFrame(() => {
-      if (lenis) {
-        lenis.scrollTo(target, {
-          offset: HEADER_SCROLL_OFFSET,
-          duration: 1.05,
-        });
-        return;
-      }
+    // Native scroll is more reliable on mobile than Lenis programmatic scroll.
+    // Pause Lenis so it does not fight the browser during the animation.
+    lenis?.stop();
 
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    const top =
+      target.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET_PX;
+
+    window.scrollTo({
+      top: Math.max(0, top),
+      behavior: "smooth",
     });
+
+    window.setTimeout(() => {
+      lenis?.resize();
+      lenis?.start();
+    }, 900);
   };
 
   const handleCategorySelect = (category) => {
@@ -41,7 +45,9 @@ export default function HomeCategoriesAndProducts({
 
     setSelectedCategoryId(String(categoryId));
     setSelectedCategoryName(category?.name ?? "");
-    scrollToProducts();
+
+    // Section position does not depend on filtered products, so scroll immediately.
+    requestAnimationFrame(scrollToProductsSection);
   };
 
   return (

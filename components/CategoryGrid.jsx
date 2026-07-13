@@ -49,10 +49,10 @@ export default function CategoryGrid({
   if (variant === "strip") {
     const wrapperClassName = stackOnMobile
       ? "flex flex-col gap-5 pb-3 sm:grid sm:grid-cols-2 sm:pb-0 lg:grid-cols-3"
-      : "-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto px-4 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3 [&::-webkit-scrollbar]:hidden";
+      : "-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto overscroll-x-contain px-4 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 sm:[touch-action:auto] lg:grid-cols-3 [&::-webkit-scrollbar]:hidden";
     const mobileCardClassName = stackOnMobile
       ? "w-full"
-      : "w-[78vw] max-w-[22rem] shrink-0 snap-start";
+      : "w-[78vw] max-w-[22rem] shrink-0 snap-start [touch-action:manipulation]";
 
     return (
       <div
@@ -72,18 +72,19 @@ export default function CategoryGrid({
                   src={src}
                   alt={category.name}
                   fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="pointer-events-none object-cover transition-transform duration-500 group-hover:scale-105"
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  draggable={false}
                 />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#fbf8f2] via-[#f4eee5] to-[#ece2d6]">
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#fbf8f2] via-[#f4eee5] to-[#ece2d6]">
                   <span className="font-display text-5xl text-gray-300">
                     {category.name?.charAt(0)}
                   </span>
                 </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition duration-300 group-hover:from-black/75" />
-              <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition duration-300 group-hover:from-black/75" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
                 <span className="font-display text-2xl font-light leading-none sm:text-3xl">
                   {category.name}
                 </span>
@@ -96,12 +97,17 @@ export default function CategoryGrid({
               key={category._id}
               type="button"
               onClick={(event) => {
+                const card = event.currentTarget;
+                const strip = card.parentElement;
+
                 onCategorySelect(category);
-                event.currentTarget.scrollIntoView({
-                  behavior: "smooth",
-                  inline: "center",
-                  block: "nearest",
-                });
+
+                // Keep horizontal snap in the strip only — never scroll the page here.
+                if (strip && strip.scrollWidth > strip.clientWidth) {
+                  const left =
+                    card.offsetLeft - (strip.clientWidth - card.clientWidth) / 2;
+                  strip.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
+                }
               }}
               aria-pressed={isSelected}
               className={interactiveClassName}

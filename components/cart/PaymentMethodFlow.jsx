@@ -622,6 +622,14 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
     callbackUrl.searchParams.set('order_id', String(order.id));
     callbackUrl.searchParams.set('checkout_type', checkoutIntent.checkout_type);
 
+    // Keep contact details only. Backend `prefill.method` (e.g. "upi") opens a single-method
+    // sheet — on Android that often looks like "Google Pay only" and hides cards/netbanking.
+    const prefillSource = razorpay.prefill && typeof razorpay.prefill === 'object' ? razorpay.prefill : {};
+    const prefill = {};
+    if (prefillSource.name) prefill.name = prefillSource.name;
+    if (prefillSource.email) prefill.email = prefillSource.email;
+    if (prefillSource.contact) prefill.contact = prefillSource.contact;
+
     return new Promise((resolve, reject) => {
       const paymentObject = new window.Razorpay({
         key: razorpay.key,
@@ -630,7 +638,17 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
         name: razorpay.name,
         description: razorpay.description,
         order_id: razorpay.order_id,
-        prefill: razorpay.prefill,
+        prefill,
+        // Force Standard Checkout to render the full enabled method list (cards, UPI,
+        // netbanking, wallets) instead of a single recommended instrument like GPay.
+        config: {
+          display: {
+            sequence: ['upi', 'card', 'netbanking', 'wallet'],
+            preferences: {
+              show_default_blocks: true,
+            },
+          },
+        },
         redirect: true,
         callback_url: callbackUrl.toString(),
         modal: {
