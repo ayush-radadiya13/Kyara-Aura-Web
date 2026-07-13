@@ -95,7 +95,14 @@ export default function CategoryGrid({
             <button
               key={category._id}
               type="button"
-              onClick={() => onCategorySelect(category)}
+              onClick={(event) => {
+                onCategorySelect(category);
+                event.currentTarget.scrollIntoView({
+                  behavior: "smooth",
+                  inline: "center",
+                  block: "nearest",
+                });
+              }}
               aria-pressed={isSelected}
               className={interactiveClassName}
             >

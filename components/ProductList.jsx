@@ -217,9 +217,16 @@ export default function ProductList({
     : allProductsQuery;
   const rawProducts = useMemo(() => query.data ?? [], [query.data]);
   const filteredProducts = useMemo(() => {
-    if (!isCatalog) return rawProducts;
-
     const selectedCategory = String(selectedCategoryId ?? "");
+
+    if (!isCatalog) {
+      if (!selectedCategory) return rawProducts;
+
+      return rawProducts.filter((product) =>
+        getCategoryKeys(product).includes(selectedCategory),
+      );
+    }
+
     const selectedSizeSet = new Set(selectedSizeKeys.map(String));
     const [minPrice, maxPrice] = priceRange;
 
@@ -486,7 +493,7 @@ export default function ProductList({
 
       {!products.length ? (
         <p className="py-12 text-center text-gray-600">
-          No products match the selected filters.
+          {isCatalog ? "No products match the selected filters." : emptyMessage}
         </p>
       ) : null}
 
