@@ -47,12 +47,14 @@ export default function CategoryGrid({
   }
 
   if (variant === "strip") {
+    // Do not set touch-action: pan-x here — that blocks vertical page scroll when
+    // the finger is over the category strip (common on mobile when it sits mid-viewport).
     const wrapperClassName = stackOnMobile
       ? "flex flex-col gap-5 pb-3 sm:grid sm:grid-cols-2 sm:pb-0 lg:grid-cols-3"
-      : "-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto overscroll-x-contain px-4 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 sm:[touch-action:auto] lg:grid-cols-3 [&::-webkit-scrollbar]:hidden";
+      : "-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto overscroll-x-contain px-4 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3 [&::-webkit-scrollbar]:hidden";
     const mobileCardClassName = stackOnMobile
       ? "w-full"
-      : "w-[78vw] max-w-[22rem] shrink-0 snap-start [touch-action:manipulation]";
+      : "w-[78vw] max-w-[22rem] shrink-0 snap-start";
 
     return (
       <div
@@ -96,19 +98,7 @@ export default function CategoryGrid({
             <button
               key={category._id}
               type="button"
-              onClick={(event) => {
-                const card = event.currentTarget;
-                const strip = card.parentElement;
-
-                onCategorySelect(category);
-
-                // Keep horizontal snap in the strip only — never scroll the page here.
-                if (strip && strip.scrollWidth > strip.clientWidth) {
-                  const left =
-                    card.offsetLeft - (strip.clientWidth - card.clientWidth) / 2;
-                  strip.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
-                }
-              }}
+              onClick={() => onCategorySelect(category)}
               aria-pressed={isSelected}
               className={interactiveClassName}
             >

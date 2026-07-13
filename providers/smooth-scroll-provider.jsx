@@ -22,10 +22,7 @@ export default function SmoothScrollProvider({ children }) {
 
   const options = useMemo(
     () => ({
-      anchors: {
-        offset: -104,
-        duration: 1.1,
-      },
+      anchors: true,
       autoResize: true,
       autoRaf: true,
       lerp: prefersReducedMotion ? 1 : 0.12,

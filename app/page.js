@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Header from '../components/Header';
 import HeroCarousel from '../components/HeroCarousel';
-import HomeCategoriesAndProducts from '@/components/HomeCategoriesAndProducts';
+import CategoryGrid from '@/components/CategoryGrid';
 import HomeCollectionShowcase from '@/components/HomeCollectionShowcase';
 import ProductList from '@/components/ProductList';
 import { getCategories } from '@/lib/categories';
@@ -67,11 +67,27 @@ export default async function HomePage() {
           />
         </div>
 
-        <HomeCategoriesAndProducts
-          initialCategories={categories}
-          initialProducts={allProducts}
-        />
+        {/* Categories Section */}
+        <section className="home-scroll-stable mx-auto max-w-7xl px-4 py-6 sm:px-6" style={{ '--home-delay': '90ms' }}>
+          <div className="mb-8">
+            <h2 className="font-display text-3xl font-light text-gray-950 sm:text-4xl ">Categories</h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600">Find your perfect style.</p>
+          </div>
 
+          <CategoryGrid variant="strip" limit={6} initialCategories={categories} />
+        </section>
+        <section className="home-scroll-stable mx-auto max-w-7xl px-4 pb-20 sm:px-6" style={{ '--home-delay': '160ms' }}>
+          <div className="mb-8">
+            <h2 className="font-display text-3xl font-light text-gray-950 sm:text-4xl">Products</h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600">Browse our featured collection.</p>
+          </div>
+          <ProductList
+              limit={20}
+              variant="editorial"
+              emptyMessage="No products available at the moment."
+              initialProducts={allProducts}
+          />
+        </section>
 
         <section
           className="home-scroll-stable relative min-h-[72vh] overflow-hidden bg-gray-950"
