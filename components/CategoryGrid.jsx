@@ -51,7 +51,7 @@ export default function CategoryGrid({
     // the finger is over the category strip (common on mobile when it sits mid-viewport).
     const wrapperClassName = stackOnMobile
       ? "flex flex-col gap-5 pb-3 sm:grid sm:grid-cols-2 sm:pb-0 lg:grid-cols-3"
-      : "-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto overscroll-x-contain px-4 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3 [&::-webkit-scrollbar]:hidden";
+      : "-mr-4 flex snap-x snap-mandatory gap-5 overflow-x-auto overscroll-x-contain pr-4 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] sm:mr-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pr-0 sm:pb-0 lg:grid-cols-3 [&::-webkit-scrollbar]:hidden";
     const mobileCardClassName = stackOnMobile
       ? "w-full"
       : "w-[78vw] max-w-[22rem] shrink-0 snap-start";
