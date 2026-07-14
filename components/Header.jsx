@@ -77,8 +77,9 @@ export default function Header({ variant = 'default' }) {
   const wishlistQuery = useWishlist({ enabled: showAuthenticatedActions });
   const { hasMessages: showPromoBanner } = usePromotionalMessages();
   const wishCount = wishlistQuery.data?.length ?? 0;
+  const displayedCartCount = showAuthenticatedActions ? count : 0;
   const actionCounts = {
-    cartCount: count,
+    cartCount: displayedCartCount,
     wishCount,
   };
   const trimmedSearchTerm = debouncedSearchTerm.trim();
@@ -494,11 +495,11 @@ export default function Header({ variant = 'default' }) {
           <Link
             href={APP_ROUTES.CART}
             className={`${searchOpen ? 'hidden' : ''} relative overflow-visible ${iconClassName}`}
-            aria-label={count > 0 ? `Cart, ${count} items` : 'Cart'}
+            aria-label={displayedCartCount > 0 ? `Cart, ${displayedCartCount} items` : 'Cart'}
           >
             <ShoppingBag className="h-5 w-5" />
             {renderActionCountBadge(
-              count,
+              displayedCartCount,
               showAuthenticatedActions && cartQuery.isLoading,
             )}
           </Link>
