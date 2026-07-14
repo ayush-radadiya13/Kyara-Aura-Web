@@ -167,6 +167,27 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   const showBuyTwoGetOneTicket = isBuyTwoGetOneFreeEnabled(settings);
 
   useEffect(() => {
+    if (!sizeOptions.length) {
+      setSelectedSize('');
+      return;
+    }
+
+    setSelectedSize((current) => {
+      if (sizeOptions.some((option) => option.value === current)) {
+        return current;
+      }
+
+      const inStock = sizeOptions.filter((option) => Number(option.quantity) > 0);
+      const pool = inStock.length ? inStock : sizeOptions;
+      const freeSize = pool.find((option) =>
+        /^free\s*size$/i.test(String(option.label || option.value).trim()),
+      );
+
+      return freeSize?.value ?? pool[0]?.value ?? '';
+    });
+  }, [sizeOptions]);
+
+  useEffect(() => {
     if (!selectedSizeOption) return;
 
     if (Number(selectedSizeOption.quantity) === 0) {

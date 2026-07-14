@@ -239,6 +239,20 @@ function buildCheckoutPayload({ checkoutIntent, selectedAddressId, selectedMetho
   return payload;
 }
 
+/** Preserve buy-now product/qty in the post-login return URL. */
+function buildPaymentMethodReturnPath(checkoutIntent) {
+  if (checkoutIntent?.checkout_type === 'buy_now' && checkoutIntent.product_size_id) {
+    const params = new URLSearchParams({
+      checkout_type: 'buy_now',
+      product_size_id: String(checkoutIntent.product_size_id),
+      quantity: String(Math.max(Number(checkoutIntent.quantity) || 1, 1)),
+    });
+    return `${APP_ROUTES.PAYMENT_METHOD}?${params.toString()}`;
+  }
+
+  return APP_ROUTES.PAYMENT_METHOD;
+}
+
 export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_type: 'cart' } }) {
   const router = useRouter();
   const clearCart = useCartStore((state) => state.clearCart);
@@ -814,7 +828,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
             Checkout, addresses, orders, and Razorpay verification are protected. Please login before placing an order.
           </p>
           <Link
-            href={withRedirect(AUTH_PAGE_ROUTES.LOGIN, APP_ROUTES.PAYMENT_METHOD)}
+            href={withRedirect(AUTH_PAGE_ROUTES.LOGIN, buildPaymentMethodReturnPath(checkoutIntent))}
             className="mt-7 inline-flex h-12 items-center justify-center bg-gray-950 px-7 text-sm font-bold text-white transition hover:bg-gray-800"
           >
             Login to Continue
