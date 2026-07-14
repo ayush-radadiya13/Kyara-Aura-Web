@@ -1442,8 +1442,10 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onTrack, 
   const returnDisplayStatus = getReturnDisplayStatus(order);
   const delivered = isDeliveredOrder(order);
   const isReturnTracking = returnDisplayStatus !== null;
+  const isReturnCompleted = returnDisplayStatus === 'delivered';
   const statusMode = getOrderStatusMode(order);
-  const shouldShowTrackingButton = !cancelled && (!delivered || returnDisplayStatus !== null);
+  const shouldShowTrackingButton =
+    !cancelled && !isReturnCompleted && (!delivered || returnDisplayStatus !== null);
 
   return (
     <article
@@ -1629,8 +1631,10 @@ function OrderDetail({ order, onTrack }) {
   const cancelled = isCancelledOrder(order);
   const delivered = isDeliveredOrder(order);
   const isReturnTracking = returnDisplayStatus !== null;
+  const isReturnCompleted = returnDisplayStatus === 'delivered';
   const statusMode = getOrderStatusMode(order);
-  const shouldShowTrackingButton = !cancelled && (!delivered || returnDisplayStatus !== null);
+  const shouldShowTrackingButton =
+    !cancelled && !isReturnCompleted && (!delivered || returnDisplayStatus !== null);
   const showEstimatedDelivery = !cancelled && !isReturnTracking && (delivered || Boolean(estimatedDelivery));
   const amounts = normalizeOrderSummary(order);
 

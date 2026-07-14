@@ -22,7 +22,7 @@ export const metadata = metadataForPage({
   title: 'Kayra Aura | Premium Fashion Jewellery Collection',
   description: homeDescription,
   path: '/',
-  images: ['/assets/home1.jpg'],
+  images: ['/assets/image.png'],
 });
 
 export default async function HomePage() {
@@ -41,6 +41,10 @@ export default async function HomePage() {
   const showBestSellerProducts = productsBelowVideo.length > 0 || featuredProducts.length > 0;
   const useFeaturedForBestSeller = productsBelowVideo.length === 0;
   const bannerVideo = bannerSettings.video || bannerSettings.video_url;
+  const videoPoster =
+    bannerSettings.image1 ||
+    bannerSettings.image2 ||
+    '/assets/image.png';
 
   const sameAs = getSocialSameAs(webSettings);
   const organizationSchema = buildOrganizationSchema({
@@ -100,7 +104,7 @@ export default async function HomePage() {
               muted
               loop
               playsInline
-              poster="/assets/home4.jpg"
+              poster={videoPoster}
               aria-hidden="true"
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-black/20 to-black/45" />

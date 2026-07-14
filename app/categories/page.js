@@ -31,7 +31,7 @@ export async function generateMetadata({ searchParams }) {
       title: `${selectedCategory.name} Jewellery | Kayra Aura`,
       description: categorySeoDescription(selectedCategory),
       path: categoryProductsPath(categoryId),
-      images: selectedCategory.image ? [selectedCategory.image] : ['/assets/home1.jpg'],
+      images: selectedCategory.image ? [selectedCategory.image] : ['/assets/image.png'],
     });
   }
 

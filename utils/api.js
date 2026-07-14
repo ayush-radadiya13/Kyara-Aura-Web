@@ -1,15 +1,11 @@
 "use client";
 
 import axios from "axios";
+import { API_BASE } from "@/lib/api-base";
 import { AUTH_API_ROUTES, AUTH_PAGE_ROUTES } from "@/lib/routes";
 import { useApiPendingStore } from "@/store/api-pending-store";
 import { useAuthStore } from "@/store/auth-store";
 import { getAuthToken } from "@/utils/localtoken";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_API_BASE ||
-  "https://kayraaura.up.railway.app";
 
 let isRedirectingToLogin = false;
 

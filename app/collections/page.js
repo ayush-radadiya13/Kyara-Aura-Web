@@ -14,7 +14,7 @@ export const metadata = metadataForPage({
   description:
     'Explore Kayra Aura jewellery collections with curated bangles, rings, earrings, necklaces, and elegant fashion jewellery for special occasions and everyday styling.',
   path: '/collections',
-  images: ['/assets/home1.jpg'],
+  images: ['/assets/image.png'],
 });
 
 export default async function CollectionsPage() {

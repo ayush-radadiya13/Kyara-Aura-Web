@@ -61,7 +61,8 @@ export default function HeroCarousel({
             alt={currentImage.alt}
             fill
             className="object-cover opacity-60 transition-opacity duration-700"
-            priority
+            loading="eager"
+            fetchPriority="high"
             sizes="100vw"
           />
         ) : null}
@@ -98,7 +99,8 @@ export default function HeroCarousel({
               alt={currentImage.alt}
               fill
               className="object-cover opacity-60 transition-opacity duration-700"
-              priority
+              loading="eager"
+              fetchPriority="high"
               sizes="100vw"
             />
           ) : null}

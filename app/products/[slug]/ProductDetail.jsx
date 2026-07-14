@@ -376,7 +376,8 @@ export default function ProductDetail({ product: initialProduct, slug }) {
                   unoptimized={productMedia[selectedImage]?.src?.startsWith('http')}
                   className="object-cover"
                   sizes="(max-width: 1024px) 100vw, 50vw"
-                  priority
+                  loading="eager"
+                  fetchPriority="high"
                 />
               )}
             </div>
