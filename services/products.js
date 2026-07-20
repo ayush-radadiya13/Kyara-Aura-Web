@@ -1,5 +1,10 @@
 import { PRODUCT_API_ROUTES } from "@/lib/routes";
-import { normalizeProduct, productsFromPayload } from "@/lib/products";
+import {
+  DEFAULT_PRODUCTS_PER_PAGE,
+  normalizeProduct,
+  paginationFromPayload,
+  productsFromPayload,
+} from "@/lib/products";
 import { withoutTokenApi } from "@/utils/api";
 
 function normalizeProductsPayload(payload) {
@@ -8,34 +13,66 @@ function normalizeProductsPayload(payload) {
     .map(normalizeProduct);
 }
 
-export async function getProductsApi() {
-  const { data } = await withoutTokenApi.get(PRODUCT_API_ROUTES.LIST);
-  return normalizeProductsPayload(data);
+async function fetchProductsPage(path, { page = 1, perPage = DEFAULT_PRODUCTS_PER_PAGE } = {}) {
+  const { data } = await withoutTokenApi.get(path, {
+    params: {
+      page,
+      per_page: perPage,
+    },
+  });
+
+  const products = normalizeProductsPayload(data);
+
+  return {
+    products,
+    pagination: paginationFromPayload(data, {
+      currentPage: page,
+      lastPage: 1,
+      perPage,
+      total: products.length,
+    }),
+  };
+}
+
+export async function getProductsApi({
+  page = 1,
+  perPage = DEFAULT_PRODUCTS_PER_PAGE,
+} = {}) {
+  return fetchProductsPage(PRODUCT_API_ROUTES.LIST, { page, perPage });
 }
 
 export async function getFeaturedProductsApi() {
-  const { data } = await withoutTokenApi.get(PRODUCT_API_ROUTES.FEATURED);
-  return normalizeProductsPayload(data);
+  const { products } = await fetchProductsPage(PRODUCT_API_ROUTES.FEATURED, {
+    page: 1,
+    perPage: DEFAULT_PRODUCTS_PER_PAGE,
+  });
+  return products;
 }
 
 export async function getCollectionProductsApi() {
-  const { data } = await withoutTokenApi.get(PRODUCT_API_ROUTES.COLLECTION);
-  return normalizeProductsPayload(data);
+  const { products } = await fetchProductsPage(PRODUCT_API_ROUTES.COLLECTION, {
+    page: 1,
+    perPage: DEFAULT_PRODUCTS_PER_PAGE,
+  });
+  return products;
 }
 
-export async function getProductsByCategoryApi(categoryId) {
+export async function getProductsByCategoryApi(
+  categoryId,
+  { page = 1, perPage = DEFAULT_PRODUCTS_PER_PAGE } = {},
+) {
   if (!categoryId) {
-    return getProductsApi();
+    return getProductsApi({ page, perPage });
   }
 
-  const { data } = await withoutTokenApi.get(
-    PRODUCT_API_ROUTES.CATEGORY(encodeURIComponent(categoryId))
+  return fetchProductsPage(
+    PRODUCT_API_ROUTES.CATEGORY(encodeURIComponent(categoryId)),
+    { page, perPage },
   );
-  return normalizeProductsPayload(data);
 }
 
 export async function searchProductsByNameApi(name) {
-  const trimmedName = String(name ?? '').trim();
+  const trimmedName = String(name ?? "").trim();
 
   if (!trimmedName) {
     return [];
@@ -56,7 +93,7 @@ export async function getProductBySlugApi(productSlug) {
   }
 
   const { data } = await withoutTokenApi.get(
-    PRODUCT_API_ROUTES.DETAIL(encodeURIComponent(productSlug))
+    PRODUCT_API_ROUTES.DETAIL(encodeURIComponent(productSlug)),
   );
 
   if (!data?.data || data.data.is_active === false) {
@@ -65,3 +102,4 @@ export async function getProductBySlugApi(productSlug) {
 
   return normalizeProduct(data.data);
 }
+

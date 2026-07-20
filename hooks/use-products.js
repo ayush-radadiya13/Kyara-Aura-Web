@@ -9,11 +9,22 @@ import {
   getProductsByCategoryApi,
   searchProductsByNameApi,
 } from "@/services/products";
+import { DEFAULT_PRODUCTS_PER_PAGE } from "@/lib/products";
 
-export function useProducts(options = {}) {
+export function useProducts({
+  page = 1,
+  perPage = DEFAULT_PRODUCTS_PER_PAGE,
+  paginated = false,
+  ...options
+} = {}) {
   return useQuery({
-    queryKey: ["products"],
-    queryFn: getProductsApi,
+    queryKey: paginated
+      ? ["products", { page, perPage }]
+      : ["products", { perPage }],
+    queryFn: async () => {
+      const result = await getProductsApi({ page, perPage });
+      return paginated ? result : result.products;
+    },
     refetchOnMount: "always",
     retry: false,
     ...options,
@@ -40,12 +51,21 @@ export function useCollectionProducts(options = {}) {
   });
 }
 
-export function useProductsByCategory(categoryId, options = {}) {
-  const { enabled, ...rest } = options;
-
+export function useProductsByCategory(categoryId, {
+  page = 1,
+  perPage = DEFAULT_PRODUCTS_PER_PAGE,
+  paginated = false,
+  enabled,
+  ...rest
+} = {}) {
   return useQuery({
-    queryKey: ["products", "category", categoryId],
-    queryFn: () => getProductsByCategoryApi(categoryId),
+    queryKey: paginated
+      ? ["products", "category", categoryId, { page, perPage }]
+      : ["products", "category", categoryId, { perPage }],
+    queryFn: async () => {
+      const result = await getProductsByCategoryApi(categoryId, { page, perPage });
+      return paginated ? result : result.products;
+    },
     enabled: Boolean(categoryId) && enabled !== false,
     refetchOnMount: "always",
     retry: false,

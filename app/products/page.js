@@ -8,13 +8,22 @@ import {
   resolveCategoryId,
 } from '@/lib/category-seo';
 import { getCategories } from '@/lib/categories';
-import { getAllProducts, getProductsByCategory } from '@/lib/products';
+import {
+  DEFAULT_PRODUCTS_PER_PAGE,
+  getPaginatedProducts,
+} from '@/lib/products';
 import { metadataForPage } from '@/lib/seo';
 
 const categoryDisplay = Cormorant_Garamond({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
 });
+
+function resolvePageParam(pageParam) {
+  const raw = Array.isArray(pageParam) ? pageParam[0] : pageParam;
+  const page = Number(raw);
+  return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+}
 
 export async function generateMetadata({ searchParams }) {
   const selectedCategory = await getSelectedCategoryFromParams(
@@ -46,10 +55,14 @@ export default async function ProductsPage({ searchParams }) {
   const categoryId = Array.isArray(params?.category)
     ? params.category[0]
     : params?.category;
+  const page = resolvePageParam(params?.page);
 
-  const initialProducts = categoryId
-    ? await getProductsByCategory(categoryId)
-    : await getAllProducts();
+  const { products: initialProducts, pagination: initialPagination } =
+    await getPaginatedProducts({
+      page,
+      perPage: DEFAULT_PRODUCTS_PER_PAGE,
+      categoryId,
+    });
 
   return (
     <div className="bg-white text-gray-950">
@@ -66,11 +79,13 @@ export default async function ProductsPage({ searchParams }) {
         </div>
 
         <ProductList
-          key={categoryId ?? 'all-products'}
+          key={`${categoryId ?? 'all-products'}-page-${page}`}
           categoryId={categoryId}
-          pageSize={20}
+          pageSize={DEFAULT_PRODUCTS_PER_PAGE}
           variant="catalog"
+          serverPaginated
           initialProducts={initialProducts}
+          initialPagination={initialPagination}
         />
       </section>
     </div>

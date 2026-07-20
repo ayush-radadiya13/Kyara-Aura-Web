@@ -2,8 +2,11 @@
 
 import { useState } from 'react';
 import { ChevronDown, ReceiptText } from 'lucide-react';
-import { formatInr, formatInrDiscount } from '@/lib/cart/format';
 import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
+import { useWebSettings } from '@/hooks/use-web-settings';
+import { getBuyTwoGetOneDiscountLabel } from '@/lib/cart/buy-two-get-one';
+import { formatInr, formatInrDiscount } from '@/lib/cart/format';
+import { getBuyTwoGetOneQuantities } from '@/lib/web-settings';
 
 function SummaryRow({ label, value, valueClassName = 'font-semibold text-gray-950' }) {
   return (
@@ -51,6 +54,9 @@ export default function OrderSummary({
   showOnlinePaymentDiscount = false,
   className = '',
 }) {
+  const { data: settings } = useWebSettings();
+  const { buyQty, getQty } = getBuyTwoGetOneQuantities(settings);
+  const buyTwoGetOneDiscountLabel = getBuyTwoGetOneDiscountLabel(buyQty, getQty);
   const hasSummary = Boolean(summary);
   const [open, setOpen] = useState(true);
 
@@ -107,7 +113,7 @@ export default function OrderSummary({
 
               {summary.buyTwoGetOneDiscountAmount > 0 ? (
                 <SummaryRow
-                  label="Buy 2 Get 1 Discount"
+                  label={buyTwoGetOneDiscountLabel}
                   value={formatInrDiscount(summary.buyTwoGetOneDiscountAmount)}
                   valueClassName="font-semibold text-emerald-700"
                 />

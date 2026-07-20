@@ -61,7 +61,8 @@ import { useAuthStore } from '@/store/auth-store';
 import { useVerifyOtp } from '@/hooks/auth';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { getAuthStorageKey } from '@/utils/auth-response';
-import { sanitizePincode, validateAddressForm } from '@/lib/address-validation';
+import { isValidPincode, sanitizePincode, validateAddressForm } from '@/lib/address-validation';
+import { lookupPincodeLocations } from '@/lib/pincode-lookup';
 import { sanitizeIndianPhoneDigits } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 
@@ -1458,6 +1459,94 @@ function AddressForm({
   onAddressFieldChange,
   onAddressSubmit,
 }) {
+  const [pincodeLocations, setPincodeLocations] = useState([]);
+  const [pincodeLookupStatus, setPincodeLookupStatus] = useState('');
+  const [pincodeLookupError, setPincodeLookupError] = useState('');
+  const [selectedPincodeLocationId, setSelectedPincodeLocationId] = useState('');
+  const lastLookedUpPincodeRef = useRef('');
+  const addressFormRef = useRef(addressForm);
+  const onAddressFieldChangeRef = useRef(onAddressFieldChange);
+
+  addressFormRef.current = addressForm;
+  onAddressFieldChangeRef.current = onAddressFieldChange;
+
+  const applyPincodeLocation = useCallback((location) => {
+    if (!location) return;
+    onAddressFieldChangeRef.current('state', location.state);
+    onAddressFieldChangeRef.current('city', location.city);
+    setSelectedPincodeLocationId(location.id);
+  }, []);
+
+  useEffect(() => {
+    const pincode = sanitizePincode(addressForm.postal_code);
+
+    if (!isValidPincode(pincode)) {
+      lastLookedUpPincodeRef.current = '';
+      setPincodeLocations([]);
+      setSelectedPincodeLocationId('');
+      setPincodeLookupStatus('');
+      setPincodeLookupError('');
+      return undefined;
+    }
+
+    if (lastLookedUpPincodeRef.current === pincode) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+
+    setPincodeLookupStatus('Looking up PIN code…');
+    setPincodeLookupError('');
+    setPincodeLocations([]);
+    setSelectedPincodeLocationId('');
+
+    lookupPincodeLocations(pincode, { signal: controller.signal })
+      .then((locations) => {
+        if (!active) return;
+
+        lastLookedUpPincodeRef.current = pincode;
+        setPincodeLocations(locations);
+        setPincodeLookupStatus('');
+
+        if (locations.length === 1) {
+          applyPincodeLocation(locations[0]);
+          return;
+        }
+
+        const currentState = String(addressFormRef.current.state ?? '').trim().toLowerCase();
+        const currentCity = String(addressFormRef.current.city ?? '').trim().toLowerCase();
+        const matched = locations.find(
+          (location) =>
+            location.state.toLowerCase() === currentState &&
+            location.city.toLowerCase() === currentCity,
+        );
+
+        if (matched) {
+          setSelectedPincodeLocationId(matched.id);
+        }
+      })
+      .catch((error) => {
+        if (!active || error?.name === 'AbortError') return;
+        lastLookedUpPincodeRef.current = pincode;
+        setPincodeLocations([]);
+        setSelectedPincodeLocationId('');
+        setPincodeLookupStatus('');
+        setPincodeLookupError(error?.message || 'Unable to look up this PIN code.');
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [addressForm.postal_code, applyPincodeLocation]);
+
+  const handlePincodeLocationChange = (locationId) => {
+    const location = pincodeLocations.find((item) => item.id === locationId);
+    if (!location) return;
+    applyPincodeLocation(location);
+  };
+
   return (
     <form onSubmit={onAddressSubmit} noValidate className="grid grid-cols-1 gap-4 rounded-2xl border border-gray-200 bg-white p-4 sm:grid-cols-2">
       <AddressInput
@@ -1511,24 +1600,24 @@ function AddressForm({
         required
         className="sm:col-span-2"
       />
-      <AddressRegionFields
-        state={addressForm.state}
-        city={addressForm.city}
-        onStateChange={(value) => onAddressFieldChange('state', value)}
-        onCityChange={(value) => onAddressFieldChange('city', value)}
-        stateError={addressFormErrors.state}
-        cityError={addressFormErrors.city}
-      />
-      <AddressInput
-        id="address-postal-code"
-        label="Pin code"
-        inputMode="numeric"
-        maxLength={6}
-        value={addressForm.postal_code}
-        onChange={(value) => onAddressFieldChange('postal_code', value)}
-        error={addressFormErrors.postal_code}
-        required
-      />
+      <div className="min-w-0">
+        <AddressInput
+          id="address-postal-code"
+          label="Pin code"
+          inputMode="numeric"
+          maxLength={6}
+          value={addressForm.postal_code}
+          onChange={(value) => onAddressFieldChange('postal_code', value)}
+          error={addressFormErrors.postal_code}
+          required
+        />
+        {pincodeLookupStatus ? (
+          <p className="mt-1.5 text-xs font-medium text-gray-500">{pincodeLookupStatus}</p>
+        ) : null}
+        {pincodeLookupError ? (
+          <p className="mt-1.5 text-xs font-semibold text-red-600">{pincodeLookupError}</p>
+        ) : null}
+      </div>
       <AddressField label="Country" htmlFor="address-country" required>
         <div className="flex h-11 w-full min-w-0 items-center gap-2.5 rounded-2xl border border-gray-200 bg-gray-50 px-3.5 text-sm text-gray-600">
           <input
@@ -1542,6 +1631,44 @@ function AddressForm({
           />
         </div>
       </AddressField>
+      {pincodeLocations.length > 1 ? (
+        <AddressField
+          label="Select location"
+          htmlFor="address-pincode-location"
+          className="sm:col-span-2"
+          required
+        >
+          <div className="relative min-w-0">
+            <select
+              id="address-pincode-location"
+              value={selectedPincodeLocationId}
+              onChange={(event) => handlePincodeLocationChange(event.target.value)}
+              className="h-11 w-full min-w-0 appearance-none rounded-2xl border border-gray-200 bg-white py-0 pl-3.5 pr-10 text-sm text-gray-900 outline-none transition focus:border-gray-950"
+            >
+              <option value="" disabled>
+                Choose city / area for this PIN code
+              </option>
+              {pincodeLocations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+              aria-hidden
+            />
+          </div>
+        </AddressField>
+      ) : null}
+      <AddressRegionFields
+        state={addressForm.state}
+        city={addressForm.city}
+        onStateChange={(value) => onAddressFieldChange('state', value)}
+        onCityChange={(value) => onAddressFieldChange('city', value)}
+        stateError={addressFormErrors.state}
+        cityError={addressFormErrors.city}
+      />
       <AddressInput
         id="address-landmark"
         label="Landmark"

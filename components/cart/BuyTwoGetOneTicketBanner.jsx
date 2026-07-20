@@ -2,20 +2,29 @@
 
 import Link from 'next/link';
 import { ChevronRight, Gift } from 'lucide-react';
+import { useWebSettings } from '@/hooks/use-web-settings';
+import {
+  getBuyTwoGetOneTicketDefaultMessage,
+} from '@/lib/cart/buy-two-get-one';
 import { APP_ROUTES } from '@/lib/routes';
-import { BUY_TWO_GET_ONE_TICKET_DEFAULT_MESSAGE } from '@/lib/cart/buy-two-get-one';
+import { getBuyTwoGetOneQuantities } from '@/lib/web-settings';
 import { cn } from '@/lib/utils';
 
 export default function BuyTwoGetOneTicketBanner({
   href = APP_ROUTES.PRODUCTS,
-  message = BUY_TWO_GET_ONE_TICKET_DEFAULT_MESSAGE,
+  message,
   className,
   notchColor = '#fbfaf7',
   compact = false,
   fullWidth = false,
   fullWidthMobile = false,
 }) {
-  if (!message) return null;
+  const { data: settings } = useWebSettings();
+  const { buyQty, getQty } = getBuyTwoGetOneQuantities(settings);
+  const resolvedMessage =
+    message ?? getBuyTwoGetOneTicketDefaultMessage(buyQty, getQty);
+
+  if (!resolvedMessage) return null;
 
   const isWideLayout = fullWidth || fullWidthMobile;
 
@@ -41,7 +50,7 @@ export default function BuyTwoGetOneTicketBanner({
             ? 'ticket-offer-banner--compact gap-2 py-2 pl-4 pr-4'
             : 'gap-2.5 py-2.5 pl-5 pr-5 sm:pl-5 sm:pr-5',
         )}
-        aria-label={message}
+        aria-label={resolvedMessage}
       >
         <span className={cn('flex min-w-0 items-center', compact ? 'gap-2' : 'gap-2.5')}>
           <span
@@ -65,7 +74,7 @@ export default function BuyTwoGetOneTicketBanner({
               compact ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-sm',
             )}
           >
-            {message}
+            {resolvedMessage}
           </span>
         </span>
 

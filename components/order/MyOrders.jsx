@@ -24,7 +24,10 @@ import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { getAuthStorageKey } from '@/utils/auth-response';
 import { formatInr, formatInrDiscount } from '@/lib/cart/format';
+import { getBuyTwoGetOneDiscountLabel } from '@/lib/cart/buy-two-get-one';
 import { normalizeOrderSummary } from '@/lib/cart/order-summary';
+import { useWebSettings } from '@/hooks/use-web-settings';
+import { getBuyTwoGetOneQuantities } from '@/lib/web-settings';
 
 const RETURN_TERMS = [
  'Returns are accepted only within the eligible return period shown for the product.',
@@ -1621,6 +1624,9 @@ function OrderDetailScrollContainer({ children }) {
 }
 
 function OrderDetail({ order, onTrack }) {
+  const { data: settings } = useWebSettings();
+  const { buyQty, getQty } = getBuyTwoGetOneQuantities(settings);
+  const buyTwoGetOneDiscountLabel = getBuyTwoGetOneDiscountLabel(buyQty, getQty);
   const items = getOrderItems(order);
   const orderDate = formatDate(order.order_date ?? order.created_at ?? order.createdAt);
   const estimatedDelivery = formatEstimatedDeliveryDate(order?.shipment?.estimated_delivery_at);
@@ -1745,7 +1751,7 @@ function OrderDetail({ order, onTrack }) {
             <Amount label="Tax (GST)" value={amounts.taxAmount} />
             <Amount label="Shipping" value={amounts.shippingAmount} />
             {amounts.buyTwoGetOneDiscountAmount > 0 ? (
-              <Amount label="Buy 2 Get 1 Discount" value={amounts.buyTwoGetOneDiscountAmount} discount />
+              <Amount label={buyTwoGetOneDiscountLabel} value={amounts.buyTwoGetOneDiscountAmount} discount />
             ) : null}
             {amounts.firstOrderDiscountAmount > 0 ? (
               <Amount label="First Order Discount" value={amounts.firstOrderDiscountAmount} discount />

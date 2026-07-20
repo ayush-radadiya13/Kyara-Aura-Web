@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, Grid2X2, List, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { ChevronDown, X } from "lucide-react";
 import Pagination from "@/components/Pagination";
 import ProductCard from "@/components/ProductCard";
 import { DotLoaderBlock, LoaderBlock } from "@/components/ui/loader";
@@ -9,6 +10,7 @@ import {
   useCollectionProducts,
   useFeaturedProducts,
   useProducts,
+  useProductsByCategory,
 } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
 import { useSizes } from "@/hooks/use-sizes";
@@ -19,6 +21,7 @@ import {
 } from "@/hooks/use-wishlist";
 import { useAuthRedirect } from "@/hooks/use-auth-redirect";
 import { useAuthStore } from "@/store/auth-store";
+import { DEFAULT_PRODUCTS_PER_PAGE } from "@/lib/products";
 
 const PRICE_FILTER_MIN = 0;
 const PRICE_FILTER_MAX = 5000;
@@ -171,11 +174,18 @@ export default function ProductList({
   offset = 0,
   emptyMessage = "No products available at the moment.",
   variant = "default",
-  pageSize = 12,
+  pageSize = DEFAULT_PRODUCTS_PER_PAGE,
   initialProducts,
+  initialPagination,
+  serverPaginated = false,
 }) {
   const isCatalog = variant === "catalog";
-  const [currentPage, setCurrentPage] = useState(1);
+  const useServerPagination = serverPaginated && !limit;
+  const router = useRouter();
+  const pathname = usePathname();
+  const [currentPage, setCurrentPage] = useState(
+    () => initialPagination?.currentPage ?? 1,
+  );
   const [selectedCategoryId, setSelectedCategoryId] = useState(categoryId ?? "");
   const [selectedSizeKeys, setSelectedSizeKeys] = useState([]);
   const [priceRange, setPriceRange] = useState([PRICE_FILTER_MIN, PRICE_FILTER_MAX]);
@@ -189,11 +199,38 @@ export default function ProductList({
   });
   const addWishlistItem = useAddWishlistItem();
   const deleteWishlistItem = useDeleteWishlistItem();
+
+  const paginatedInitialData =
+    useServerPagination && initialProducts
+      ? {
+          products: initialProducts,
+          pagination:
+            initialPagination ?? {
+              currentPage: 1,
+              lastPage: 1,
+              perPage: pageSize,
+              total: initialProducts.length,
+            },
+        }
+      : undefined;
+
   const allProductsQuery = useProducts({
-    enabled: !featured && !collection,
-    ...(initialProducts && !featured && !collection
-      ? { initialData: initialProducts }
+    enabled: !featured && !collection && !(useServerPagination && categoryId),
+    page: useServerPagination ? currentPage : 1,
+    perPage: pageSize,
+    paginated: useServerPagination && !categoryId,
+    ...(initialProducts && !featured && !collection && !(useServerPagination && categoryId)
+      ? {
+          initialData: useServerPagination ? paginatedInitialData : initialProducts,
+        }
       : {}),
+  });
+  const categoryProductsQuery = useProductsByCategory(categoryId, {
+    enabled: Boolean(useServerPagination && categoryId),
+    page: currentPage,
+    perPage: pageSize,
+    paginated: true,
+    ...(paginatedInitialData && categoryId ? { initialData: paginatedInitialData } : {}),
   });
   const featuredProductsQuery = useFeaturedProducts({
     enabled: featured && !collection,
@@ -215,9 +252,39 @@ export default function ProductList({
   const query = collection
     ? collectionProductsQuery
     : featured
-    ? featuredProductsQuery
-    : allProductsQuery;
-  const rawProducts = useMemo(() => query.data ?? [], [query.data]);
+      ? featuredProductsQuery
+      : useServerPagination && categoryId
+        ? categoryProductsQuery
+        : allProductsQuery;
+  const rawProducts = useMemo(() => {
+    const data = query.data;
+    if (Array.isArray(data)) return data;
+    return data?.products ?? [];
+  }, [query.data]);
+  const apiPagination = useMemo(() => {
+    if (!useServerPagination) return null;
+
+    const data = query.data;
+    if (data && !Array.isArray(data) && data.pagination) {
+      return data.pagination;
+    }
+
+    return (
+      initialPagination ?? {
+        currentPage,
+        lastPage: 1,
+        perPage: pageSize,
+        total: rawProducts.length,
+      }
+    );
+  }, [
+    currentPage,
+    initialPagination,
+    pageSize,
+    query.data,
+    rawProducts.length,
+    useServerPagination,
+  ]);
   const filteredProducts = useMemo(() => {
     const selectedCategory = String(selectedCategoryId ?? "");
 
@@ -251,17 +318,73 @@ export default function ProductList({
     : offset
       ? filteredProducts.slice(offset)
       : filteredProducts;
-  const shouldPaginate = !limit && products.length > pageSize;
-  const totalPages = shouldPaginate ? Math.ceil(products.length / pageSize) : 1;
-  const activePage = Math.min(currentPage, totalPages);
-  const visibleProducts = shouldPaginate
-    ? products.slice((activePage - 1) * pageSize, activePage * pageSize)
-    : products;
-  const resultStart = products.length ? (activePage - 1) * pageSize + 1 : 0;
-  const resultEnd = Math.min(activePage * pageSize, products.length);
+  const shouldPaginate = useServerPagination
+    ? (apiPagination?.lastPage ?? 1) > 1
+    : !limit && products.length > pageSize;
+  const totalPages = useServerPagination
+    ? apiPagination?.lastPage ?? 1
+    : shouldPaginate
+      ? Math.ceil(products.length / pageSize)
+      : 1;
+  const activePage = Math.min(
+    useServerPagination ? (apiPagination?.currentPage ?? currentPage) : currentPage,
+    totalPages,
+  );
+  const visibleProducts = useServerPagination
+    ? products
+    : shouldPaginate
+      ? products.slice((activePage - 1) * pageSize, activePage * pageSize)
+      : products;
+  const usingClientFilterSubset =
+    isCatalog &&
+    (selectedSizeKeys.length > 0 ||
+      priceRange[0] !== PRICE_FILTER_MIN ||
+      priceRange[1] !== PRICE_FILTER_MAX ||
+      String(selectedCategoryId ?? "") !== String(categoryId ?? ""));
+  const resultTotal =
+    useServerPagination && !usingClientFilterSubset
+      ? apiPagination?.total ?? products.length
+      : products.length;
+  const resultStart = products.length
+    ? useServerPagination
+      ? usingClientFilterSubset
+        ? 1
+        : (activePage - 1) * (apiPagination?.perPage ?? pageSize) + 1
+      : (activePage - 1) * pageSize + 1
+    : 0;
+  const resultEnd = useServerPagination
+    ? usingClientFilterSubset
+      ? products.length
+      : Math.min(
+          (activePage - 1) * (apiPagination?.perPage ?? pageSize) + products.length,
+          resultTotal,
+        )
+    : Math.min(activePage * pageSize, products.length);
+
+  const syncPageInUrl = (page) => {
+    if (!useServerPagination) return;
+
+    const params = new URLSearchParams(
+      typeof window !== "undefined" ? window.location.search : "",
+    );
+    if (page <= 1) {
+      params.delete("page");
+    } else {
+      params.set("page", String(page));
+    }
+
+    const queryString = params.toString();
+    router.push(queryString ? `${pathname}?${queryString}` : pathname, {
+      scroll: true,
+    });
+  };
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
+    if (useServerPagination) {
+      syncPageInUrl(page);
+      return;
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const selectedSizeSet = useMemo(() => new Set(selectedSizeKeys), [selectedSizeKeys]);
@@ -330,11 +453,13 @@ export default function ProductList({
   const handlePriceRangeChange = (nextRange) => {
     setPriceRange(nextRange);
     setCurrentPage(1);
+    syncPageInUrl(1);
   };
 
   const handleCategoryChange = (nextCategoryId) => {
     setSelectedCategoryId(nextCategoryId);
     setCurrentPage(1);
+    syncPageInUrl(1);
   };
 
   const toggleFilter = (filterName) => {
@@ -354,6 +479,7 @@ export default function ProductList({
       return sizeKeys;
     });
     setCurrentPage(1);
+    syncPageInUrl(1);
   };
 
   const resetFilters = () => {
@@ -362,6 +488,7 @@ export default function ProductList({
     setPriceRange([PRICE_FILTER_MIN, PRICE_FILTER_MAX]);
     setOpenFilter("");
     setCurrentPage(1);
+    syncPageInUrl(1);
   };
 
   if (query.isLoading && !query.data?.length) {
@@ -382,7 +509,7 @@ export default function ProductList({
       {isCatalog && (
         <div className="mb-10 max-w-6xl flex flex-col gap-5 border-y border-gray-100 py-5 text-[14px] text-gray-800 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
           <p>
-            Showing {resultStart}-{resultEnd} of {products.length} results.
+            Showing {resultStart}-{resultEnd} of {resultTotal} results.
           </p>
 
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between lg:gap-9">

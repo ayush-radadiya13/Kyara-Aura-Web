@@ -11,7 +11,10 @@ import { getBuyTwoGetOneTicketMessage } from '@/lib/cart/buy-two-get-one';
 import { useCartStore } from '@/lib/cart/store';
 import { formatInr } from '@/lib/cart/format';
 import { APP_ROUTES } from '@/lib/routes';
-import { isBuyTwoGetOneFreeEnabled } from '@/lib/web-settings';
+import {
+  getBuyTwoGetOneQuantities,
+  isBuyTwoGetOneFreeEnabled,
+} from '@/lib/web-settings';
 import { clearCartApi, getCartApi, removeCartItemApi, updateCartQuantityApi } from '@/services/cart';
 
 const CART_IMAGE_FALLBACK = '/images/product-placeholder.svg';
@@ -157,10 +160,13 @@ export default function CartBag({ checkoutSlot = null, itemsSubtotal = null }) {
   };
 
   const allSelected = items.length > 0 && selectedItemIds.length === items.length;
+  const { buyQty, getQty } = getBuyTwoGetOneQuantities(settings);
   const buyTwoGetOneTicketMessage = getBuyTwoGetOneTicketMessage({
     isEnabled: isBuyTwoGetOneFreeEnabled(settings),
     items,
     buyTwoGetOneDiscountAmount,
+    buyQty,
+    getQty,
   });
 
   const isEmpty = !isLoading && items.length === 0;
