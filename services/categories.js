@@ -3,16 +3,24 @@ import { withoutTokenApi } from "@/utils/api";
 
 export function normalizeCategory(category) {
   const id = category.id ?? category._id;
+  const children = Array.isArray(category.children)
+    ? category.children
+        .filter((child) => child?.is_active !== false)
+        .map(normalizeCategory)
+    : category.children;
 
   return {
     ...category,
     _id: String(id),
     image: category.image_url || category.image || "",
+    ...(children ? { children } : {}),
   };
 }
 
-export async function getCategoriesApi() {
-  const { data } = await withoutTokenApi.get(CATEGORY_API_ROUTES.LIST);
+export async function getCategoriesApi(type) {
+  const { data } = await withoutTokenApi.get(CATEGORY_API_ROUTES.LIST, {
+    params: type ? { type } : undefined,
+  });
   const categories = Array.isArray(data?.data) ? data.data : [];
 
   return categories

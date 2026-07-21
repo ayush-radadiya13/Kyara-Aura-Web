@@ -432,7 +432,9 @@ export default function ProductDetail({ product: initialProduct, slug }) {
 
             <div className="mb-4 flex items-center justify-between gap-4">
               <p className="text-md  text-gold">
-                {product.category?.name || 'Kayra Aura Collection'}
+                {product.category?.type === 'sub'
+                  ? product.category.name
+                  : 'Kayra Aura Collection'}
               </p>
               <div className="flex items-center gap-3">
                 <WishlistButton

@@ -243,6 +243,7 @@ export default function ProductList({
     ...(initialProducts && collection ? { initialData: initialProducts } : {}),
   });
   const { data: categories = [], isLoading: categoriesLoading } = useCategories({
+    type: "sub",
     enabled: isCatalog,
   });
   const { data: sizes = [], isLoading: sizesLoading } = useSizes({

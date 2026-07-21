@@ -4,12 +4,7 @@ import Header from '../../components/Header';
 import CategoryBrowser from '@/components/CategoryBrowser';
 import { DotLoaderBlock } from '@/components/ui/loader';
 import { getCategories } from '@/lib/categories';
-import {
-  categoryProductsPath,
-  categorySeoDescription,
-  getSelectedCategoryFromParams,
-  resolveCategoryId,
-} from '@/lib/category-seo';
+import { categorySeoDescription } from '@/lib/category-seo';
 import { getFeaturedProducts } from '@/lib/products';
 import { metadataForPage } from '@/lib/seo';
 
@@ -18,23 +13,7 @@ const categoryDisplay = Cormorant_Garamond({
   weight: ['400', '500', '600'],
 });
 
-export async function generateMetadata({ searchParams }) {
-  const selectedCategory = await getSelectedCategoryFromParams(
-    searchParams,
-    getCategories,
-  );
-
-  if (selectedCategory) {
-    const categoryId = resolveCategoryId(selectedCategory);
-
-    return metadataForPage({
-      title: `${selectedCategory.name} Jewellery | Kayra Aura`,
-      description: categorySeoDescription(selectedCategory),
-      path: categoryProductsPath(categoryId),
-      images: selectedCategory.image ? [selectedCategory.image] : ['/assets/image.png'],
-    });
-  }
-
+export async function generateMetadata() {
   return metadataForPage({
     title: 'Jewellery Categories | Kayra Aura',
     description:

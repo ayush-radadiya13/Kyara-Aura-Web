@@ -1,4 +1,8 @@
-import { categoryProductsPath, resolveCategoryId } from "@/lib/category-seo";
+import {
+  categoryProductsPath,
+  categorySubcategoriesPath,
+  resolveCategoryId,
+} from "@/lib/category-seo";
 import { getCategories } from "@/lib/categories";
 import { getAllProducts } from "@/lib/products";
 import { absoluteUrl } from "@/lib/seo";
@@ -36,15 +40,26 @@ export default async function sitemap() {
     priority: 0.8,
   }));
 
-  const categoryEntries = categories.map((category) => {
-    const categoryId = resolveCategoryId(category);
-
-    return {
-      url: absoluteUrl(categoryProductsPath(categoryId)),
+  const categoryEntries = categories.flatMap((category) => {
+    const mainEntry = {
+      url: absoluteUrl(categorySubcategoriesPath(category)),
       lastModified: new Date(category.updated_at ?? category.updatedAt ?? Date.now()),
       changeFrequency: "weekly",
       priority: 0.7,
     };
+
+    const subEntries = (category.children ?? []).map((child) => {
+      const childId = resolveCategoryId(child);
+
+      return {
+        url: absoluteUrl(categoryProductsPath(childId)),
+        lastModified: new Date(child.updated_at ?? child.updatedAt ?? Date.now()),
+        changeFrequency: "weekly",
+        priority: 0.7,
+      };
+    });
+
+    return [mainEntry, ...subEntries];
   });
 
   return [...staticEntries, ...categoryEntries, ...productEntries];

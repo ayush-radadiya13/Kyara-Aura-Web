@@ -7,15 +7,17 @@ import {
 } from "@/services/categories";
 
 /**
- * @param {import("@tanstack/react-query").UseQueryOptions} [options]
+ * @param {import("@tanstack/react-query").UseQueryOptions & { type?: string }} [options]
  */
 export function useCategories(options = {}) {
+  const { type, ...rest } = options;
+
   return useQuery({
-    queryKey: ["categories"],
-    queryFn: getCategoriesApi,
+    queryKey: type ? ["categories", { type }] : ["categories"],
+    queryFn: () => getCategoriesApi(type),
     refetchOnMount: "always",
     retry: false,
-    ...options,
+    ...rest,
   });
 }
 

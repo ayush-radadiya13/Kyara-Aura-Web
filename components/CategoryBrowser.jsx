@@ -1,4 +1,5 @@
 "use client";
+
 import CategoryGrid from "@/components/CategoryGrid";
 import ProductList from "@/components/ProductList";
 
