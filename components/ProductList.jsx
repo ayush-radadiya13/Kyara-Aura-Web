@@ -200,6 +200,7 @@ export default function ProductList({
   const addWishlistItem = useAddWishlistItem();
   const deleteWishlistItem = useDeleteWishlistItem();
 
+  const useCategoryQuery = Boolean(categoryId) && !featured && !collection;
   const paginatedInitialData =
     useServerPagination && initialProducts
       ? {
@@ -215,22 +216,31 @@ export default function ProductList({
       : undefined;
 
   const allProductsQuery = useProducts({
-    enabled: !featured && !collection && !(useServerPagination && categoryId),
+    enabled: !featured && !collection && !useCategoryQuery,
     page: useServerPagination ? currentPage : 1,
     perPage: pageSize,
     paginated: useServerPagination && !categoryId,
-    ...(initialProducts && !featured && !collection && !(useServerPagination && categoryId)
+    ...(initialProducts && !featured && !collection && !useCategoryQuery
       ? {
           initialData: useServerPagination ? paginatedInitialData : initialProducts,
         }
       : {}),
   });
   const categoryProductsQuery = useProductsByCategory(categoryId, {
-    enabled: Boolean(useServerPagination && categoryId),
-    page: currentPage,
+    enabled: useCategoryQuery,
+    page: useServerPagination ? currentPage : 1,
     perPage: pageSize,
-    paginated: true,
-    ...(paginatedInitialData && categoryId ? { initialData: paginatedInitialData } : {}),
+    paginated: useServerPagination,
+    ...(initialProducts && categoryId
+      ? {
+          initialData: useServerPagination
+            ? paginatedInitialData
+            : initialProducts,
+          // Keep SSR category-tree products (parent + subcategories) instead of
+          // refetching only the parent category endpoint.
+          ...(useServerPagination ? {} : { refetchOnMount: false }),
+        }
+      : {}),
   });
   const featuredProductsQuery = useFeaturedProducts({
     enabled: featured && !collection,
@@ -254,7 +264,7 @@ export default function ProductList({
     ? collectionProductsQuery
     : featured
       ? featuredProductsQuery
-      : useServerPagination && categoryId
+      : useCategoryQuery
         ? categoryProductsQuery
         : allProductsQuery;
   const rawProducts = useMemo(() => {
@@ -290,7 +300,9 @@ export default function ProductList({
     const selectedCategory = String(selectedCategoryId ?? "");
 
     if (!isCatalog) {
-      if (!selectedCategory) return rawProducts;
+      // Category API / SSR category-tree results are already scoped; re-filtering
+      // by parent id would drop products tagged to child subcategories.
+      if (categoryId || !selectedCategory) return rawProducts;
 
       return rawProducts.filter((product) =>
         getCategoryKeys(product).includes(selectedCategory),
@@ -313,7 +325,7 @@ export default function ProductList({
 
       return categoryMatches && sizeMatches && priceMatches;
     });
-  }, [isCatalog, priceRange, rawProducts, selectedCategoryId, selectedSizeKeys]);
+  }, [categoryId, isCatalog, priceRange, rawProducts, selectedCategoryId, selectedSizeKeys]);
   const products = limit
     ? filteredProducts.slice(offset, offset + limit)
     : offset

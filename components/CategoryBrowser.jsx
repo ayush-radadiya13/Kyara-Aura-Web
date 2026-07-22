@@ -9,7 +9,7 @@ export default function CategoryBrowser({
 }) {
   return (
     <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6">
-      <div className="mb-8 pt-4">
+      <div className="mb-4 pt-4">
         <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-gold">
           Choose a category
         </p>
@@ -26,7 +26,7 @@ export default function CategoryBrowser({
         />
       </div>
 
-      <div className="border-t border-gray-100 pt-4">
+      <div className="border-t border-gray-100 pt-6">
         <div className="mb-8">
           <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-gold">
             Customer Favorites

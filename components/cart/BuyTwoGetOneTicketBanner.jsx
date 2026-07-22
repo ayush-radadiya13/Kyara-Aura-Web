@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { ChevronRight, Gift } from 'lucide-react';
 import { useWebSettings } from '@/hooks/use-web-settings';
-import {
-  getBuyTwoGetOneTicketDefaultMessage,
-} from '@/lib/cart/buy-two-get-one';
+import { getBuyTwoGetOneTicketMessage } from '@/lib/cart/buy-two-get-one';
+import { useCartStore } from '@/lib/cart/store';
 import { APP_ROUTES } from '@/lib/routes';
-import { getBuyTwoGetOneQuantities } from '@/lib/web-settings';
+import {
+  getBuyTwoGetOneQuantities,
+  isBuyTwoGetOneFreeEnabled,
+} from '@/lib/web-settings';
 import { cn } from '@/lib/utils';
 
 export default function BuyTwoGetOneTicketBanner({
@@ -20,9 +22,20 @@ export default function BuyTwoGetOneTicketBanner({
   fullWidthMobile = false,
 }) {
   const { data: settings } = useWebSettings();
+  const items = useCartStore((state) => state.items);
+  const buyTwoGetOneDiscountAmount = useCartStore(
+    (state) => state.buyTwoGetOneDiscountAmount,
+  );
   const { buyQty, getQty } = getBuyTwoGetOneQuantities(settings);
   const resolvedMessage =
-    message ?? getBuyTwoGetOneTicketDefaultMessage(buyQty, getQty);
+    message ??
+    getBuyTwoGetOneTicketMessage({
+      isEnabled: isBuyTwoGetOneFreeEnabled(settings),
+      items,
+      buyTwoGetOneDiscountAmount,
+      buyQty,
+      getQty,
+    });
 
   if (!resolvedMessage) return null;
 

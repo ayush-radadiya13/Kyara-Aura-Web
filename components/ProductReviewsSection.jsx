@@ -167,7 +167,7 @@ export default function ProductReviewsSection({ reviews = [], reviewsCount }) {
   const marqueeDuration = `${Math.max(displayedReviews.length * 5, 30)}s`;
 
   return (
-    <section className="mt-16 lg:mt-20">
+    <section className="mt-10 lg:mt-12">
       <h2 className="mb-9 text-center text-2xl font-semibold text-gray-950">
         Reviews 
       </h2>

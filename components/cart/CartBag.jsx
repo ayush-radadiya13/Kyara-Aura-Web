@@ -19,7 +19,11 @@ import { clearCartApi, getCartApi, removeCartItemApi, updateCartQuantityApi } fr
 
 const CART_IMAGE_FALLBACK = '/images/product-placeholder.svg';
 
-export default function CartBag({ checkoutSlot = null, itemsSubtotal = null }) {
+export default function CartBag({
+  checkoutSlot = null,
+  checkoutSlotHidden = false,
+  itemsSubtotal = null,
+}) {
   const items = useCartStore((state) => state.items);
   const buyTwoGetOneDiscountAmount = useCartStore((state) => state.buyTwoGetOneDiscountAmount);
   const setCart = useCartStore((state) => state.setCart);
@@ -400,11 +404,29 @@ export default function CartBag({ checkoutSlot = null, itemsSubtotal = null }) {
                   message={buyTwoGetOneTicketMessage}
                   className="mt-0 w-full sm:ml-auto sm:w-fit sm:shrink-0"
                 />
+              ) : checkoutSlot ? (
+                <div
+                  className={`hidden w-full sm:ml-auto sm:w-auto lg:flex lg:justify-end ${
+                    checkoutSlotHidden ? 'invisible' : ''
+                  }`}
+                  inert={checkoutSlotHidden ? true : undefined}
+                  aria-hidden={checkoutSlotHidden || undefined}
+                >
+                  {checkoutSlot}
+                </div>
               ) : null}
             </div>
 
-            {checkoutSlot ? (
-              <div className="hidden lg:flex lg:justify-end">{checkoutSlot}</div>
+            {checkoutSlot && buyTwoGetOneTicketMessage ? (
+              <div
+                className={`hidden w-full lg:flex lg:justify-end ${
+                  checkoutSlotHidden ? 'invisible' : ''
+                }`}
+                inert={checkoutSlotHidden ? true : undefined}
+                aria-hidden={checkoutSlotHidden || undefined}
+              >
+                {checkoutSlot}
+              </div>
             ) : null}
           </div>
         </>

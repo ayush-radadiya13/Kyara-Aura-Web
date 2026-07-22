@@ -9,6 +9,7 @@ import {
   categorySeoDescription,
   categorySubcategoriesPath,
 } from '@/lib/category-seo';
+import { getProductsByCategoryTree } from '@/lib/products';
 import { metadataForPage } from '@/lib/seo';
 
 const categoryDisplay = Cormorant_Garamond({
@@ -45,6 +46,8 @@ export default async function CategorySubcategoriesPage({ params }) {
     notFound();
   }
 
+  const categoryProducts = await getProductsByCategoryTree(category);
+
   return (
     <div>
       <Header />
@@ -62,7 +65,10 @@ Browse all subcategories to find the products you are looking for          </p>
       </section>
 
       <Suspense fallback={<DotLoaderBlock />}>
-        <SubcategoryBrowser category={category} />
+        <SubcategoryBrowser
+          category={category}
+          initialCategoryProducts={categoryProducts}
+        />
       </Suspense>
     </div>
   );

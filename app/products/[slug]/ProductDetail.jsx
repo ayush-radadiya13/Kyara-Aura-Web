@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { IndianRupee, Minus, Play, Plus, RefreshCcw, Share2, Truck } from 'lucide-react';
@@ -15,6 +15,7 @@ import WishlistButton from '@/components/WishlistButton';
 import BuyTwoGetOneTicketBanner from '@/components/cart/BuyTwoGetOneTicketBanner';
 import { DotLoaderBlock, LoadingLabel } from '@/components/ui/loader';
 import { shouldShowQueryLoader } from '@/lib/query-loading';
+import { getBuyTwoGetOneTicketMessage } from '@/lib/cart/buy-two-get-one';
 import {
   hasCartItemWithProductSize,
   isDuplicateCartError,
@@ -27,7 +28,10 @@ import { useProductBySlug } from '@/hooks/use-products';
 import { useWebSettings } from '@/hooks/use-web-settings';
 import { addCartItemApi, getCartApi } from '@/services/cart';
 import { sharePage } from '@/lib/share/web-share';
-import { isBuyTwoGetOneFreeEnabled } from '@/lib/web-settings';
+import {
+  getBuyTwoGetOneQuantities,
+  isBuyTwoGetOneFreeEnabled,
+} from '@/lib/web-settings';
 
 const VIDEO_EXTENSION_PATTERN = /\.(mp4|webm|ogg|ogv|mov|m4v)(\?.*)?$/i;
 
@@ -121,12 +125,50 @@ function getProductMedia(product) {
   return media;
 }
 
+function getDefaultSizeValue(sizeOptions) {
+  if (!sizeOptions.length) return '';
+
+  const inStock = sizeOptions.filter((option) => Number(option.quantity) > 0);
+  const pool = inStock.length ? inStock : sizeOptions;
+  const freeSize = pool.find((option) =>
+    /^free\s*size$/i.test(String(option.label || option.value).trim()),
+  );
+
+  return freeSize?.value ?? pool[0]?.value ?? '';
+}
+
+function resolveQuantityForSize(quantity, selectedSizeOption) {
+  if (!selectedSizeOption) {
+    return quantity === null ? 1 : Number(quantity);
+  }
+
+  if (Number(selectedSizeOption.quantity) === 0) {
+    return 0;
+  }
+
+  const quantityLimit = selectedSizeOption.quantity > 0 ? selectedSizeOption.quantity : null;
+  const currentQty = quantity === null ? 1 : Number(quantity);
+
+  if (quantityLimit && currentQty > quantityLimit) {
+    return quantityLimit;
+  }
+
+  if (currentQty === 0) {
+    return 1;
+  }
+
+  return currentQty;
+}
+
 export default function ProductDetail({ product: initialProduct, slug }) {
   const router = useRouter();
   const { requireAuth, redirectToLogin } = useAuthRedirect();
   const queryClient = useQueryClient();
   const setCart = useCartStore((state) => state.setCart);
   const cartItems = useCartStore((state) => state.items);
+  const buyTwoGetOneDiscountAmount = useCartStore(
+    (state) => state.buyTwoGetOneDiscountAmount,
+  );
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(null);
   const [bagDrawerOpen, setBagDrawerOpen] = useState(false);
@@ -157,55 +199,23 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   }, [product?.sizes]);
 
   const productMedia = useMemo(() => getProductMedia(product), [product]);
-  const activeSize = sizeOptions.some((option) => option.value === selectedSize) ? selectedSize : '';
+  const activeSize = sizeOptions.some((option) => option.value === selectedSize)
+    ? selectedSize
+    : getDefaultSizeValue(sizeOptions);
   const selectedSizeOption = sizeOptions.find((option) => option.value === activeSize);
-  const selectedQuantity = quantity === null ? 1 : Number(quantity);
   const quantityLimit = selectedSizeOption?.quantity > 0 ? selectedSizeOption.quantity : null;
   const isOutOfStock = selectedSizeOption != null && Number(selectedSizeOption.quantity) === 0;
+  const selectedQuantity = resolveQuantityForSize(quantity, selectedSizeOption);
   const canSubmit = Boolean(selectedSizeOption?.id && selectedQuantity > 0 && !isOutOfStock);
   const isSelectedSizeInCart = hasCartItemWithProductSize(cartItems, selectedSizeOption?.id);
-  const showBuyTwoGetOneTicket = isBuyTwoGetOneFreeEnabled(settings);
-
-  useEffect(() => {
-    if (!sizeOptions.length) {
-      setSelectedSize('');
-      return;
-    }
-
-    setSelectedSize((current) => {
-      if (sizeOptions.some((option) => option.value === current)) {
-        return current;
-      }
-
-      const inStock = sizeOptions.filter((option) => Number(option.quantity) > 0);
-      const pool = inStock.length ? inStock : sizeOptions;
-      const freeSize = pool.find((option) =>
-        /^free\s*size$/i.test(String(option.label || option.value).trim()),
-      );
-
-      return freeSize?.value ?? pool[0]?.value ?? '';
-    });
-  }, [sizeOptions]);
-
-  useEffect(() => {
-    if (!selectedSizeOption) return;
-
-    if (Number(selectedSizeOption.quantity) === 0) {
-      setQuantity(0);
-      return;
-    }
-
-    setQuantity((current) => {
-      const currentQty = current === null ? 1 : current;
-      if (quantityLimit && currentQty > quantityLimit) {
-        return quantityLimit;
-      }
-      if (current === 0) {
-        return null;
-      }
-      return current;
-    });
-  }, [selectedSizeOption?.id, selectedSizeOption?.quantity, quantityLimit]);
+  const { buyQty, getQty } = getBuyTwoGetOneQuantities(settings);
+  const buyTwoGetOneTicketMessage = getBuyTwoGetOneTicketMessage({
+    isEnabled: isBuyTwoGetOneFreeEnabled(settings),
+    items: cartItems,
+    buyTwoGetOneDiscountAmount,
+    buyQty,
+    getQty,
+  });
 
   const goToCart = () => {
     router.push(APP_ROUTES.CART);
@@ -533,21 +543,21 @@ export default function ProductDetail({ product: initialProduct, slug }) {
                 <div className="flex items-center gap-4 text-lg font-semibold text-gray-950">
                   <button
                     type="button"
-                    onClick={() => setQuantity((q) => Math.max(0, (q ?? 1) - 1) || null)}
-                    disabled={!quantity}
+                    onClick={() => setQuantity(Math.max(0, selectedQuantity - 1) || null)}
+                    disabled={selectedQuantity <= 1}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-950 text-white transition hover:bg-[#A97818] disabled:cursor-not-allowed disabled:bg-gray-300"
                     aria-label="Decrease quantity"
                   >
                     <Minus className="h-4 w-4" strokeWidth={2.4} />
                   </button>
-                  <span className="min-w-4 text-center text-base font-semibold">{quantity || 1}</span>
+                  <span className="min-w-4 text-center text-base font-semibold">{selectedQuantity}</span>
                   <button
                     type="button"
-                    onClick={() => setQuantity((q) => {
-                      const nextQuantity = (q ?? 1) + 1;
-                      return quantityLimit ? Math.min(nextQuantity, quantityLimit) : nextQuantity;
-                    })}
-                    disabled={Boolean(quantityLimit && quantity >= quantityLimit)}
+                    onClick={() => {
+                      const nextQuantity = selectedQuantity + 1;
+                      setQuantity(quantityLimit ? Math.min(nextQuantity, quantityLimit) : nextQuantity);
+                    }}
+                    disabled={Boolean(quantityLimit && selectedQuantity >= quantityLimit)}
                     className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-950 text-white transition hover:bg-[#A97818] disabled:cursor-not-allowed disabled:bg-gray-300"
                     aria-label="Increase quantity"
                   >
@@ -604,22 +614,27 @@ export default function ProductDetail({ product: initialProduct, slug }) {
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-gray-700">
                     <Truck className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
                   </span>
-                  <span>Free delivery on orders above ₹1000.</span>
+                  <span>Enjoy free delivery on online orders above ₹1,000.</span>
                 </div>
               </div>
               <p className="bg-[#e6e6e6] px-3 py-2 text-[11px] font-bold">
                 Get it delivered in 3-6 days
               </p>
-              {showBuyTwoGetOneTicket ? (
+              {buyTwoGetOneTicketMessage ? (
                 <div className="px-3 pb-2 pt-2">
-                  <BuyTwoGetOneTicketBanner fullWidth className="mt-0 w-full" notchColor="#f7f7f7" />
+                  <BuyTwoGetOneTicketBanner
+                    fullWidth
+                    className="mt-0 w-full"
+                    notchColor="#f7f7f7"
+                    message={buyTwoGetOneTicketMessage}
+                  />
                 </div>
               ) : null}
             </section>
           </section>
         </div>
 
-        <section className="mt-8 border-t border-gray-100 pt-8 lg:mt-12">
+        <section className="mt-8 border-t border-gray-100 pt-8 lg:mt-8">
           <div>
             <div
               className="flex gap-7 overflow-x-auto border-b border-gray-100 text-[18px] font-semibold uppercase t text-gray-900 sm:justify-center sm:gap-12"
@@ -666,11 +681,6 @@ export default function ProductDetail({ product: initialProduct, slug }) {
                       </div>
                     ))}
                   </div>
-                  {showFullInfo && product.description && (
-                    <p className="border-t border-gray-100 px-5 py-4 text-sm leading-7 text-gray-500">
-                      {product.description}
-                    </p>
-                  )}
                   {hasMoreProductInfo && (
                     <div className="flex justify-end px-5 pb-4 pt-1">
                       <button
@@ -733,31 +743,17 @@ export default function ProductDetail({ product: initialProduct, slug }) {
 
               {activeDetailTab === 'reviews' && (
                 <div className="grid gap-8 text-sm text-gray-500 lg:grid-cols-[1fr_1.1fr]">
-                  <div className="space-y-5">
-                    {productReviews.length ? (
-                      productReviews.slice(0, 2).map((review) => (
-                        <div key={review.id}>
-                          <div className="mb-1 flex items-center gap-1 text-[#c9a75d]">
-                            {Array.from({ length: 5 }, (_, index) => (
-                              <span
-                                key={index}
-                                className={index < (review.rating ?? 0) ? 'text-[#c9a75d]' : 'text-gray-300'}
-                              >
-                                ★
-                              </span>
-                            ))}
-                          </div>
-                          <p>{review.review}</p>
-                          <p className="mt-2 text-xs text-gray-400">
-                            {review.customer_name}
-                          </p>
-                        </div>
-                      ))
-                    ) : (
-                      <p>No reviews yet. Be the first to share your experience.</p>
-                    )}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-950">
+                      Customer Reviews
+                    </h3>
+                    <p className="max-w-md leading-7">
+                      We take pride in the quality of every piece we create. Hear from
+                      customers who have experienced the craftsmanship, comfort, and
+                      attention to detail that define Kayra Aura.
+                    </p>
                     {reviewsCount > 0 && (
-                      <p className="text-xs font-semibold uppercase text-gray-900">
+                        <p className="text-xs font-semibold uppercase text-gray-900">
                         {reviewsCount} {reviewsCount === 1 ? 'Review' : 'Reviews'}
                       </p>
                     )}
