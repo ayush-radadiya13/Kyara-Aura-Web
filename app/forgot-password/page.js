@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 import AuthFormPendingOverlay from '@/components/auth/AuthFormPendingOverlay';
 import AuthSplitLayout from '@/components/auth/AuthSplitLayout';
 import OtpVerificationModal from '@/components/auth/OtpVerificationModal';
@@ -34,6 +35,8 @@ export default function ForgotPasswordPage() {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
 
   const resetFormState = () => {
     setOtp('');
@@ -274,14 +277,24 @@ export default function ForgotPasswordPage() {
                     <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
                       New password
                     </label>
-                    <input
-                      id="password"
-                      type="password"
-                      value={passwordValues.password}
-                      onChange={(event) => setFieldValue('password', event.target.value)}
-                      className="h-11 w-full rounded border border-gray-300 px-3 text-sm outline-none transition focus:border-gray-950"
-                      autoComplete="new-password"
-                    />
+                    <div className="relative">
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={passwordValues.password}
+                        onChange={(event) => setFieldValue('password', event.target.value)}
+                        className="h-11 w-full rounded border border-gray-300 px-3 pr-10 text-sm outline-none transition focus:border-gray-950"
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                     {passwordErrors.password ? (
                       <p className="mt-2 text-sm text-red-600">{passwordErrors.password}</p>
                     ) : null}
@@ -291,14 +304,24 @@ export default function ForgotPasswordPage() {
                     <label htmlFor="password_confirmation" className="mb-1 block text-sm font-medium text-gray-700">
                       Confirm password
                     </label>
-                    <input
-                      id="password_confirmation"
-                      type="password"
-                      value={passwordValues.password_confirmation}
-                      onChange={(event) => setFieldValue('password_confirmation', event.target.value)}
-                      className="h-11 w-full rounded border border-gray-300 px-3 text-sm outline-none transition focus:border-gray-950"
-                      autoComplete="new-password"
-                    />
+                    <div className="relative">
+                      <input
+                        id="password_confirmation"
+                        type={showPasswordConfirmation ? 'text' : 'password'}
+                        value={passwordValues.password_confirmation}
+                        onChange={(event) => setFieldValue('password_confirmation', event.target.value)}
+                        className="h-11 w-full rounded border border-gray-300 px-3 pr-10 text-sm outline-none transition focus:border-gray-950"
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordConfirmation((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        aria-label={showPasswordConfirmation ? 'Hide password' : 'Show password'}
+                      >
+                        {showPasswordConfirmation ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                     {passwordErrors.password_confirmation ? (
                       <p className="mt-2 text-sm text-red-600">{passwordErrors.password_confirmation}</p>
                     ) : null}

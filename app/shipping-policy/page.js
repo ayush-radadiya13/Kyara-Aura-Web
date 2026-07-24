@@ -1,4 +1,5 @@
 import Header from '@/components/Header';
+import { getWebSettings } from '@/lib/web-settings';
 
 export const metadata = {
   title: 'Shipping Policy | Kayra Aura',
@@ -11,7 +12,10 @@ const deliveryTimeline = [
   'Delivery timelines may vary slightly depending on your location, public holidays, or unforeseen courier delays.',
 ];
 
-export default function ShippingPolicyPage() {
+export default async function ShippingPolicyPage() {
+  const webSettings = await getWebSettings();
+  const codCharge = webSettings?.cod_charge || 40;
+
   return (
     <div className="bg-white text-gray-950">
       <Header />
@@ -62,7 +66,7 @@ export default function ShippingPolicyPage() {
               <h2 className="text-base font-semibold text-gray-900">Cash on Delivery (COD)</h2>
               <p className="mt-3">
                 Cash on Delivery (COD) is available for eligible orders. A{' '}
-                <strong className="font-semibold text-gray-900">₹40 COD handling charge</strong> is
+                <strong className="font-semibold text-gray-900">₹{codCharge} COD handling charge</strong> is
                 applied by our delivery partner, <strong className="font-semibold text-gray-900">Delhivery</strong>,
                 on all COD orders. This charge is collected to cover the additional handling and
                 processing required for Cash on Delivery shipments.

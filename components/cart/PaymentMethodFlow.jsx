@@ -59,6 +59,7 @@ import {
   withOrderSummaryItemCount,
 } from '@/lib/cart/order-summary';
 import { useAuthStore } from '@/store/auth-store';
+import { useWebSettings } from '@/hooks/use-web-settings';
 import { useVerifyOtp } from '@/hooks/auth';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { getAuthStorageKey } from '@/utils/auth-response';
@@ -73,7 +74,7 @@ const ADDRESS_TYPE_OPTIONS = [
   { value: 'other', label: 'Other' },
 ];
 
-const PAYMENT_OPTIONS = [
+const getPaymentOptions = (codCharge) => [
   {
     id: 'online',
     title: 'Pay Online',
@@ -84,7 +85,7 @@ const PAYMENT_OPTIONS = [
   {
     id: 'cod',
     title: 'Cash on Delivery',
-    description: 'Cash on Delivery (COD) is available. A ₹40 fee is charged by our delhivery partner.',
+    description: `Cash on Delivery (COD) is available. A ₹${codCharge} fee is charged by our delhivery partner.`,
     badge: 'Pay later',
     Icon: Wallet,
   },
@@ -1864,6 +1865,10 @@ function AddressInput({
 }
 
 function PaymentMethodSection({ selectedMethod, onSelectMethod }) {
+  const { data: webSettings } = useWebSettings();
+  const codCharge = webSettings?.cod_charge || 40;
+  const paymentOptions = useMemo(() => getPaymentOptions(codCharge), [codCharge]);
+
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1878,7 +1883,7 @@ function PaymentMethodSection({ selectedMethod, onSelectMethod }) {
       </div>
 
       <div className="mt-4 grid gap-2">
-        {PAYMENT_OPTIONS.map(({ id, title, description, Icon }) => {
+        {paymentOptions.map(({ id, title, description, Icon }) => {
           const isSelected = selectedMethod === id;
 
           return (

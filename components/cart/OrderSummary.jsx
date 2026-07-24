@@ -129,7 +129,7 @@ export default function OrderSummary({
 
               {showOnlinePaymentDiscount ? (
                 <SummaryRow
-                  label="Online Payment Discount"
+                  label={`${settings?.online_payment_discount_percent ?? 0}% Online Payment Discount`}
                   value={formatInrPaymentDiscount(summary.onlinePaymentDiscountAmount)}
                   valueClassName="font-semibold text-emerald-700"
                 />

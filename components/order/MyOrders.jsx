@@ -1766,7 +1766,7 @@ function OrderDetail({ order, onTrack }) {
               <Amount label="First Order Discount" value={amounts.firstOrderDiscountAmount} discount />
             ) : null}
             {amounts.onlinePaymentDiscountAmount > 0 ? (
-              <Amount label="Online Payment Discount" value={amounts.onlinePaymentDiscountAmount} discount />
+              <Amount label={`${settings?.online_payment_discount_percent ?? 0}% Online Payment Discount`} value={amounts.onlinePaymentDiscountAmount} discount />
             ) : null}
             {amounts.discountAmount > 0 ? (
               <Amount

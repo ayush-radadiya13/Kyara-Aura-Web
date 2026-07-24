@@ -8,6 +8,7 @@ import { LoadingLabel } from '@/components/ui/loader';
 import { useResetPassword } from '@/hooks/auth';
 import { APP_ROUTES, AUTH_PAGE_ROUTES } from '@/lib/routes';
 import { apiToast } from '@/lib/api-toast';
+import { Eye, EyeOff } from 'lucide-react';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { resetPasswordSchema } from '@/validations/auth-validation';
 
@@ -134,19 +135,36 @@ export default function ResetPasswordForm({ token = '', email = '' }) {
 }
 
 function Field({ id, label, value, onChange, error, type = 'text' }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === 'password';
+  const inputType = isPassword && showPassword ? 'text' : type;
+
   return (
     <div>
       <label htmlFor={id} className="mb-1 block text-sm font-medium text-gray-700">
         {label}
       </label>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded border border-gray-300 px-3 text-sm"
-        autoComplete={type === 'password' ? 'new-password' : id}
-      />
+      <div className="relative">
+        <input
+          id={id}
+          type={inputType}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className={`h-11 w-full rounded border border-gray-300 px-3 text-sm ${isPassword ? 'pr-10' : ''}`}
+          autoComplete={type === 'password' ? 'new-password' : id}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        )}
+      </div>
+      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
     </div>
   );
 }

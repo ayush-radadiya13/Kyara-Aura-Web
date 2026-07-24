@@ -19,10 +19,11 @@ const supportLinks = [
   { label: 'Return Policy', href: '/return-policy' },
 ];
 
-const DEFAULT_LOGO = '/assets/ka1.png';
+const DEFAULT_LOGO = '/assets/ka-logo.png';
 
 export default function Footer() {
   const { data: settings } = useWebSettings();
+  const isApiLogo = !!settings?.logo_url?.trim();
   const logoUrl = settings?.logo_url?.trim() || DEFAULT_LOGO;
   const email = settings?.email?.trim();
   const address = settings?.address?.trim();
@@ -33,12 +34,12 @@ export default function Footer() {
     <footer className="bg-[#eee9e1] text-black">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-8 sm:grid-cols-2 lg:grid-cols-[1.15fr_0.8fr_0.8fr_1.15fr] lg:px-8 lg:py-8">
         <div>
-          <Link href="/" className="relative block h-12 w-40 overflow-hidden rounded-full transition-opacity hover:opacity-80 sm:w-48">
+          <Link href="/" className={`relative block overflow-hidden transition-opacity hover:opacity-80 ${isApiLogo ? 'h-24 w-64 sm:h-28 sm:w-72' : 'h-20 w-48 sm:h-24 sm:w-56'}`}>
             <Image
               src={logoUrl}
               alt="Kayra Aura"
               fill
-              className="object-cover object-center"
+              className="object-contain object-left"
               sizes="(max-width: 640px) 160px, 192px"
               unoptimized={logoUrl.startsWith('http')}
             />

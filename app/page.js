@@ -125,15 +125,16 @@ export default async function HomePage() {
           </div>
         </section>
 
+        {allProducts.length > 20 && (
           <section className="home-scroll-stable mt-16 mx-auto max-w-7xl px-4 pb-10 sm:px-6" style={{ '--home-delay': '160ms' }}> 
-          <ProductList
-              limit={20}
-              offset={20}
-              variant="editorial"
-              emptyMessage="No products available at the moment."
-              initialProducts={allProducts}
-          />
-        </section>
+            <ProductList
+                limit={20}
+                offset={20}
+                variant="editorial"
+                initialProducts={allProducts}
+            />
+          </section>
+        )}
 
         <section className="home-scroll-stable mx-auto max-w-7xl mt-8 px-4 pb-4 sm:px-6" style={{ '--home-delay': '120ms' }}>
           <HomeCollectionShowcase
