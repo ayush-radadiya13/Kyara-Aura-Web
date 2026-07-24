@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import { DotLoaderBlock } from "@/components/ui/loader";
 import { shouldShowQueryLoader } from "@/lib/query-loading";
 import { useCategoryBySlug } from "@/hooks/use-categories";
-import { categoryProductsPath } from "@/lib/category-seo";
+import { categoryProductsPath, categorySubcategoriesPath } from "@/lib/category-seo";
 
 function categoryImageSrc(image) {
   if (!image || typeof image !== "string") return "";
@@ -104,7 +104,7 @@ export default function CategoryDetail({ slug }) {
             {category.children.map((child) => (
               <Link
                 key={child.id ?? child._id ?? child.slug}
-                href={`/categories/${child.slug}`}
+                href={categorySubcategoriesPath(child)}
                 className="rounded-lg glass-card p-4 text-center text-sm font-medium text-gray-900 hover:text-gold hover:shadow-gold-glow-sm transition-all"
               >
                 {child.name}

@@ -1,19 +1,32 @@
 "use client";
 
-import { useMemo } from "react";
 import CategoryGrid from "@/components/CategoryGrid";
 import ProductList from "@/components/ProductList";
+import { useCategorySubcategories } from "@/hooks/use-categories";
 import { resolveCategoryId } from "@/lib/category-seo";
 
 export default function SubcategoryBrowser({
   category,
+  initialSubcategories,
   initialCategoryProducts,
 }) {
-  const subcategories = useMemo(() => {
-    return Array.isArray(category?.children) ? category.children : [];
-  }, [category]);
-
   const categoryId = resolveCategoryId(category);
+  const hasInitialData =
+    Array.isArray(initialSubcategories) || Array.isArray(initialCategoryProducts);
+
+  const subcategoriesQuery = useCategorySubcategories(categoryId, {
+    ...(hasInitialData
+      ? {
+          initialData: {
+            subcategories: initialSubcategories ?? [],
+            products: initialCategoryProducts ?? [],
+          },
+        }
+      : {}),
+  });
+
+  const subcategories = subcategoriesQuery.data?.subcategories ?? [];
+  const categoryProducts = subcategoriesQuery.data?.products ?? [];
 
   if (!subcategories.length && !categoryId) {
     return null;
@@ -56,14 +69,14 @@ export default function SubcategoryBrowser({
           </div>
           <ProductList
             key={`category-products-${categoryId}`}
-            categoryId={categoryId}
-            limit={12}
+            limit={50}
             variant="editorial"
             emptyMessage={`No products available in ${category?.name ?? "this category"}.`}
-            initialProducts={initialCategoryProducts}
+            fixedProducts={categoryProducts}
+            productsLoading={subcategoriesQuery.isPending}
           />
         </div>
       ) : null}
-      </section>
+    </section>
   );
 }

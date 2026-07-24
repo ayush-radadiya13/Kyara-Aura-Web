@@ -81,9 +81,10 @@ export default function BuyTwoGetOneTicketBanner({
           <span
             className={cn(
               'font-extrabold tracking-wide',
-              isWideLayout && 'min-w-0 truncate',
-              fullWidthMobile && 'sm:shrink-0 sm:truncate-none sm:whitespace-nowrap',
-              !isWideLayout && 'shrink-0 whitespace-nowrap',
+              'whitespace-normal break-words sm:whitespace-nowrap',
+              isWideLayout && 'min-w-0 sm:truncate',
+              fullWidthMobile && 'sm:shrink-0 sm:truncate-none',
+              !isWideLayout && 'sm:shrink-0',
               compact ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-sm',
             )}
           >

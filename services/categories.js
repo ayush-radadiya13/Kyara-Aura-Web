@@ -1,3 +1,4 @@
+import { normalizeProduct } from "@/lib/products";
 import { CATEGORY_API_ROUTES } from "@/lib/routes";
 import { withoutTokenApi } from "@/utils/api";
 
@@ -42,4 +43,52 @@ export async function getCategoryBySlugApi(categorySlug) {
   }
 
   return normalizeCategory(data.data);
+}
+
+function subcategoriesFromPayload(payload) {
+  const data = payload?.data ?? payload;
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return { subcategories: [], products: [] };
+  }
+
+  const subCategories =
+    Array.isArray(data.sub_category)
+      ? data.sub_category
+      : Array.isArray(data.sub_categories)
+      ? data.sub_categories
+      : Array.isArray(data.subcategories)
+      ? data.subcategories
+      : Array.isArray(data.children)
+      ? data.children
+      : [];
+
+  const products =
+    Array.isArray(data.product)
+      ? data.product
+      : Array.isArray(data.products)
+      ? data.products
+      : Array.isArray(data.items)
+      ? data.items
+      : [];
+
+  return {
+    subcategories: subCategories
+      .filter((category) => category?.is_active !== false)
+      .map(normalizeCategory),
+    products: products
+      .filter((product) => product?.is_active !== false)
+      .map(normalizeProduct),
+  };
+}
+
+export async function getCategorySubcategoriesApi(categoryId) {
+  if (!categoryId) {
+    return { subcategories: [], products: [] };
+  }
+
+  const { data } = await withoutTokenApi.get(
+    CATEGORY_API_ROUTES.SUBCATEGORIES(encodeURIComponent(categoryId)),
+  );
+
+  return subcategoriesFromPayload(data);
 }

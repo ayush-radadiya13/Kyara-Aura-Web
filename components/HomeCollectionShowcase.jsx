@@ -103,10 +103,10 @@ export default function HomeCollectionShowcase({
   const featuredImageSrc = getProductImageSrc(featuredProduct);
 
   return (
-    <div className="grid items-center gap-10 lg:grid-cols-[0.95fr_1.05fr]">
+    <div className="flex flex-col gap-10 lg:grid lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
       <Link
         href={`/products/${featuredProduct.slug}`}
-        className="home-shine group relative block aspect-[1.1] overflow-hidden bg-[#f6f3ef]"
+        className="order-2 lg:order-none home-shine group relative block aspect-[1.1] overflow-hidden bg-[#f6f3ef]"
         aria-label={featuredProduct.name}
       >
         <ProductImage
@@ -122,17 +122,19 @@ export default function HomeCollectionShowcase({
         </div>
       </Link>
 
-      <div className="home-reveal" style={{ "--home-delay": "180ms" }}>
-        <p className="mb-3 text-[10px] uppercase tracking-[0.32em] text-gray-400">New story</p>
-        <h2 className="font-display flex flex-row flex-wrap items-baseline gap-x-3 text-3xl font-light leading-tight text-gray-950 transition duration-300 hover:tracking-[-0.02em] sm:flex-col sm:gap-x-0 sm:gap-y-1 sm:text-4xl sm:leading-none lg:text-5xl">
-          <span>Kayra</span>
-          <span>Exclusive Collection</span>
-        </h2>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-gray-600">
-          Limited-edition pieces with refined craftsmanship and timeless elegance.
-        </p>
+      <div className="contents lg:block">
+        <div className="order-1 lg:order-none home-reveal" style={{ "--home-delay": "180ms" }}>
+          <p className="mb-3 text-[10px] uppercase tracking-[0.32em] text-gray-400">New story</p>
+          <h2 className="font-display flex flex-row flex-wrap items-baseline gap-x-3 text-3xl font-light leading-tight text-gray-950 transition duration-300 hover:tracking-[-0.02em] sm:flex-col sm:gap-x-0 sm:gap-y-1 sm:text-4xl sm:leading-none lg:text-5xl">
+            <span>Kayra</span>
+            <span>Exclusive Collection</span>
+          </h2>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-gray-600">
+            Limited-edition pieces with refined craftsmanship and timeless elegance.
+          </p>
+        </div>
 
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3">
+        <div className="order-3 lg:order-none mt-0 lg:mt-8 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3">
           {sideProducts.map((product, index) => {
         const imageSrc = getProductImageSrc(product);
         const href = `/products/${product.slug}`;

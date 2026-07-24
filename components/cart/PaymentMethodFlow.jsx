@@ -26,9 +26,10 @@ import {
 } from 'lucide-react';
 import { apiToast } from '@/lib/api-toast';
 import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
+import OtpVerificationModal from '@/components/auth/OtpVerificationModal';
 import IndianPhoneInput from '@/components/ui/indian-phone-input';
 import { useScrollLock } from '@/hooks/use-scroll-lock';
-import { formatInr } from '@/lib/cart/format';
+import { formatInr, formatInrPayment } from '@/lib/cart/format';
 import { useCartStore } from '@/lib/cart/store';
 import { APP_ROUTES, AUTH_PAGE_ROUTES, withRedirect } from '@/lib/routes';
 import {
@@ -774,8 +775,6 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   };
 
   const closeCodOtpDialog = () => {
-    if (placingOrder) return;
-
     setCodOtpDialogOpen(false);
     setCodOtp('');
     setCodOtpError('');
@@ -784,7 +783,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
   const handleSubmitCodOtp = async () => {
     const normalizedOtp = codOtp.trim();
     if (!/^\d{6}$/.test(normalizedOtp)) {
-      apiToast.error('Please enter the 6-digit OTP.');
+      setCodOtpError('Please enter the 6-digit OTP.');
       return;
     }
 
@@ -805,7 +804,7 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
       await completeOrder(getOrderPayload({ cod_otp: normalizedOtp }), 'cod');
       setCodOtpDialogOpen(false);
     } catch (orderError) {
-      apiToast.error(getApiErrorMessage(orderError, 'Unable to verify OTP and place your order.'));
+      setCodOtpError(getApiErrorMessage(orderError, 'Unable to verify OTP and place your order.'));
     } finally {
       setPlacingOrder(false);
     }
@@ -954,121 +953,28 @@ export default function PaymentMethodFlow({ initialCheckoutIntent = { checkout_t
         </div>
       </div>
 
-      <CodOtpDialog
+      <OtpVerificationModal
         open={codOtpDialogOpen}
-        phone={selectedAddress?.phone}
+        phone={selectedAddress?.phone?.trim() || ''}
         otp={codOtp}
         error={codOtpError}
         loading={placingOrder}
+        description={
+          selectedAddress?.phone?.trim() ? (
+            <>Enter the 6-digit OTP sent to {selectedAddress.phone.trim()} and complete your order.</>
+          ) : (
+            'Enter the 6-digit OTP sent to complete your order.'
+          )
+        }
+        submitLabel="Place order"
+        loadingLabel="Placing order..."
+        inputId="cod-otp"
+        titleId="cod-otp-title"
         onOtpChange={handleCodOtpChange}
         onClose={closeCodOtpDialog}
         onSubmit={handleSubmitCodOtp}
       />
     </div>
-  );
-}
-
-function CodOtpDialog({ open, phone, otp, error, loading, onOtpChange, onClose, onSubmit }) {
-  useScrollLock(open);
-
-  useEffect(() => {
-    if (!open) return undefined;
-
-    const handleEscape = (event) => {
-      if (event.key === 'Escape') onClose();
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [open, onClose]);
-
-  if (!open || typeof document === 'undefined') return null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-3 backdrop-blur-sm sm:p-5"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="cod-otp-title"
-    >
-      <button
-        type="button"
-        className="absolute inset-0"
-        aria-label="Close OTP popup"
-        onClick={onClose}
-        disabled={loading}
-      />
-
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-gray-100 bg-white p-5 shadow-2xl" data-lenis-prevent>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 id="cod-otp-title" className="text-lg font-extrabold text-gray-950">
-              Verify COD OTP
-            </h2>
-            <p className="mt-1 text-sm font-semibold leading-6 text-gray-500">
-              {phone
-                ? <>Enter the 6-digit OTP sent to <span className="font-bold text-gray-950">{phone}</span> for your Cash on Delivery order.</>
-                : 'Enter the 6-digit OTP sent for your Cash on Delivery order.'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition hover:bg-gray-200 disabled:opacity-50"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <label htmlFor="cod-otp" className="mt-5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-          OTP
-        </label>
-        <input
-          id="cod-otp"
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          autoComplete="one-time-code"
-          maxLength={6}
-          value={otp}
-          onChange={(event) => onOtpChange(event.target.value)}
-          disabled={loading}
-          autoFocus
-          className="mt-2 h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-center text-xl font-extrabold tracking-[0.45em] text-gray-950 outline-none transition placeholder:tracking-normal focus:border-gray-950 disabled:opacity-60"
-          placeholder="000000"
-        />
-        {error ? <p className="mt-2 text-xs font-semibold text-red-600">{error}</p> : null}
-        <div className="mt-5 flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-gray-200 px-4 text-sm font-bold text-gray-700 transition hover:border-gray-950 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onSubmit}
-            disabled={loading}
-            className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-[#C99B4D] px-4 text-sm font-bold text-primary-foreground transition hover:bg-[#C99B4D]/90 disabled:opacity-50"
-          >
-            {loading ? (
-              <LoadingLabel spinnerClassName="border-white border-t-transparent">
-                Placing order...
-              </LoadingLabel>
-            ) : (
-              'Verify & Place'
-            )}
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body,
   );
 }
 
@@ -2020,7 +1926,7 @@ function CheckoutAction({ total, selectedMethod, disabled, loading, onClick, cla
     <div className={`items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 ${className}`}>
       <div>
         <p className="text-sm font-bold text-gray-500">Grand Total</p>
-        <p className="text-xl font-extrabold text-gray-950">{formatInr(total)}</p>
+        <p className="text-xl font-extrabold text-gray-950">{formatInrPayment(total)}</p>
       </div>
       <button
         type="button"

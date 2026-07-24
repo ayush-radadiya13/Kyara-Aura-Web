@@ -4,12 +4,11 @@ import { notFound } from 'next/navigation';
 import Header from '@/components/Header';
 import SubcategoryBrowser from '@/components/SubcategoryBrowser';
 import { DotLoaderBlock } from '@/components/ui/loader';
-import { getCategoryBySlug } from '@/lib/categories';
+import { getCategoryBySlug, getCategorySubcategories } from '@/lib/categories';
 import {
   categorySeoDescription,
   categorySubcategoriesPath,
 } from '@/lib/category-seo';
-import { getProductsByCategoryTree } from '@/lib/products';
 import { metadataForPage } from '@/lib/seo';
 
 const categoryDisplay = Cormorant_Garamond({
@@ -46,7 +45,11 @@ export default async function CategorySubcategoriesPage({ params }) {
     notFound();
   }
 
-  const categoryProducts = await getProductsByCategoryTree(category);
+  const categoryProductsPromise = category
+    ? getCategorySubcategories(category._id ?? category.id)
+    : Promise.resolve({ subcategories: [], products: [] });
+  const { subcategories, products: categoryProducts } =
+    await categoryProductsPromise;
 
   return (
     <div>
@@ -67,6 +70,7 @@ Browse all subcategories to find the products you are looking for          </p>
       <Suspense fallback={<DotLoaderBlock />}>
         <SubcategoryBrowser
           category={category}
+          initialSubcategories={subcategories}
           initialCategoryProducts={categoryProducts}
         />
       </Suspense>

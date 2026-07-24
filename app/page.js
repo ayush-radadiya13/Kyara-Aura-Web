@@ -80,7 +80,7 @@ export default async function HomePage() {
 
           <CategoryGrid variant="strip" limit={6} initialCategories={categories} />
         </section>
-        <section className="home-scroll-stable mx-auto max-w-7xl px-4 pb-20 sm:px-6" style={{ '--home-delay': '160ms' }}>
+        <section className="home-scroll-stable mx-auto max-w-7xl px-4 pb-16 sm:px-6" style={{ '--home-delay': '160ms' }}>
           <div className="mb-8">
             <h2 className="font-display text-3xl font-light text-gray-950 sm:text-4xl">Products</h2>
             <p className="mt-2 text-sm leading-6 text-gray-600">Browse our featured collection.</p>
@@ -123,6 +123,16 @@ export default async function HomePage() {
               Shop Now
             </Link>
           </div>
+        </section>
+
+          <section className="home-scroll-stable mt-16 mx-auto max-w-7xl px-4 pb-10 sm:px-6" style={{ '--home-delay': '160ms' }}> 
+          <ProductList
+              limit={20}
+              offset={20}
+              variant="editorial"
+              emptyMessage="No products available at the moment."
+              initialProducts={allProducts}
+          />
         </section>
 
         <section className="home-scroll-stable mx-auto max-w-7xl mt-8 px-4 pb-4 sm:px-6" style={{ '--home-delay': '120ms' }}>

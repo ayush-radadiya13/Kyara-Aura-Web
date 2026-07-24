@@ -23,7 +23,7 @@ import { clearStoredScratchCoupon, scratchCardApi } from '@/services/scratch-car
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { getAuthStorageKey } from '@/utils/auth-response';
-import { formatInr, formatInrDiscount } from '@/lib/cart/format';
+import { formatInrPayment, formatInrPaymentDiscount } from '@/lib/cart/format';
 import { getBuyTwoGetOneDiscountLabel } from '@/lib/cart/buy-two-get-one';
 import { normalizeOrderSummary } from '@/lib/cart/order-summary';
 import { useWebSettings } from '@/hooks/use-web-settings';
@@ -1401,12 +1401,17 @@ function getReturnDisplayStatus(order) {
     return 'return_requested';
   }
 
+  if (returnStatus === 'return_processing' || orderStatus === 'return_processing') {
+    return 'return_processing';
+  }
+
   return null;
 }
 
 function formatReturnDisplayStatus(status) {
   const labels = {
     return_requested: 'Return Requested',
+    return_processing: 'Return Processing',
     picked_up: 'Package Picked Up',
     in_transit: 'Return In Transit',
     out_for_delivery: 'Arriving at Warehouse',
@@ -1423,7 +1428,11 @@ function getReturnStatusTone(status) {
     return 'bg-emerald-50 text-emerald-700 ring-emerald-100';
   }
 
-  if (['return_requested', 'picked_up', 'pickup_pending', 'in_transit', 'out_for_delivery'].includes(normalized)) {
+  if (
+    ['return_requested', 'return_processing', 'picked_up', 'pickup_pending', 'in_transit', 'out_for_delivery'].includes(
+      normalized,
+    )
+  ) {
     return 'bg-amber-50 text-amber-700 ring-amber-100';
   }
 
@@ -1474,7 +1483,7 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onTrack, 
             {statusMode === 'delivered' ? (
               <StatusLine label="Delivery Status" value={formatOrderStatus(order.status ?? 'pending')} />
             ) : null}
-            <StatusLine label="Payment status" value={order.payment_status ?? 'pending'} />
+            <StatusLine label="Payment status" value={formatPaymentStatus(order.payment_status ?? 'pending')} />
             {shipmentStatus && statusMode !== 'returned' ? (
               <StatusLine label="Shipment" value={formatShipmentStatus(shipmentStatus)} />
             ) : null}
@@ -1576,7 +1585,7 @@ function getStatusTone(value) {
     return 'bg-emerald-50 text-emerald-700 ring-emerald-100';
   }
 
-  if (['pending', 'processing', 'return_requested', 'return requested'].includes(status)) {
+  if (['pending', 'processing', 'return_requested', 'return requested', 'return processing'].includes(status)) {
     return 'bg-amber-50 text-amber-700 ring-amber-100';
   }
 
@@ -1664,7 +1673,7 @@ function OrderDetail({ order, onTrack }) {
               ) : (
                 <StatusBadge label="Order Status" value={formatOrderStatus(order.status ?? 'pending')} />
               )}
-              <StatusBadge label="Payment status" value={order.payment_status ?? 'pending'} />
+              <StatusBadge label="Payment status" value={formatPaymentStatus(order.payment_status ?? 'pending')} />
               {statusMode === 'delivered' && shipment?.shipment_status ? (
                 <StatusBadge label="Shipment Status" value={formatShipmentStatus(shipment.shipment_status, shipment.raw_status)} />
               ) : null}
@@ -1742,7 +1751,7 @@ function OrderDetail({ order, onTrack }) {
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="font-semibold text-gray-500">Status</span>
-              <span className="break-words text-right font-semibold capitalize text-gray-700">{formatOrderStatus(order.payment_status ?? 'pending')}</span>
+              <span className="break-words text-right font-semibold capitalize text-gray-700">{formatPaymentStatus(order.payment_status ?? 'pending')}</span>
             </div>
           </div>
           <dl className="mt-4 space-y-1.5 text-xs">
@@ -1799,7 +1808,7 @@ function Amount({ label, value, strong = false, discount = false }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <dt className={strong ? 'font-bold text-gray-950' : 'font-semibold text-gray-500'}>{label}</dt>
-      <dd className={valueClassName}>{discount ? formatInrDiscount(value) : formatMoney(value)}</dd>
+      <dd className={valueClassName}>{discount ? formatInrPaymentDiscount(value) : formatMoney(value)}</dd>
     </div>
   );
 }
@@ -2040,7 +2049,20 @@ function formatShipmentStatus(status, rawStatus) {
 
 const ORDER_STATUS_LABELS = {
   return_requested: 'Return Requested',
+  return_processing: 'Return Processing',
 };
+
+const PAYMENT_STATUS_LABELS = {
+  return_processing: 'Return Processing',
+};
+
+function formatPaymentStatus(status) {
+  const key = String(status ?? '').trim().toLowerCase();
+  if (!key) return 'Pending';
+  if (PAYMENT_STATUS_LABELS[key]) return PAYMENT_STATUS_LABELS[key];
+
+  return formatOrderStatus(status);
+}
 
 function formatOrderStatus(status) {
   const key = String(status ?? '').trim().toLowerCase();
@@ -2093,5 +2115,5 @@ function formatDate(value) {
 }
 
 function formatMoney(value) {
-  return value !== undefined && value !== null && value !== '' ? formatInr(Number(value)) : '-';
+  return value !== undefined && value !== null && value !== '' ? formatInrPayment(Number(value)) : '-';
 }

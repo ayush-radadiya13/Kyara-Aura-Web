@@ -11,7 +11,7 @@ import { clearStoredScratchCoupon } from '@/services/scratch-card';
 import { useAuthStore } from '@/store/auth-store';
 import { getApiErrorMessage } from '@/utils/api-error';
 import { getAuthStorageKey } from '@/utils/auth-response';
-import { formatInr } from '@/lib/cart/format';
+import { formatInrPayment } from '@/lib/cart/format';
 
 const FAILED_PAYMENT_STATUSES = new Set(['failed', 'failure', 'cancelled', 'canceled', 'declined']);
 const PAID_PAYMENT_STATUSES = new Set(['paid', 'captured', 'completed', 'success', 'successful', 'confirmed']);
@@ -169,7 +169,7 @@ function PaymentFailed({ order, orderNumber }) {
           <dl className="space-y-3 text-sm">
             <SummaryItem
               label="Total"
-              value={order?.total_amount ? formatInr(Number(order.total_amount)) : '-'}
+              value={order?.total_amount ? formatInrPayment(Number(order.total_amount)) : '-'}
               valueClassName="normal-case"
             />
           </dl>

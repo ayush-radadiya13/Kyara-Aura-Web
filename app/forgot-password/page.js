@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AuthFormPendingOverlay from '@/components/auth/AuthFormPendingOverlay';
 import AuthSplitLayout from '@/components/auth/AuthSplitLayout';
+import OtpVerificationModal from '@/components/auth/OtpVerificationModal';
 import IndianPhoneInput from '@/components/ui/indian-phone-input';
 import { Button } from '@/components/ui/button';
 import { LoadingLabel } from '@/components/ui/loader';
@@ -30,8 +31,9 @@ export default function ForgotPasswordPage() {
     password_confirmation: '',
   });
   const [passwordErrors, setPasswordErrors] = useState({});
-  const [activeStep, setActiveStep] = useState('request');
   const [showOtpModal, setShowOtpModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
   const resetFormState = () => {
     setOtp('');
@@ -54,7 +56,6 @@ export default function ForgotPasswordPage() {
     try {
       const response = await forgotPasswordMutation.mutateAsync(parsed.data);
       resetFormState();
-      setActiveStep('otp');
       setShowOtpModal(true);
       apiToast.success(
         response?.message ||
@@ -67,18 +68,17 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  const handleOtpSubmit = async (e) => {
-    e.preventDefault();
+  const handleOtpSubmit = async () => {
     const normalizedOtp = otp.replace(/\D/g, '').slice(0, 6);
     setOtp(normalizedOtp);
 
-    if (normalizedOtp.length !== 6) {
-      setOtpError('Please enter the 6-digit OTP sent to your phone.');
+    if (!/^\d{6}$/.test(normalizedOtp)) {
+      setOtpError('Please enter the 6-digit OTP.');
       return;
     }
 
     setOtpError('');
-
+    setIsVerifyingOtp(true);
     try {
       await verifyOtpMutation.mutateAsync({
         payload: {
@@ -87,10 +87,13 @@ export default function ForgotPasswordPage() {
           otp: normalizedOtp,
         },
       });
-      setActiveStep('password');
+      setShowOtpModal(false);
+      setShowPasswordModal(true);
       apiToast.success('OTP verified. Please set your new password.');
     } catch (err) {
-      apiToast.error(getApiErrorMessage(err, 'Unable to verify OTP. Please try again.'));
+      setOtpError(getApiErrorMessage(err, 'Unable to verify OTP. Please try again.'));
+    } finally {
+      setIsVerifyingOtp(false);
     }
   };
 
@@ -116,9 +119,9 @@ export default function ForgotPasswordPage() {
 
     try {
       await resetPasswordMutation.mutateAsync(parsed.data);
-      setShowOtpModal(false);
+      setShowPasswordModal(false);
       resetFormState();
-      setActiveStep('request');
+      setPhone('');
       router.replace(AUTH_PAGE_ROUTES.LOGIN);
       apiToast.success('Your password has been changed successfully.');
     } catch (err) {
@@ -138,9 +141,20 @@ export default function ForgotPasswordPage() {
 
   const closeOtpModal = () => {
     setShowOtpModal(false);
-    resetFormState();
-    setActiveStep('request');
+    setOtp('');
+    setOtpError('');
   };
+
+  const closePasswordModal = () => {
+    setShowPasswordModal(false);
+    resetFormState();
+  };
+
+  const otpDescription = phone.trim() ? (
+    <>Enter the 6-digit OTP sent to {phone.trim()} and complete your registration.</>
+  ) : (
+    'Enter the 6-digit OTP sent to complete your registration.'
+  );
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -217,62 +231,45 @@ export default function ForgotPasswordPage() {
           </div>
         </AuthSplitLayout>
 
-        {showOtpModal ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+        <OtpVerificationModal
+          open={showOtpModal}
+          phone={phone.trim()}
+          otp={otp}
+          error={otpError}
+          loading={isVerifyingOtp}
+          description={otpDescription}
+          submitLabel="Verify OTP"
+          loadingLabel="Verifying..."
+          inputId="forgot-password-otp"
+          titleId="forgot-password-otp-title"
+          onOtpChange={(value) => {
+            const digits = value.replace(/\D/g, '').slice(0, 6);
+            setOtp(digits);
+            if (otpError) setOtpError('');
+          }}
+          onClose={closeOtpModal}
+          onSubmit={handleOtpSubmit}
+        />
+
+        {showPasswordModal ? (
+          <div className="fixed inset-0 z-80 flex items-center justify-center bg-black/50 px-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" data-lenis-prevent>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    {activeStep === 'otp' ? 'Verify OTP' : 'Change password'}
-                  </h2>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {activeStep === 'otp'
-                      ? `Enter the 6-digit OTP sent to ${phone || 'your mobile number'}`
-                      : 'Choose a new password for your account.'}
-                  </p>
+                  <h2 className="text-xl font-semibold text-gray-900">Change password</h2>
+                  <p className="mt-1 text-sm text-gray-500">Choose a new password for your account.</p>
                 </div>
                 <button
                   type="button"
-                  onClick={closeOtpModal}
-                  className="text-sm font-medium text-gray-500 hover:text-gray-800"
-                  aria-label="Close verification dialog"
+                  onClick={closePasswordModal}
+                  className="text-sm font-medium text-gray-500 transition hover:text-gray-800"
+                  aria-label="Close password dialog"
                 >
                   Close
                 </button>
               </div>
 
-              {activeStep === 'otp' ? (
-                <form onSubmit={handleOtpSubmit} className="mt-6 space-y-4" noValidate>
-                  <div>
-                    <label htmlFor="otp" className="mb-1 block text-sm font-medium text-gray-700">
-                      OTP
-                    </label>
-                    <input
-                      id="otp"
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      value={otp}
-                      onChange={(event) => {
-                        const value = event.target.value.replace(/\D/g, '').slice(0, 6);
-                        setOtp(value);
-                        if (otpError) setOtpError('');
-                      }}
-                      className="h-11 w-full rounded border border-gray-300 px-3 text-sm outline-none transition focus:border-gray-950"
-                      placeholder="Enter 6-digit OTP"
-                    />
-                    {otpError ? <p className="mt-2 text-sm text-red-600">{otpError}</p> : null}
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="h-12 w-full rounded-none bg-[#C99B4D] text-base font-semibold text-primary-foreground hover:bg-[#C99B4D]/90"
-                  >
-                    Verify OTP
-                  </Button>
-                </form>
-              ) : (
-                <form onSubmit={handlePasswordSubmit} className="mt-6 space-y-4" noValidate>
+              <form onSubmit={handlePasswordSubmit} className="mt-6 space-y-4" noValidate>
                   <div>
                     <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
                       New password
@@ -313,6 +310,8 @@ export default function ForgotPasswordPage() {
                       variant="outline"
                       className="h-12 flex-1 rounded-none border-gray-300 text-base font-semibold text-gray-700 hover:bg-gray-50"
                       onClick={() => {
+                        setShowPasswordModal(false);
+                        setShowOtpModal(true);
                         setActiveStep('otp');
                         setPasswordErrors({});
                       }}
@@ -334,7 +333,6 @@ export default function ForgotPasswordPage() {
                     </Button>
                   </div>
                 </form>
-              )}
             </div>
           </div>
         ) : null}

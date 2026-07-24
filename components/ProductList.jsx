@@ -178,9 +178,12 @@ export default function ProductList({
   initialProducts,
   initialPagination,
   serverPaginated = false,
+  fixedProducts,
+  productsLoading = false,
 }) {
   const isCatalog = variant === "catalog";
   const useServerPagination = serverPaginated && !limit;
+  const useFixedProducts = Array.isArray(fixedProducts);
   const router = useRouter();
   const pathname = usePathname();
   const [currentPage, setCurrentPage] = useState(
@@ -200,7 +203,8 @@ export default function ProductList({
   const addWishlistItem = useAddWishlistItem();
   const deleteWishlistItem = useDeleteWishlistItem();
 
-  const useCategoryQuery = Boolean(categoryId) && !featured && !collection;
+  const useCategoryQuery =
+    Boolean(categoryId) && !featured && !collection && !useFixedProducts;
   const paginatedInitialData =
     useServerPagination && initialProducts
       ? {
@@ -216,7 +220,7 @@ export default function ProductList({
       : undefined;
 
   const allProductsQuery = useProducts({
-    enabled: !featured && !collection && !useCategoryQuery,
+    enabled: !featured && !collection && !useCategoryQuery && !useFixedProducts,
     page: useServerPagination ? currentPage : 1,
     perPage: pageSize,
     paginated: useServerPagination && !categoryId,
@@ -260,18 +264,27 @@ export default function ProductList({
     enabled: isCatalog,
   });
 
-  const query = collection
-    ? collectionProductsQuery
-    : featured
-      ? featuredProductsQuery
-      : useCategoryQuery
-        ? categoryProductsQuery
-        : allProductsQuery;
+  const query = useFixedProducts
+    ? {
+        data: fixedProducts,
+        isLoading: productsLoading,
+        isPending: productsLoading,
+        isFetching: productsLoading,
+        isError: false,
+      }
+    : collection
+      ? collectionProductsQuery
+      : featured
+        ? featuredProductsQuery
+        : useCategoryQuery
+          ? categoryProductsQuery
+          : allProductsQuery;
   const rawProducts = useMemo(() => {
+    if (useFixedProducts) return fixedProducts;
     const data = query.data;
     if (Array.isArray(data)) return data;
     return data?.products ?? [];
-  }, [query.data]);
+  }, [fixedProducts, query.data, useFixedProducts]);
   const apiPagination = useMemo(() => {
     if (!useServerPagination) return null;
 

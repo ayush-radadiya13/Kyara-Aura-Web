@@ -5,7 +5,7 @@ import { ChevronDown, ReceiptText } from 'lucide-react';
 import { LoaderBlock, LoadingLabel } from '@/components/ui/loader';
 import { useWebSettings } from '@/hooks/use-web-settings';
 import { getBuyTwoGetOneDiscountLabel } from '@/lib/cart/buy-two-get-one';
-import { formatInr, formatInrDiscount } from '@/lib/cart/format';
+import { formatInrPayment, formatInrPaymentDiscount } from '@/lib/cart/format';
 import { getBuyTwoGetOneQuantities } from '@/lib/web-settings';
 
 function SummaryRow({ label, value, valueClassName = 'font-semibold text-gray-950' }) {
@@ -106,15 +106,15 @@ export default function OrderSummary({
       ) : hasSummary ? (
         <dl className="mt-4 space-y-1">
             <div className="rounded-xl bg-gray-50/80 px-3.5 py-3 sm:px-4">
-              <SummaryRow label="Items Total" value={formatInr(summary.itemsSubtotal)} />
-              <SummaryRow label="Subtotal" value={formatInr(summary.subtotal)} />
-              <SummaryRow label="Tax (GST)" value={formatInr(summary.taxAmount)} />
-              <SummaryRow label="Shipping Charges" value={formatInr(summary.shippingAmount)} />
+              <SummaryRow label="Items Total" value={formatInrPayment(summary.itemsSubtotal)} />
+              <SummaryRow label="Subtotal" value={formatInrPayment(summary.subtotal)} />
+              <SummaryRow label="Tax (GST)" value={formatInrPayment(summary.taxAmount)} />
+              <SummaryRow label="Shipping Charges" value={formatInrPayment(summary.shippingAmount)} />
 
               {summary.buyTwoGetOneDiscountAmount > 0 ? (
                 <SummaryRow
                   label={buyTwoGetOneDiscountLabel}
-                  value={formatInrDiscount(summary.buyTwoGetOneDiscountAmount)}
+                  value={formatInrPaymentDiscount(summary.buyTwoGetOneDiscountAmount)}
                   valueClassName="font-semibold text-emerald-700"
                 />
               ) : null}
@@ -122,7 +122,7 @@ export default function OrderSummary({
               {summary.firstOrderDiscountAmount > 0 ? (
                 <SummaryRow
                   label="First Order Discount"
-                  value={formatInrDiscount(summary.firstOrderDiscountAmount)}
+                  value={formatInrPaymentDiscount(summary.firstOrderDiscountAmount)}
                   valueClassName="font-semibold text-emerald-700"
                 />
               ) : null}
@@ -130,7 +130,7 @@ export default function OrderSummary({
               {showOnlinePaymentDiscount ? (
                 <SummaryRow
                   label="Online Payment Discount"
-                  value={formatInrDiscount(summary.onlinePaymentDiscountAmount)}
+                  value={formatInrPaymentDiscount(summary.onlinePaymentDiscountAmount)}
                   valueClassName="font-semibold text-emerald-700"
                 />
               ) : null}
@@ -138,7 +138,7 @@ export default function OrderSummary({
               {summary.discountAmount > 0 ? (
                 <SummaryRow
                   label={`Scratch Discount${summary.discountPercent > 0 ? ` (${summary.discountPercent}%)` : ''}`}
-                  value={formatInrDiscount(summary.discountAmount)}
+                  value={formatInrPaymentDiscount(summary.discountAmount)}
                   valueClassName="font-semibold text-emerald-700"
                 />
               ) : null}
@@ -155,7 +155,7 @@ export default function OrderSummary({
             <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-gray-950 bg-white px-3.5 py-3 sm:px-4">
               <dt className="text-base font-extrabold text-gray-950">Grand Total</dt>
               <dd className="text-lg font-extrabold tabular-nums text-gray-950 sm:text-xl">
-                {formatInr(summary.total)}
+                {formatInrPayment(summary.total)}
               </dd>
             </div>
         </dl>

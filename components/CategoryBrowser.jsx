@@ -1,12 +1,28 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
 import CategoryGrid from "@/components/CategoryGrid";
 import ProductList from "@/components/ProductList";
+import {
+  categorySubcategoriesPath,
+  resolveCategorySlug,
+} from "@/lib/category-seo";
 
 export default function CategoryBrowser({
   initialCategories,
   initialFeaturedProducts,
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedCategoryId = searchParams.get("category") ?? "";
+
+  const handleCategorySelect = (category) => {
+    const categorySlug = resolveCategorySlug(category);
+    if (!categorySlug) return;
+
+    router.push(categorySubcategoriesPath(category), { scroll: false });
+  };
+
   return (
     <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6">
       <div className="mb-4 pt-4">
@@ -23,6 +39,8 @@ export default function CategoryBrowser({
           stackOnMobile
           dotLoader
           initialCategories={initialCategories}
+          selectedCategoryId={selectedCategoryId}
+          onCategorySelect={handleCategorySelect}
         />
       </div>
 
