@@ -511,9 +511,33 @@ body {
   animation: tracking-panel-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.more-orders-arrow {
+  display: inline-block;
+  letter-spacing: -0.08em;
+  animation: more-orders-nudge 1.4s ease-in-out infinite;
+}
+
+@keyframes more-orders-nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+    opacity: 0.55;
+  }
+
+  50% {
+    transform: translateX(4px);
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tracking-overlay,
   .tracking-panel {
     animation: none;
+  }
+
+  .more-orders-arrow {
+    animation: none;
+    opacity: 1;
   }
 }

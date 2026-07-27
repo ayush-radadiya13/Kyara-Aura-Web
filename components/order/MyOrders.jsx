@@ -581,7 +581,17 @@ export default function MyOrders() {
                   Policies
                 </button>
               </div>
-              <p className="mt-0.5 text-xs text-gray-500">Select an order to preview details.</p>
+              <div className="mt-0.5 flex items-center justify-between gap-3">
+                <p className="min-w-0 text-xs text-gray-500">Select an order to preview details.</p>
+                {orders.length > 1 ? (
+                  <span className="inline-flex shrink-0 flex-row items-center gap-1 text-xs font-medium tracking-wide text-gray-500 sm:hidden">
+                    <span>More Orders</span>
+                    <span className="more-orders-arrow" aria-hidden="true">
+                      &gt;&gt;&gt;
+                    </span>
+                  </span>
+                ) : null}
+              </div>
             </div>
             <div className="-mx-3 flex min-w-0 gap-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:block lg:min-h-0 lg:flex-1 lg:space-y-2 lg:overflow-y-auto lg:pb-0 lg:pr-2" data-lenis-prevent>
               {orders.map((order) => (
@@ -1450,7 +1460,8 @@ function OrderCard({ order, selected, loading, invoiceLoading, onView, onTrack, 
   const canCancel = !cancelled && canCancelOrder(order);
   const canReturn = !cancelled && canReturnOrder(order);
   const showRefundIndicator = canPayRefund(order);
-  const shipmentStatus = order?.shipment?.shipment_status;
+  const shipmentStatus =
+    order?.shipment?.shipment_status ?? order?.shipment?.status ?? order?.shipment?.status_text;
   const returnDisplayStatus = getReturnDisplayStatus(order);
   const delivered = isDeliveredOrder(order);
   const isReturnTracking = returnDisplayStatus !== null;
@@ -1571,7 +1582,7 @@ function StatusBadge({ label, value }) {
   const tone = getStatusTone(value);
 
   return (
-    <span className={`inline-flex max-w-full rounded-full px-2.5 py-1 text-[0.68rem] font-bold ring-1 ${tone}`}>
+    <span className={`inline-flex max-w-full min-w-0 flex-wrap rounded-full px-2.5 py-1 text-[0.68rem] font-bold ring-1 ${tone}`}>
       <span className="opacity-70">{label}: </span>
       <span className="ml-1 min-w-0 break-words capitalize">{value}</span>
     </span>
@@ -1638,10 +1649,13 @@ function OrderDetail({ order, onTrack }) {
   const buyTwoGetOneDiscountLabel = getBuyTwoGetOneDiscountLabel(buyQty, getQty);
   const items = getOrderItems(order);
   const orderDate = formatDate(order.order_date ?? order.created_at ?? order.createdAt);
-  const estimatedDelivery = formatEstimatedDeliveryDate(order?.shipment?.estimated_delivery_at);
+  const estimatedDelivery = formatEstimatedDeliveryDate(getEstimatedDeliveryDate(order));
   const returnDate = formatDate(getReturnRequestedDate(order));
   const deliveryDetails = getDeliveryDetails(order);
   const shipment = order?.shipment;
+  const shipmentStatus = shipment?.shipment_status ?? shipment?.status ?? shipment?.status_text;
+  const waybill = shipment?.waybill ?? shipment?.tracking_number ?? shipment?.trackingNumber ?? '';
+  const courier = shipment?.provider ?? shipment?.courier ?? '';
   const returnDisplayStatus = getReturnDisplayStatus(order);
   const cancelled = isCancelledOrder(order);
   const delivered = isDeliveredOrder(order);
@@ -1651,6 +1665,8 @@ function OrderDetail({ order, onTrack }) {
   const shouldShowTrackingButton =
     !cancelled && !isReturnCompleted && (!delivered || returnDisplayStatus !== null);
   const showEstimatedDelivery = !cancelled && !isReturnTracking && (delivered || Boolean(estimatedDelivery));
+  const showShipmentSection =
+    !isReturnTracking && Boolean(shipmentStatus || waybill || courier);
   const amounts = normalizeOrderSummary(order);
 
   return (
@@ -1664,7 +1680,7 @@ function OrderDetail({ order, onTrack }) {
             </h2>
             <div className="mt-2 flex flex-wrap gap-2">
               {isReturnTracking ? (
-                <span className={`inline-flex max-w-full rounded-full px-2.5 py-1 text-[0.68rem] font-bold ring-1 ${getReturnStatusTone(returnDisplayStatus)}`}>
+                <span className={`inline-flex max-w-full min-w-0 rounded-full px-2.5 py-1 text-[0.68rem] font-bold ring-1 ${getReturnStatusTone(returnDisplayStatus)}`}>
                   <span className="opacity-70">Return Status: </span>
                   <span className="ml-1 min-w-0 break-words capitalize">{formatReturnDisplayStatus(returnDisplayStatus)}</span>
                 </span>
@@ -1674,9 +1690,6 @@ function OrderDetail({ order, onTrack }) {
                 <StatusBadge label="Order Status" value={formatOrderStatus(order.status ?? 'pending')} />
               )}
               <StatusBadge label="Payment status" value={formatPaymentStatus(order.payment_status ?? 'pending')} />
-              {statusMode === 'delivered' && shipment?.shipment_status ? (
-                <StatusBadge label="Shipment Status" value={formatShipmentStatus(shipment.shipment_status, shipment.raw_status)} />
-              ) : null}
             </div>
           </div>
 
@@ -1694,7 +1707,7 @@ function OrderDetail({ order, onTrack }) {
           ) : null}
         </div>
 
-        <div className={`mt-3 grid gap-3 ${showEstimatedDelivery ? 'sm:grid-cols-2' : ''}`}>
+        <div className={`mt-3 grid gap-3 ${showEstimatedDelivery ? 'grid-cols-1 sm:grid-cols-2' : ''}`}>
           <div className="rounded-xl bg-white p-2.5 ring-1 ring-gray-100">
             <p className="text-[0.68rem] font-bold uppercase tracking-wide text-gray-400">
               {isReturnTracking ? 'Return date' : 'Order date'}
@@ -1704,8 +1717,8 @@ function OrderDetail({ order, onTrack }) {
           {showEstimatedDelivery ? (
             <div className="rounded-xl bg-white p-2.5 ring-1 ring-gray-100">
               <p className="flex items-center gap-2 text-[0.68rem] font-bold uppercase tracking-wide text-gray-400">
-                <Plane className="h-4 w-4 text-gray-950" />
-                Estimated delivery
+                <Plane className="h-4 w-4 shrink-0 text-gray-950" />
+                Delivery Date
               </p>
               <p className="mt-1 text-sm font-semibold text-gray-800">{delivered ? 'Delivered' : estimatedDelivery}</p>
             </div>
@@ -1723,20 +1736,18 @@ function OrderDetail({ order, onTrack }) {
         )}
       </div>
 
-      {(shipment?.shipment_status && statusMode === 'default') || shipment?.waybill || shipment?.provider ? (
+      {showShipmentSection ? (
         <div className="rounded-[1.1rem] border border-gray-200 p-3">
           <h3 className="text-base font-bold text-gray-950">Shipment</h3>
-          <div className="mt-3 space-y-1.5 text-sm">
-            {shipment?.shipment_status && statusMode === 'default' ? (
+          <div className="mt-3 space-y-2.5 text-sm">
+            {shipmentStatus ? (
               <DeliveryField
-                label="Status"
-                value={formatShipmentStatus(shipment.shipment_status, shipment.raw_status)}
+                label="Shipment Status"
+                value={formatShipmentStatus(shipmentStatus, shipment?.raw_status)}
               />
             ) : null}
-            {shipment?.waybill ? <DeliveryField label="Waybill" value={shipment.waybill} /> : null}
-            {shipment?.provider ? (
-              <DeliveryField label="Courier" value={shipment.provider} />
-            ) : null}
+            <DeliveryField label="Waybill" value={waybill} />
+            <DeliveryField label="Courier" value={courier} />
           </div>
         </div>
       ) : null}
@@ -1815,17 +1826,32 @@ function Amount({ label, value, strong = false, discount = false }) {
 
 function DeliveryField({ label, value }) {
   return (
-    <div className="grid grid-cols-[4.25rem_minmax(0,1fr)] gap-2">
-      <span className="font-semibold text-gray-400">{label}</span>
-      <span className="break-words font-semibold text-gray-700">{value || '-'}</span>
+    <div className="grid grid-cols-1 gap-0.5 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:gap-2">
+      <span className="text-[0.68rem] font-bold uppercase tracking-wide text-gray-400 sm:text-sm sm:font-semibold sm:normal-case sm:tracking-normal">
+        {label}
+      </span>
+      <span className="min-w-0 break-words font-semibold text-gray-700">{value || '-'}</span>
     </div>
   );
+}
+
+function formatItemAttributeLines(item) {
+  const lines = [];
+  if (item.color) lines.push(String(item.color));
+  if (item.variant) lines.push(String(item.variant));
+
+  const size = item.size_text ?? item.product_size?.size_text ?? item.size;
+  if (size != null && String(size).trim() !== '') {
+    lines.push(`Size: ${String(size).trim()}`);
+  }
+
+  return lines;
 }
 
 function OrderItemRow({ item }) {
   const productName = getItemName(item);
   const itemImageSrc = getItemImageSrc(item);
-  const attributes = [item.color, item.variant, item.size_text ?? item.product_size?.size_text ?? item.size].filter(Boolean);
+  const attributes = formatItemAttributeLines(item);
 
   return (
     <article className="grid min-w-0 grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-3 py-2.5">
@@ -2083,6 +2109,20 @@ function parseDateValue(value) {
   const normalized = typeof value === 'string' ? value.trim().replace(' ', 'T') : value;
   const date = new Date(normalized);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getEstimatedDeliveryDate(order) {
+  return (
+    order?.shipment?.estimated_delivery_at ??
+    order?.shipment?.estimated_delivery_date ??
+    order?.shipment?.delivery_date ??
+    order?.estimated_delivery_at ??
+    order?.estimated_delivery_date ??
+    order?.estimated_delivery ??
+    order?.delivery_date ??
+    order?.expected_delivery_date ??
+    null
+  );
 }
 
 function formatEstimatedDeliveryDate(value) {
