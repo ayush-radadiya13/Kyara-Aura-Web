@@ -24,7 +24,7 @@ export default function CategoryBrowser({
   };
 
   return (
-    <section className=" sm:px-6">
+    <section className=" sm:px-6 mb-10">
       <div className="mb-4">
         <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-gold">
           Choose a category
