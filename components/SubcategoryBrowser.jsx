@@ -33,7 +33,7 @@ export default function SubcategoryBrowser({
   }
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       {subcategories.length ? (
         <div>
           <div className="mb-4">

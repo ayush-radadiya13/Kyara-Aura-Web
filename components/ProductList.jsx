@@ -156,7 +156,7 @@ function FilterDropdown({ label, displayLabel, openFilter, onToggle, children, p
 
       {isOpen ? (
         <div
-          className={`absolute left-0 top-full z-30 mt-4 max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-100 bg-white p-3 text-left shadow-xl shadow-gray-950/10 ${panelClassName}`}
+          className={`absolute left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 top-full z-30 mt-4 max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-100 bg-white p-3 text-left shadow-xl shadow-gray-950/10 ${panelClassName}`}
         >
           {children}
         </div>
@@ -514,8 +514,8 @@ export default function ProductList({
   return (
     <div >
       {isCatalog && (
-        <div className="mb-10 flex max-w-6xl items-center justify-end border-y border-gray-100 py-5 text-[14px] text-gray-800">
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+        <div className="mx-auto mb-10 flex max-w-6xl items-center justify-center sm:justify-end border-y border-gray-100 py-5 text-[14px] text-gray-800">
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
             <FilterDropdown
               label="Price"
               openFilter={openFilter}

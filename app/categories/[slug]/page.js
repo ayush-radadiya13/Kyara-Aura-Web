@@ -55,7 +55,7 @@ export default async function CategorySubcategoriesPage({ params }) {
     <div>
       <Header />
 
-      <section className="mx-auto max-w-7xl px-4 py-16">
+      <section className="mx-auto max-w-7xl px-4 py-10">
         <div className="mb-4 text-center">
           <h1
             className={`${categoryDisplay.className} mb-2 text-5xl font-medium tracking-[-0.05em] text-gray-950 md:text-5xl`}

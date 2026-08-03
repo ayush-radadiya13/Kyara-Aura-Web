@@ -96,7 +96,7 @@ export default function OrderSuccess({ orderId }) {
   const orderNumber = order?.order_number ?? `#${orderId}`;
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <div className="mx-auto max-w-5xl bg-white p-2 text-center sm:p-4">
         {loading ? (
           <LoaderBlock className="py-12" />

@@ -24,7 +24,7 @@ export default async function CollectionsPage() {
     <div className="bg-white text-gray-950">
       <Header />
 
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <div className="mb-4 text-center">
           <h1 className={`${collectionDisplay.className} mb-2 text-3xl font-medium tracking-[-0.05em] text-gray-950 md:text-5xl`}>
             Collections
