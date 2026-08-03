@@ -93,21 +93,27 @@ function PriceRangeSlider({ value, onChange }) {
   };
 
   return (
-    <div className="pt-7">
+    <div className="pt-7 px-1">
       <div className="relative h-10">
         <div className="absolute top-5 h-1 w-full rounded-full bg-gray-200" />
         <div className="absolute top-5 h-1 rounded-full bg-gray-950" style={rangeStyle} />
         <span
-          className="absolute top-0 -translate-x-1/2 rounded-md bg-gray-950 px-2 py-1 text-xs font-semibold text-white"
-          style={{ left: `${minPercent}%` }}
+          className="absolute top-0 z-10 rounded-md bg-gray-950 px-2 py-1 text-xs font-semibold text-white whitespace-nowrap"
+          style={{
+            left: `${minPercent}%`,
+            transform: `translateX(-${minPercent}%)`,
+          }}
         >
-          {minValue}
+          ₹{minValue.toLocaleString("en-IN")}
         </span>
         <span
-          className="absolute top-0 -translate-x-1/2 rounded-md bg-gray-950 px-2 py-1 text-xs font-semibold text-white"
-          style={{ left: `${maxPercent}%` }}
+          className="absolute top-0 z-10 rounded-md bg-gray-950 px-2 py-1 text-xs font-semibold text-white whitespace-nowrap"
+          style={{
+            left: `${maxPercent}%`,
+            transform: `translateX(-${maxPercent}%)`,
+          }}
         >
-          {maxValue}
+          ₹{maxValue.toLocaleString("en-IN")}
         </span>
         <input
           type="range"
@@ -138,9 +144,24 @@ function PriceRangeSlider({ value, onChange }) {
   );
 }
 
-function FilterDropdown({ label, displayLabel, openFilter, onToggle, children, panelClassName = "w-72" }) {
+function FilterDropdown({
+  label,
+  displayLabel,
+  openFilter,
+  onToggle,
+  children,
+  panelClassName = "w-72",
+  align = "left",
+}) {
   const isOpen = openFilter === label;
   const triggerLabel = displayLabel ?? label;
+
+  const alignClasses =
+    align === "right"
+      ? "right-0 left-auto translate-x-0"
+      : align === "center"
+      ? "left-1/2 -translate-x-1/2"
+      : "left-0 translate-x-0";
 
   return (
     <div className="relative">
@@ -156,7 +177,7 @@ function FilterDropdown({ label, displayLabel, openFilter, onToggle, children, p
 
       {isOpen ? (
         <div
-          className={`absolute left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 top-full z-30 mt-4 max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-100 bg-white p-3 text-left shadow-xl shadow-gray-950/10 ${panelClassName}`}
+          className={`absolute ${alignClasses} top-full z-30 mt-4 max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-100 bg-white p-4 text-left shadow-xl shadow-gray-950/10 ${panelClassName}`}
         >
           {children}
         </div>
@@ -520,7 +541,8 @@ export default function ProductList({
               label="Price"
               openFilter={openFilter}
               onToggle={toggleFilter}
-              panelClassName="w-80"
+              align="left"
+              panelClassName="w-72 sm:w-80"
             >
               <PriceRangeSlider value={priceRange} onChange={handlePriceRangeChange} />
               <p className="mt-3 text-xs text-gray-500">
@@ -533,6 +555,7 @@ export default function ProductList({
               displayLabel={selectedCategoryLabel || undefined}
               openFilter={openFilter}
               onToggle={toggleFilter}
+              align="center"
               panelClassName="w-40"
             >
               <div className="flex max-h-[216px] flex-col overflow-y-auto" data-lenis-prevent>
@@ -545,7 +568,7 @@ export default function ProductList({
                       : "text-gray-700 hover:bg-gray-50 hover:text-gray-950"
                   }`}
                 >
-                  All Categories
+                  All
                 </button>
                 {categoriesLoading ? (
                   <span className="px-4 py-2 text-xs text-gray-500">Loading categories...</span>
@@ -573,6 +596,7 @@ export default function ProductList({
               displayLabel={selectedSizeLabel || undefined}
               openFilter={openFilter}
               onToggle={toggleFilter}
+              align="right"
               panelClassName="w-36"
             >
               <div className="flex max-h-72 flex-col overflow-y-auto" data-lenis-prevent>
