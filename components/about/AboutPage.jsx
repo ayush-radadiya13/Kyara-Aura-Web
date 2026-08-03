@@ -35,7 +35,7 @@ export default function AboutPage({ displayClassName = '', bodyClassName = '' })
   return (
     <div className={`bg-white text-gray-950 ${bodyClassName}`}>
       {/* Hero */}
-      <section className="px-4 py-16 sm:px-6 sm:py-20">
+      <section className="px-4 py-16 sm:px-6">
         <div className="mx-auto max-w-4xl text-center">
           <AboutReveal>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
@@ -57,7 +57,7 @@ export default function AboutPage({ displayClassName = '', bodyClassName = '' })
       <SectionDivider />
 
       {/* Our Story */}
-      <section className="bg-gray-50 px-4 py-14 sm:px-6 sm:py-16">
+      <section className="bg-gray-50 px-4 py-16 sm:px-6">
         <div className="mx-auto max-w-4xl text-center">
           <AboutReveal delay={80}>
             <h2
@@ -89,7 +89,7 @@ export default function AboutPage({ displayClassName = '', bodyClassName = '' })
       <SectionDivider />
 
       {/* Our Mission */}
-      <section className="px-4 py-14 sm:px-6 sm:py-16">
+      <section className="px-4 py-16 sm:px-6">
         <div className="mx-auto max-w-4xl text-center">
           <AboutReveal delay={80}>
             <h2
@@ -115,7 +115,7 @@ export default function AboutPage({ displayClassName = '', bodyClassName = '' })
       <SectionDivider />
 
       {/* Why Choose Us */}
-      <section className="bg-gray-50 px-4 py-14 sm:px-6 sm:py-16">
+      <section className="bg-gray-50 px-4 py-16 sm:px-6">
         <div className="mx-auto max-w-4xl">
           <AboutReveal delay={80}>
             <h2
@@ -146,7 +146,7 @@ export default function AboutPage({ displayClassName = '', bodyClassName = '' })
       <SectionDivider />
 
       {/* Our Promise */}
-      <section className="px-4 py-14 sm:px-6 sm:py-16">
+      <section className="px-4 py-16 sm:px-6">
         <div className="mx-auto max-w-4xl">
           <AboutReveal delay={80}>
             <h2
@@ -169,7 +169,7 @@ export default function AboutPage({ displayClassName = '', bodyClassName = '' })
       <SectionDivider />
 
       {/* Closing */}
-      <section className="bg-gray-50 px-4 py-16 sm:px-6 sm:py-20">
+      <section className="bg-gray-50 px-4 py-16 sm:px-6">
         <div className="mx-auto max-w-4xl text-center">
           <AboutReveal delay={80}>
             <h2

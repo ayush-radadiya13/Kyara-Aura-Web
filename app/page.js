@@ -72,7 +72,7 @@ export default async function HomePage() {
         </div>
 
         {/* Categories Section */}
-        <section className="home-scroll-stable mx-auto max-w-7xl px-4 py-6 sm:px-6" style={{ '--home-delay': '90ms' }}>
+        <section className="home-scroll-stable mx-auto max-w-7xl px-4 py-16 sm:px-6" style={{ '--home-delay': '90ms' }}>
           <div className="mb-8">
             <h2 className="font-display text-3xl font-light text-gray-950 sm:text-4xl ">Categories</h2>
             <p className="mt-2 text-sm leading-6 text-gray-600">Find your perfect style.</p>
@@ -80,7 +80,7 @@ export default async function HomePage() {
 
           <CategoryGrid variant="strip" limit={6} initialCategories={categories} />
         </section>
-        <section className="home-scroll-stable mx-auto max-w-7xl px-4 pb-16 sm:px-6" style={{ '--home-delay': '160ms' }}>
+        <section className="home-scroll-stable mx-auto max-w-7xl px-4 py-16 sm:px-6" style={{ '--home-delay': '160ms' }}>
           <div className="mb-8">
             <h2 className="font-display text-3xl font-light text-gray-950 sm:text-4xl">Products</h2>
             <p className="mt-2 text-sm leading-6 text-gray-600">Browse our featured collection.</p>
@@ -126,7 +126,7 @@ export default async function HomePage() {
         </section>
 
         {allProducts.length > 20 && (
-          <section className="home-scroll-stable mt-16 mx-auto max-w-7xl px-4 pb-10 sm:px-6" style={{ '--home-delay': '160ms' }}> 
+          <section className="home-scroll-stable mx-auto max-w-7xl px-4 py-16 sm:px-6" style={{ '--home-delay': '160ms' }}> 
             <ProductList
                 limit={20}
                 offset={20}
@@ -136,7 +136,7 @@ export default async function HomePage() {
           </section>
         )}
 
-        <section className="home-scroll-stable mx-auto max-w-7xl mt-8 px-4 pb-4 sm:px-6" style={{ '--home-delay': '120ms' }}>
+        <section className="home-scroll-stable mx-auto max-w-7xl px-4 py-16 sm:px-6" style={{ '--home-delay': '120ms' }}>
           <HomeCollectionShowcase
             limit={4}
             emptyMessage=" "
@@ -146,8 +146,8 @@ export default async function HomePage() {
 
         {/* Best Seller Products Section */}
         <section className="home-scroll-stable " style={{ '--home-delay': '140ms' }}>
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[260px_1fr]">
-            <div className="home-reveal lg:pt-8" style={{ '--home-delay': '180ms' }}>
+          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[260px_1fr]">
+            <div className="home-reveal lg:pt-0" style={{ '--home-delay': '180ms' }}>
               <p className="mb-6 text-[10px] uppercase tracking-[0.32em] text-gray-400">Shop</p>
               <h2 className="font-display text-3xl font-light text-gray-950 sm:text-4xl">
                 <span className="inline sm:block">Best Seller</span>{' '}

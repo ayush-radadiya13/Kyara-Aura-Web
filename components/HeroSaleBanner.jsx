@@ -18,7 +18,7 @@ export default function HeroSaleBanner({ product }) {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_90%_80%,rgba(197,139,43,0.12),transparent_50%)]" />
       <div className="absolute inset-0 opacity-[0.04] bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E')]" />
 
-      <div className="relative max-w-7xl mx-auto px-4 py-14 md:py-20 lg:py-24">
+      <div className="relative max-w-7xl mx-auto px-4 py-16">
         <div className="flex flex-col md:grid md:grid-cols-2 md:items-center gap-10 md:gap-12 lg:gap-14">
           <div className="order-1 md:order-2 flex items-center justify-center md:justify-end">
             <div className="relative w-full max-w-[300px] sm:max-w-[340px] md:max-w-md h-[400px] sm:h-[410px] md:h-[420px] max-h-[420px] flex items-center justify-center p-4 hero-sale-img rounded-none overflow-hidden bg-white/60 shadow-gold-glow-sm ring-1 ring-gold/20 border border-gray-200">

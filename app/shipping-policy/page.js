@@ -20,7 +20,7 @@ export default async function ShippingPolicyPage() {
     <div className="bg-white text-gray-950">
       <Header />
 
-      <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:py-16">
+      <main className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
         <article className="max-w-5xl text-sm leading-6 text-gray-600">
           <header className="mb-8">
             <h1 className="font-display text-3xl font-semibold text-gray-900 sm:text-4xl">

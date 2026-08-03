@@ -192,6 +192,7 @@ export default function ProductDetail({ product: initialProduct, slug }) {
       label: size.label,
       id: size.id,
       price: size.price,
+      discount_price: size.discount_price ?? size.discountPrice ?? null,
       quantity: size.quantity,
     })).filter((size) => size.value);
 
@@ -251,10 +252,33 @@ export default function ProductDetail({ product: initialProduct, slug }) {
   };
 
   const selectedPrice = selectedSizeOption?.price || product.price;
-  const selectedOriginalPrice =
-    product.discount > 0 && product.discount < 100
-      ? Math.round(selectedPrice / (1 - product.discount / 100))
-      : product.originalPrice;
+
+  let selectedOriginalPrice = null;
+  if (selectedSizeOption && selectedSizeOption.discount_price !== undefined) {
+    selectedOriginalPrice =
+      selectedSizeOption.discount_price != null
+        ? Number(selectedSizeOption.discount_price)
+        : null;
+  } else if (selectedSizeOption && selectedSizeOption.discountPrice !== undefined) {
+    selectedOriginalPrice =
+      selectedSizeOption.discountPrice != null
+        ? Number(selectedSizeOption.discountPrice)
+        : null;
+  } else if (product?.discount_price !== undefined) {
+    selectedOriginalPrice =
+      product.discount_price != null
+        ? Number(product.discount_price)
+        : null;
+  } else if (product?.discount > 0 && product?.discount < 100) {
+    selectedOriginalPrice = Math.round(selectedPrice / (1 - product.discount / 100));
+  } else {
+    selectedOriginalPrice = product?.originalPrice ?? null;
+  }
+
+  const calculatedDiscount =
+    selectedOriginalPrice && selectedOriginalPrice > selectedPrice
+      ? Math.round(((selectedOriginalPrice - selectedPrice) / selectedOriginalPrice) * 100)
+      : (product?.discount > 0 ? product.discount : 0);
 
   const refreshCart = async () => {
     const cart = await getCartApi();
@@ -347,7 +371,9 @@ export default function ProductDetail({ product: initialProduct, slug }) {
     router.push(`${APP_ROUTES.PAYMENT_METHOD}?${params.toString()}`);
   };
 
-  const formattedOriginalPrice = selectedOriginalPrice.toLocaleString('en-IN');
+  const formattedOriginalPrice = selectedOriginalPrice
+    ? selectedOriginalPrice.toLocaleString('en-IN')
+    : '';
   const formattedPrice = selectedPrice.toLocaleString('en-IN');
   const hasMoreProductInfo = product.specs.length > 4;
   const visibleProductSpecs = showFullInfo ? product.specs : product.specs.slice(0, 4);
@@ -468,12 +494,12 @@ export default function ProductDetail({ product: initialProduct, slug }) {
 
             <div className="mt-6 flex flex-wrap items-baseline gap-3">
               <span className="font-display text-3xl font-medium text-gray-950">₹{formattedPrice}</span>
-              {selectedOriginalPrice > selectedPrice && (
+              {selectedOriginalPrice && selectedOriginalPrice > selectedPrice && (
                 <span className="text-lg text-gray-400 line-through">₹{formattedOriginalPrice}</span>
               )}
-              {product.discount > 0 && (
-                <span className="text-md font-semibold uppercase  text-green-700">
-                  {product.discount}% Off
+              {calculatedDiscount > 0 && (
+                <span className="text-md font-semibold uppercase text-green-700">
+                  {calculatedDiscount}% Off
                 </span>
               )}
             </div>

@@ -32,7 +32,7 @@ export default function Footer() {
 
   return (
     <footer className="bg-[#eee9e1] text-black">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-8 sm:grid-cols-2 lg:grid-cols-[1.15fr_0.8fr_0.8fr_1.15fr] lg:px-8 lg:py-8">
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:grid-cols-2 lg:grid-cols-[1.15fr_0.8fr_0.8fr_1.15fr] lg:px-8">
         <div>
           <Link href="/" className={`relative block overflow-hidden transition-opacity hover:opacity-80 ${isApiLogo ? 'h-24 w-64 sm:h-28 sm:w-72' : 'h-20 w-48 sm:h-24 sm:w-56'}`}>
             <Image

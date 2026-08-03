@@ -96,7 +96,7 @@ export default function CategoryDetail({ slug }) {
       </section>
 
       {category.children?.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 pb-16">
+        <section className="max-w-7xl mx-auto px-4 py-16">
           <h2 className="font-display text-2xl md:text-3xl text-gray-900 mb-8">
             Subcategories
           </h2>

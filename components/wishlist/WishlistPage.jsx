@@ -49,7 +49,7 @@ export default function WishlistPage() {
 
   if (isLoading) {
     return (
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
         <WishlistHero count={0} />
         <LoaderBlock className="py-12" />
       </section>
@@ -80,7 +80,7 @@ export default function WishlistPage() {
     <section
       className={`${
         items.length
-          ? 'mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6'
+          ? 'mx-auto max-w-7xl px-4 py-16 sm:px-6'
           : 'bg-white fixed inset-0 z-30 flex w-full flex-col items-center justify-center px-4'
       }`}
     >

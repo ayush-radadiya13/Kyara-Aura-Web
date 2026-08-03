@@ -71,7 +71,7 @@ export default function StorefrontOffers({ offers }) {
   }
 
   return (
-    <section className="max-w-7xl mx-auto px-4 py-16 md:py-20 border-t border-gray-200">
+    <section className="max-w-7xl mx-auto px-4 py-16 border-t border-gray-200">
       <div className="mb-10 md:mb-12 text-center md:text-left">
         <p className="text-gold text-xs tracking-[0.35em] uppercase mb-3">Limited time</p>
         <h2 className="font-display text-2xl md:text-3xl text-gray-900">Offers &amp; discounts</h2>

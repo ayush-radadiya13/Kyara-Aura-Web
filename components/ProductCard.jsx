@@ -58,12 +58,18 @@ export default function ProductCard({
   const [cartLoading, setCartLoading] = useState(false);
   const [cartError, setCartError] = useState('');
   const href = `/products/${product.slug}`;
-  const originalPrice = product.oldPrice ?? product.originalPrice;
-  const discountPercent =
-    product.discount ??
-    (originalPrice && originalPrice > product.price
+  const originalPrice =
+    product.discount_price != null
+      ? Number(product.discount_price)
+      : (product.oldPrice ?? product.originalPrice);
+  const calculatedDiscountPercent =
+    originalPrice && originalPrice > product.price
       ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
-      : 0);
+      : 0;
+  const discountPercent =
+    calculatedDiscountPercent > 0
+      ? calculatedDiscountPercent
+      : (product.discount ?? 0);
   const productImageSrc = getProductImageSrc(product);
   const wishlistLabel = wishlistActive ? 'Remove from wishlist' : 'Add to wishlist';
   const quickAddSize = getQuickAddSize(product);

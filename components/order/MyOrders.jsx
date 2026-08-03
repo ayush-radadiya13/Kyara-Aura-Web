@@ -530,7 +530,7 @@ export default function MyOrders() {
 
   if (!isHydrated || (isAuthenticated && loading)) {
     return (
-      <section className="mx-auto max-w-6xl px-4 py-12">
+      <section className="mx-auto max-w-6xl px-4 py-16">
         <LoaderBlock />
       </section>
     );

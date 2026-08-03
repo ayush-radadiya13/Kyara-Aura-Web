@@ -42,7 +42,7 @@ export default function BuyTwoGetOnePromoBanner() {
           />
         </div>
 
-        <div className="flex flex-col justify-center px-6 py-10 sm:px-10 sm:py-12 lg:px-14 lg:py-16">
+        <div className="flex flex-col justify-center px-6 py-16 sm:px-10 lg:px-14">
           <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.32em] text-gold">
             Limited time offer
           </p>

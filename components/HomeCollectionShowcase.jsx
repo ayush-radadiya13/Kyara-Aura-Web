@@ -41,19 +41,31 @@ function getProductUpdatedTime(product) {
 }
 
 function ProductPrice({ product, className = "" }) {
-  const originalPrice = product.oldPrice ?? product.originalPrice;
+  const originalPrice =
+    product.discount_price != null
+      ? Number(product.discount_price)
+      : (product.oldPrice ?? product.originalPrice);
+  const calculatedDiscount =
+    originalPrice && originalPrice > product.price
+      ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
+      : (product.discount ?? 0);
   const hasDiscount = originalPrice && originalPrice > product.price;
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
+      <span className={hasDiscount ? "font-semibold text-gray-950" : "text-gray-600"}>
+        ₹{product.price?.toLocaleString("en-IN")}
+      </span>
       {hasDiscount ? (
-        <span className="text-gray-400 line-through">
-          Rs. {originalPrice.toLocaleString("en-IN")}
+        <span className="text-xs text-gray-400 line-through sm:text-sm">
+          ₹{originalPrice.toLocaleString("en-IN")}
         </span>
       ) : null}
-      <span className={hasDiscount ? "font-semibold text-gray-950" : "text-gray-600"}>
-        Rs. {product.price?.toLocaleString("en-IN")}
-      </span>
+      {calculatedDiscount > 0 ? (
+        <span className="text-xs font-semibold text-green-700 uppercase">
+          {calculatedDiscount}% OFF
+        </span>
+      ) : null}
     </div>
   );
 }

@@ -367,25 +367,6 @@ export default function ProductList({
       priceRange[0] !== PRICE_FILTER_MIN ||
       priceRange[1] !== PRICE_FILTER_MAX ||
       String(selectedCategoryId ?? "") !== String(categoryId ?? ""));
-  const resultTotal =
-    useServerPagination && !usingClientFilterSubset
-      ? apiPagination?.total ?? products.length
-      : products.length;
-  const resultStart = products.length
-    ? useServerPagination
-      ? usingClientFilterSubset
-        ? 1
-        : (activePage - 1) * (apiPagination?.perPage ?? pageSize) + 1
-      : (activePage - 1) * pageSize + 1
-    : 0;
-  const resultEnd = useServerPagination
-    ? usingClientFilterSubset
-      ? products.length
-      : Math.min(
-          (activePage - 1) * (apiPagination?.perPage ?? pageSize) + products.length,
-          resultTotal,
-        )
-    : Math.min(activePage * pageSize, products.length);
 
   const syncPageInUrl = (page) => {
     if (!useServerPagination) return;
@@ -533,116 +514,109 @@ export default function ProductList({
   return (
     <div >
       {isCatalog && (
-        <div className="mb-10 max-w-6xl flex flex-col gap-5 border-y border-gray-100 py-5 text-[14px] text-gray-800 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
-          <p>
-            Showing {resultStart}-{resultEnd} of {resultTotal} results.
-          </p>
+        <div className="mb-10 flex max-w-6xl items-center justify-end border-y border-gray-100 py-5 text-[14px] text-gray-800">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+            <FilterDropdown
+              label="Price"
+              openFilter={openFilter}
+              onToggle={toggleFilter}
+              panelClassName="w-80"
+            >
+              <PriceRangeSlider value={priceRange} onChange={handlePriceRangeChange} />
+              <p className="mt-3 text-xs text-gray-500">
+                Filtering products between ₹{priceRange[0].toLocaleString("en-IN")} and ₹{priceRange[1].toLocaleString("en-IN")}.
+              </p>
+            </FilterDropdown>
 
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between lg:gap-9">
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-              <FilterDropdown
-                label="Price"
-                openFilter={openFilter}
-                onToggle={toggleFilter}
-                panelClassName="w-80"
-              >
-                <PriceRangeSlider value={priceRange} onChange={handlePriceRangeChange} />
-                <p className="mt-3 text-xs text-gray-500">
-                  Filtering products between ₹{priceRange[0].toLocaleString("en-IN")} and ₹{priceRange[1].toLocaleString("en-IN")}.
-                </p>
-              </FilterDropdown>
+            <FilterDropdown
+              label="Category"
+              displayLabel={selectedCategoryLabel || undefined}
+              openFilter={openFilter}
+              onToggle={toggleFilter}
+              panelClassName="w-40"
+            >
+              <div className="flex max-h-[216px] flex-col overflow-y-auto" data-lenis-prevent>
+                <button
+                  type="button"
+                  onClick={() => handleCategoryChange("")}
+                  className={`rounded-xl px-3 py-2 text-left text-sm transition ${
+                    !selectedCategoryId
+                      ? "bg-gray-950 font-semibold text-white"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-gray-950"
+                  }`}
+                >
+                  All Categories
+                </button>
+                {categoriesLoading ? (
+                  <span className="px-4 py-2 text-xs text-gray-500">Loading categories...</span>
+                ) : (
+                  categories.map((category) => (
+                    <button
+                      key={category._id}
+                      type="button"
+                      onClick={() => handleCategoryChange(String(category._id))}
+                      className={`rounded-xl px-3 py-2 text-left text-sm transition ${
+                        String(selectedCategoryId) === String(category._id)
+                          ? "bg-gray-950 font-semibold text-white"
+                          : "text-gray-700 hover:bg-gray-50 hover:text-gray-950"
+                      }`}
+                    >
+                      {category.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            </FilterDropdown>
 
-              <FilterDropdown
-                label="Category"
-                displayLabel={selectedCategoryLabel || undefined}
-                openFilter={openFilter}
-                onToggle={toggleFilter}
-                panelClassName="w-40"
-              >
-                <div className="flex max-h-72 flex-col overflow-y-auto" data-lenis-prevent>
-                  <button
-                    type="button"
-                    onClick={() => handleCategoryChange("")}
-                    className={`rounded-xl px-3 py-2 text-left text-sm transition ${
-                      !selectedCategoryId
-                        ? "bg-gray-950 font-semibold text-white"
-                        : "text-gray-700 hover:bg-gray-50 hover:text-gray-950"
-                    }`}
-                  >
-                    All Categories
-                  </button>
-                  {categoriesLoading ? (
-                    <span className="px-4 py-2 text-xs text-gray-500">Loading categories...</span>
-                  ) : (
-                    categories.map((category) => (
+            <FilterDropdown
+              label="Size"
+              displayLabel={selectedSizeLabel || undefined}
+              openFilter={openFilter}
+              onToggle={toggleFilter}
+              panelClassName="w-36"
+            >
+              <div className="flex max-h-72 flex-col overflow-y-auto" data-lenis-prevent>
+                {sizesLoading ? (
+                  <span className="px-3 py-2 text-xs text-gray-500">Loading sizes...</span>
+                ) : sizes.length ? (
+                  sizes.map((size) => {
+                    const sizeKeys = [String(size._id), normalizeFilterValue(size.name)].filter(Boolean);
+                    const isSelected = sizeKeys.some((sizeKey) => selectedSizeSet.has(sizeKey));
+
+                    return (
                       <button
-                        key={category._id}
+                        key={size._id}
                         type="button"
-                        onClick={() => handleCategoryChange(String(category._id))}
+                        onClick={() => toggleSize(size)}
+                        aria-pressed={isSelected}
                         className={`rounded-xl px-3 py-2 text-left text-sm transition ${
-                          String(selectedCategoryId) === String(category._id)
+                          isSelected
                             ? "bg-gray-950 font-semibold text-white"
                             : "text-gray-700 hover:bg-gray-50 hover:text-gray-950"
                         }`}
                       >
-                        {category.name}
+                        {size.name}
                       </button>
-                    ))
-                  )}
-                </div>
-              </FilterDropdown>
+                    );
+                  })
+                ) : (
+                  <span className="px-3 py-2 text-xs text-gray-500">No sizes available.</span>
+                )}
+              </div>
+            </FilterDropdown>
 
-              <FilterDropdown
-                label="Size"
-                displayLabel={selectedSizeLabel || undefined}
-                openFilter={openFilter}
-                onToggle={toggleFilter}
-                panelClassName="w-36"
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={resetFilters}
+                aria-label="Clear filters"
+                title="Clear filters"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-950 text-white transition hover:bg-gray-800"
               >
-                <div className="flex max-h-72 flex-col overflow-y-auto" data-lenis-prevent>
-                  {sizesLoading ? (
-                    <span className="px-3 py-2 text-xs text-gray-500">Loading sizes...</span>
-                  ) : sizes.length ? (
-                    sizes.map((size) => {
-                      const sizeKeys = [String(size._id), normalizeFilterValue(size.name)].filter(Boolean);
-                      const isSelected = sizeKeys.some((sizeKey) => selectedSizeSet.has(sizeKey));
-
-                      return (
-                        <button
-                          key={size._id}
-                          type="button"
-                          onClick={() => toggleSize(size)}
-                          aria-pressed={isSelected}
-                          className={`rounded-xl px-3 py-2 text-left text-sm transition ${
-                            isSelected
-                              ? "bg-gray-950 font-semibold text-white"
-                              : "text-gray-700 hover:bg-gray-50 hover:text-gray-950"
-                          }`}
-                        >
-                          {size.name}
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <span className="px-3 py-2 text-xs text-gray-500">No sizes available.</span>
-                  )}
-                </div>
-              </FilterDropdown>
-
-              {hasActiveFilters ? (
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  aria-label="Clear filters"
-                  title="Clear filters"
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-950 text-white transition hover:bg-gray-800"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              ) : null}
-            </div>
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
           </div>
-
         </div>
       )}
 

@@ -53,7 +53,7 @@ export default function UserProfile() {
 
   if (!isHydrated || !isAuthenticated || profileQuery.isLoading) {
     return (
-      <section className="mx-auto w-full max-w-3xl px-4 py-12">
+      <section className="mx-auto w-full max-w-3xl px-4 py-16">
         <LoaderBlock />
       </section>
     );
@@ -148,7 +148,7 @@ export default function UserProfile() {
   };
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-white px-4 py-4 sm:py-6">
+    <div className="flex flex-1 items-center justify-center bg-white px-4 py-16">
       <AuthSplitLayout
         imageSrc="/assets/ka-logo.png"
         imageAlt="Kayra Aura"
