@@ -146,9 +146,9 @@ export default async function HomePage() {
 
         {/* Best Seller Products Section */}
         <section className="home-scroll-stable " style={{ '--home-delay': '140ms' }}>
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[260px_1fr]">
+          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[260px_1fr]">
             <div className="home-reveal lg:pt-0" style={{ '--home-delay': '180ms' }}>
-              <p className="mb-6 text-[10px] uppercase tracking-[0.32em] text-gray-400">Shop</p>
+              <p className="mb-4 text-[10px] uppercase tracking-[0.32em] text-gray-400">Shop</p>
               <h2 className="font-display text-3xl font-light text-gray-950 sm:text-4xl">
                 <span className="inline sm:block">Best Seller</span>{' '}
                 <span className="inline sm:block">Products</span>
